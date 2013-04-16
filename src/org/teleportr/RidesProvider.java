@@ -128,6 +128,7 @@ public class RidesProvider extends ContentProvider {
                     insert.bindLong(4, cv.getAsLong("lng"));
                     insert.bindString(5, cv.getAsString("geohash"));
                     insert.executeInsert();
+                    Log.d(TAG, "stored " + cv.getAsString("geohash"));
                 }
                 break;
             case RIDES:
@@ -207,6 +208,13 @@ public class RidesProvider extends ContentProvider {
         		where += " AND key='"+key+"'";
         	return db.getReadableDatabase().query("places",
         			null, where, null, null, null, null);
+        case PLACES:
+            return db.getReadableDatabase().rawQuery(
+            		"SELECT R._id, name.value, address.value, R.\"from\" FROM 'rides' AS R " +
+            				"LEFT JOIN 'places' AS name ON R.\"from\" = name.geohash AND name.key = 'name' " +
+            				"LEFT JOIN 'places' AS address ON R.\"from\" = address.geohash AND address.key = 'address' " +
+            				"GROUP BY R.\"from\" ORDER BY count(R.\"from\") DESC;", null);
+        
         }
         return null;
     }

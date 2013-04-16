@@ -100,7 +100,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 				Uri.parse("content://org.teleportr.test/places"),
 				null, null, null, null);
 		
-    	assertEquals("there be 5 dummy places", 5, places.getCount());
+    	assertEquals("there be two from places", 2, places.getCount());
     	places.moveToFirst();
     	assertEquals("Home is most often used","Home", places.getString(1));
     	assertEquals("Address","Hipperstr. 42", places.getString(2));
