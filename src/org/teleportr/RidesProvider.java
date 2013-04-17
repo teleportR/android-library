@@ -209,11 +209,21 @@ public class RidesProvider extends ContentProvider {
         	return db.getReadableDatabase().query("places",
         			null, where, null, null, null, null);
         case PLACES:
-            return db.getReadableDatabase().rawQuery(
-            		"SELECT R._id, name.value, address.value, R.\"from\" FROM 'rides' AS R " +
-            				"LEFT JOIN 'places' AS name ON R.\"from\" = name.geohash AND name.key = 'name' " +
-            				"LEFT JOIN 'places' AS address ON R.\"from\" = address.geohash AND address.key = 'address' " +
-            				"GROUP BY R.\"from\" ORDER BY count(R.\"from\") DESC;", null);
+        	String from = uri.getQueryParameter("from");
+        	if (from == null) {
+        		return db.getReadableDatabase().rawQuery(
+        				"SELECT R._id, name.value, address.value, R.\"from\" FROM 'rides' AS R " +
+        						"LEFT JOIN 'places' AS name ON R.\"from\" = name.geohash AND name.key = 'name' " +
+        						"LEFT JOIN 'places' AS address ON R.\"from\" = address.geohash AND address.key = 'address' " +
+        						"GROUP BY R.\"from\" ORDER BY count(R.\"from\") DESC;", null);
+        	} else {
+        		return db.getReadableDatabase().rawQuery(
+        				"SELECT R._id, name.value, address.value, R.\"to\" FROM 'rides' AS R " +
+        						"LEFT JOIN 'places' AS name ON R.\"to\" = name.geohash AND name.key = 'name' " +
+        						"LEFT JOIN 'places' AS address ON R.\"to\" = address.geohash AND address.key = 'address' " +
+        						"WHERE \"from\" IS '"+from+"' " +
+        						"GROUP BY R.\"to\" ORDER BY count(R.\"to\") DESC;", null);
+        	}
         
         }
         return null;

@@ -1,6 +1,8 @@
 package org.teleportr.test;
 
 
+import java.util.Date;
+
 import org.teleportr.Place;
 import org.teleportr.Ride;
 import org.teleportr.RidesProvider;
@@ -43,7 +45,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
 		getProvider().setAuthority("org.teleportr.test");
 		
-		// search dummy #1
+		// dummy places
 		home = new Place(52.439716, 13.448982)
 			.name("Home")
 			.address("Hipperstr. 42");
@@ -52,12 +54,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 			.name("Cafe Schön")
 			.set("4sq-id", "42");
 		
-		new Ride()
-			.type(Ride.SEARCH)
-			.from(home)
-			.to(schönhauser);
-		
-		// search dummy #2
 		bar = new Place(52.4345, 13.44234232)
 			.name("Whiskybar")
 			.address("Weserstr. 125");
@@ -65,19 +61,39 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 		döner = new Place(57.545375, 17.453748)
 			.name("Moustafa");
 				
+		park = new Place(53.4324245, 12.443534572)
+			.name("Slackline");
+		
+		// dummy rides
 		new Ride()
 			.type(Ride.SEARCH)
 			.from(home)
-			.to(bar);
+			.to(schönhauser)
+			.dep(new Date(124));
 		
-		// search dummy #3
-		park = new Place(53.4324245, 12.443534572)
-			.name("Slackline");
-				
+		new Ride()
+			.type(Ride.SEARCH)
+			.from(home)
+			.to(park)
+			.dep(new Date(12657));
+		
 		new Ride()
 			.type(Ride.SEARCH)
 			.from(park)
-			.to(home);
+			.to(home)
+			.dep(new Date(65345));
+		
+		new Ride()
+			.type(Ride.SEARCH)
+			.from(home)
+			.to(park)
+			.dep(new Date(4533));
+		
+		new Ride()
+			.type(Ride.SEARCH)
+			.from(home)
+			.to(bar)
+			.dep(new Date(543258));
 		
 		Ride.saveAll(context);
 	}
@@ -87,7 +103,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 				Uri.parse("content://org.teleportr.test/history"),
 				null, null, null, null);
 		
-    	assertEquals("there be dummy search history", 3, history.getCount());    	
+    	assertEquals("there be dummy search history", 5, history.getCount());    	
     }
 
 	public void testPlaceKeyValues() {
@@ -102,8 +118,19 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 		
     	assertEquals("there be two from places", 2, places.getCount());
     	places.moveToFirst();
-    	assertEquals("Home is most often used","Home", places.getString(1));
+    	assertEquals("most often used as from","Home", places.getString(1));
     	assertEquals("Address","Hipperstr. 42", places.getString(2));
+    	
+    }
+	
+	public void testAutocomplete_to() {
+		Cursor places = getMockContentResolver().query(
+				Uri.parse("content://org.teleportr.test/places?from=" + home.geohash),
+				null, null, null, null);
+		
+    	assertEquals("there be three places from home", 3, places.getCount());
+    	places.moveToFirst();
+    	assertEquals("most often used as to","Slackline", places.getString(1));
     	
     }
 	
