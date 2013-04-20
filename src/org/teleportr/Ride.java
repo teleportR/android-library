@@ -20,16 +20,16 @@ public class Ride {
 	public static ArrayList<ContentValues> batch = new ArrayList<ContentValues>();
 	
 	public static void saveAll(Context context) {
+		
+		context.getContentResolver().bulkInsert(
+				Uri.parse("content://" + context.getPackageName() + "/places"),
+				(ContentValues[]) Place.batch.toArray(new ContentValues[Place.batch.size()]));
+		Place.batch.clear();
         
 		context.getContentResolver().bulkInsert(
 				Uri.parse("content://" + context.getPackageName() + "/rides"),
         		(ContentValues[]) batch.toArray(new ContentValues[batch.size()]));
         batch.clear();
-        
-        context.getContentResolver().bulkInsert(
-        		Uri.parse("content://" + context.getPackageName() + "/places"),
-        		(ContentValues[]) Place.batch.toArray(new ContentValues[Place.batch.size()]));
-        Place.batch.clear();
 	}
 
 	public Ride() {
@@ -47,8 +47,18 @@ public class Ride {
 		return this;
 	}
 	
+	public Ride from(String from) {
+		values.put("from", from);
+		return this;
+	}
+	
 	public Ride to(Place to) {
 		values.put("to", to.geohash);
+		return this;
+	}
+	
+	public Ride to(String to) {
+		values.put("to", to);
 		return this;
 	}
 	

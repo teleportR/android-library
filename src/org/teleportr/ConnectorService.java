@@ -27,18 +27,18 @@ public class ConnectorService extends Service {
         HandlerThread worker = new HandlerThread("worker");
         worker.start();			
         manager = new Handler(worker.getLooper());
-//        try {
-//			connector = (Connector) Class.forName("foo.bar.DummyConnector").newInstance();
-//		} catch (InstantiationException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IllegalAccessException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (ClassNotFoundException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
+        try {
+			connector = (Connector) Class.forName("de.fahrgemeinschaft.FahrgemeinschaftConnector").newInstance();
+		} catch (InstantiationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         super.onCreate();
     }
     
@@ -53,41 +53,36 @@ public class ConnectorService extends Service {
         @Override
         public void run() {
             Log.d(TAG, "working..");
-            Toast.makeText(ConnectorService.this, "working hard!", 1500).show();
+            //Toast.makeText(ConnectorService.this, "working hard!", 1500).show();
+            
+            
             Cursor job = getContentResolver().query(
-                    Uri.parse("content://org.teleportr.igo/jobs"), null, null, null, null);
+                    Uri.parse("content://" + getPackageName() + "/history"), null, null, null, null);
             if (job.getCount() != 0) {
                 job.moveToFirst();
-                Place orig = new Place(job.getString(1));
-                Log.d(TAG, "  ..on " + orig.geohash);
+                Place orig = new Place(job.getString(2));
                 Place dest = null;
-                String dest_geohash = job.getString(2);
+                String dest_geohash = job.getString(3);
                 if (!dest_geohash.equals(""))
                     dest = new Place(dest_geohash);
-                Date dep = new Date(job.getInt(3));
-                Date arr = new Date(job.getInt(4));
+                Date dep = new Date(job.getLong(4));
+                Date arr = new Date(job.getLong(5));
+                Log.d(TAG, "  ..on " + dep);
+
                 Place.context = ConnectorService.this;
                 
                 connector.getRides(orig, dest, dep, arr);
                 
-                ArrayList<ContentValues> rides = Ride.batch;
-                getContentResolver().bulkInsert(Uri.parse("content://org.teleportr.igo/rides"),
-                		(ContentValues[]) rides.toArray(new ContentValues[rides.size()]));
-                rides.clear();
-                
-                ArrayList<ContentValues> places = Place.batch;
-                getContentResolver().bulkInsert(Uri.parse("content://org.teleportr.igo/places"),
-                        (ContentValues[]) places.toArray(new ContentValues[places.size()]));
-                places.clear();
+                Ride.saveAll(ConnectorService.this);
                 
                 ContentValues values = new ContentValues();
                 values.put("expire", System.currentTimeMillis() + 42000);
-                getContentResolver().update(Uri.parse("content://org.teleportr.igo/jobs"),
-                        values, "_id="+job.getInt(0), null);
+//                getContentResolver().update(Uri.parse("content://" + getPackageName() + "/history"),
+//                        values, "_id="+job.getInt(0), null);
                 
                 Place.context = null;
                 Log.d(TAG, " work done.");
-                manager.post(doSomeWork);
+//                manager.post(doSomeWork);
             } else {
                 Log.d(TAG, "Nothing to do.");
             }

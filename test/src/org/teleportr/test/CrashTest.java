@@ -103,7 +103,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 				Uri.parse("content://org.teleportr.test/history"),
 				null, null, null, null);
 		
-    	assertEquals("there be dummy search history", 5, history.getCount());    	
+    	assertEquals("there be dummy search history", 5, history.getCount());
+    	history.moveToFirst();
+    	assertEquals("last search first", home.geohash, history.getString(2));
+    	assertEquals("last search first",bar.geohash, history.getString(3));
     }
 
 	public void testPlaceKeyValues() {
@@ -131,10 +134,41 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     	assertEquals("there be three places from home", 3, places.getCount());
     	places.moveToFirst();
     	assertEquals("most often used as to","Slackline", places.getString(1));
+    }
+	
+	public void testRides() {
+		new Ride()
+			.type(Ride.OFFER)
+			.from(home)
+			.to(bar)
+			.dep(new Date(543258));
+		new Ride()
+			.type(Ride.OFFER)
+			.from(home)
+			.to(bar)
+			.dep(new Date(555258));
+		new Ride()
+			.type(Ride.OFFER)
+			.from(park)
+			.to(döner)
+			.dep(new Date(5445658));
+		Ride.saveAll(context);
+		
+		Cursor rides = getMockContentResolver().query(
+				Uri.parse("content://org.teleportr.test/rides"),
+				null, null, null, null);
+		
+    	assertEquals("there be two dummy rides", 3, rides.getCount());
+    	rides.moveToFirst();
+    	assertEquals("from name", "Home", rides.getString(1));
+    	assertEquals("from address", "Hipperstr. 42", rides.getString(2));
+    	assertEquals("to_name", "Whiskybar", rides.getString(3));
+    	assertEquals("to_adress", "Weserstr. 125", rides.getString(4));
+    	assertEquals("departure", 543258, rides.getLong(5));
     	
     }
 	
     public void testBackgroundJobs() {
-    	assertEquals("something must be", "sth", "sth");
+    	
     }
 }

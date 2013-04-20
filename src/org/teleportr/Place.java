@@ -67,7 +67,14 @@ public class Place {
     public Place(double lat, double lng) {
         this(GeoHash.withBitPrecision(lat, lng, 55).toBase32());
     }
-
+    
+    public double getLat() {
+    	return ((double) lat) / 1E6;
+    }
+    
+    public double getLng() {
+    	return ((double) lng) / 1E6;
+    }
     
     @Override
     public String toString() {

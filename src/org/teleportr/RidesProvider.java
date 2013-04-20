@@ -46,7 +46,7 @@ public class RidesProvider extends ContentProvider {
                     + "'geohash' text"
                     + ");");
             db.execSQL("CREATE UNIQUE INDEX places_idx ON places (" +
-                        "key, value, geohash);");
+                        "key, geohash);");
             db.execSQL("create table rides ("
                     + "'_id' integer primary key autoincrement, "
             		+ "'type' integer, "
@@ -63,7 +63,7 @@ public class RidesProvider extends ContentProvider {
                     + "'expire' integer, "
                     + "'key' text);");
             db.execSQL("CREATE UNIQUE INDEX rides_idx ON rides (" +
-                    "'from', 'to', 'dep', 'arr', 'who', 'mode', 'operator');");
+                    "'type', 'from', 'to', 'dep', 'arr', 'who', 'mode', 'operator');");
         }
 
         @Override
@@ -187,10 +187,10 @@ public class RidesProvider extends ContentProvider {
                 }
                 break;
             }
-                db.getWritableDatabase().setTransactionSuccessful();
-                getContext().getContentResolver().notifyChange(uri, null);
+            db.getWritableDatabase().setTransactionSuccessful();
         } finally {
             db.getWritableDatabase().endTransaction();
+            getContext().getContentResolver().notifyChange(uri, null);
         }
         return 1;
     }
@@ -200,7 +200,7 @@ public class RidesProvider extends ContentProvider {
         switch (route.match(uri)) {
         case HISTORY:
             return db.getReadableDatabase().query("rides", null,
-            		"type=" + Ride.SEARCH, null, null, null, null);
+            		"type=" + Ride.SEARCH, null, null, null, "_id DESC");
         case PLACE:
         	String where = "geohash='"+uri.getLastPathSegment()+"'";
         	String key = uri.getQueryParameter("key");
@@ -224,7 +224,14 @@ public class RidesProvider extends ContentProvider {
         						"WHERE \"from\" IS '"+from+"' " +
         						"GROUP BY R.\"to\" ORDER BY count(R.\"to\") DESC;", null);
         	}
-        
+        case RIDES:
+        	return db.getReadableDatabase().rawQuery( // this is totally FAIL
+    				"SELECT R._id, from_name.value, from_address.value, to_name.value, to_address.value, dep FROM 'rides' AS R " +
+    				"LEFT JOIN 'places' AS from_name ON R.\"from\" = from_name.geohash AND from_name.key = 'name' " +
+    				"LEFT JOIN 'places' AS from_address ON R.\"from\" = from_address.geohash AND from_address.key = 'address' " +
+    				"LEFT JOIN 'places' AS to_name ON R.\"to\" = to_name.geohash AND to_name.key = 'name' " +
+    				"LEFT JOIN 'places' AS to_address ON R.\"to\" = to_address.geohash AND to_address.key = 'address' " +
+    				"WHERE R.type=" + Ride.OFFER + " ORDER BY dep", null);
         }
         return null;
     }
