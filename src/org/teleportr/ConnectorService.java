@@ -1,7 +1,7 @@
 package org.teleportr;
 
-import java.util.ArrayList;
 import java.util.Date;
+
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -11,7 +11,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 public class ConnectorService extends Service {
 
@@ -19,45 +18,46 @@ public class ConnectorService extends Service {
     private Handler manager;
     private Connector connector;
 
-    
-    
     @Override
     public void onCreate() {
-//        connector = new 
+        // connector = new
         HandlerThread worker = new HandlerThread("worker");
-        worker.start();			
+        worker.start();
         manager = new Handler(worker.getLooper());
         try {
-			connector = (Connector) Class.forName("de.fahrgemeinschaft.FahrgemeinschaftConnector").newInstance();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+            connector = (Connector) Class.forName(
+                    "de.fahrgemeinschaft.FahrgemeinschaftConnector")
+                    .newInstance();
+        } catch (InstantiationException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
         super.onCreate();
     }
-    
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         manager.postAtFrontOfQueue(doSomeWork);
         return START_STICKY;
     }
-    
+
     Runnable doSomeWork = new Runnable() {
-        
+
         @Override
         public void run() {
             Log.d(TAG, "working..");
-            //Toast.makeText(ConnectorService.this, "working hard!", 1500).show();
-            
-            
+            // Toast.makeText(ConnectorService.this, "working hard!",
+            // 1500).show();
+
             Cursor job = getContentResolver().query(
-                    Uri.parse("content://" + getPackageName() + "/history"), null, null, null, null);
+                    Uri.parse("content://" + getPackageName() + "/history"),
+                    null, null, null, null);
             if (job.getCount() != 0) {
                 job.moveToFirst();
                 Place orig = new Place(job.getString(2));
@@ -69,31 +69,25 @@ public class ConnectorService extends Service {
                 Date arr = new Date(job.getLong(5));
                 Log.d(TAG, "  ..on " + dep);
 
-                Place.context = ConnectorService.this;
-                
                 connector.getRides(orig, dest, dep, arr);
-                
-                Ride.saveAll(ConnectorService.this);
-                
-                ContentValues values = new ContentValues();
-                values.put("expire", System.currentTimeMillis() + 42000);
-//                getContentResolver().update(Uri.parse("content://" + getPackageName() + "/history"),
-//                        values, "_id="+job.getInt(0), null);
-                
-                Place.context = null;
+
+                // ContentValues values = new ContentValues();
+                // values.put("expire", System.currentTimeMillis() + 42000);
+                // getContentResolver().update(Uri.parse("content://" +
+                // getPackageName() + "/history"),
+                // values, "_id="+job.getInt(0), null);
+
                 Log.d(TAG, " work done.");
-//                manager.post(doSomeWork);
+                // manager.post(doSomeWork);
             } else {
                 Log.d(TAG, "Nothing to do.");
             }
         }
     };
-    
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
 
-
-    
 }
