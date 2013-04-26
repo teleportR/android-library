@@ -56,29 +56,20 @@ public class ConnectorService extends Service {
             // 1500).show();
 
             Cursor job = getContentResolver().query(
-                    Uri.parse("content://" + getPackageName() + "/history"),
+                    Uri.parse("content://org.teleportr.test/jobs"),
                     null, null, null, null);
             if (job.getCount() != 0) {
-                job.moveToFirst();
-                Place orig = new Place(job.getString(2));
-                Place dest = null;
-                String dest_geohash = job.getString(3);
-                if (!dest_geohash.equals(""))
-                    dest = new Place(dest_geohash);
-                Date dep = new Date(job.getLong(4));
-                Date arr = new Date(job.getLong(5));
-                Log.d(TAG, "  ..on " + dep);
+                connector.search(job);
+                connector.flushBatch(ConnectorService.this);
 
-                connector.getRides(orig, dest, dep, arr);
-
-                // ContentValues values = new ContentValues();
-                // values.put("expire", System.currentTimeMillis() + 42000);
-                // getContentResolver().update(Uri.parse("content://" +
-                // getPackageName() + "/history"),
-                // values, "_id="+job.getInt(0), null);
+                ContentValues values = new ContentValues();
+                values.put("search_guid", job.getLong(13));
+                values.put("last_refresh", System.currentTimeMillis());
+                getContentResolver().insert(
+                        Uri.parse("content://org.teleportr.test/jobs"), values);
 
                 Log.d(TAG, " work done.");
-                // manager.post(doSomeWork);
+                 manager.post(doSomeWork);
             } else {
                 Log.d(TAG, "Nothing to do.");
             }

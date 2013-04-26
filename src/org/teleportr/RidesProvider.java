@@ -27,10 +27,12 @@ public class RidesProvider extends ContentProvider {
     public void setAuthority(String authority) {
         route = new UriMatcher(0);
         route.addURI(authority, "history", HISTORY);
-        route.addURI(authority, "places", PLACES);
         route.addURI(authority, "places/#", PLACE);
+        route.addURI(authority, "places", PLACES);
+        route.addURI(authority, "rides/#", RIDE);
         route.addURI(authority, "rides", RIDES);
         route.addURI(authority, "jobs", JOBS);
+        route.addURI(authority, "rides/*/matches", MATCHES);
     }
 
     @Override
@@ -49,6 +51,9 @@ public class RidesProvider extends ContentProvider {
                 break;
             case RIDES:
                 id = db.insertRide(values);
+                break;
+            case JOBS:
+                id = db.getWritableDatabase().replace("jobs", null, values);
                 break;
             }
             db.getWritableDatabase().setTransactionSuccessful();
@@ -112,8 +117,15 @@ public class RidesProvider extends ContentProvider {
             } else {
                 return db.autocompleteTo(from_id);
             }
-        case RIDES:
-            return db.queryRides();
+        case JOBS:
+            return db.getReadableDatabase().query("rides LEFT JOIN jobs ON rides.guid=jobs.search_guid", null,
+                    "last_refresh IS null OR last_refresh<" + (System.currentTimeMillis() - 7000),
+                    null, null, null, null);
+        case RIDE:
+            return db.getReadableDatabase().query("rides", null,
+                    "_id=" + uri.getLastPathSegment(), null, null, null, null);
+        case MATCHES:
+            return db.queryRides(uri.getPathSegments().get(1));
         }
         return null;
     }
@@ -134,9 +146,11 @@ public class RidesProvider extends ContentProvider {
         return 0;
     }
 
-    private static final int HISTORY = 0;
-    private static final int PLACES = 1;
-    private static final int PLACE = 2;
-    private static final int RIDES = 3;
-    private static final int JOBS = 4;
+    private static final int HISTORY = 1;
+    private static final int MATCHES = 2;
+    private static final int PLACES = 3;
+    private static final int PLACE = 4;
+    private static final int RIDES = 5;
+    private static final int RIDE = 6;
+    private static final int JOBS = 7;
 }

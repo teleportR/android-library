@@ -16,32 +16,43 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
     private SQLiteStatement insertRide;
+    private SQLiteStatement getIdByGeohash;
+    private SQLiteStatement getIdByName;
+    private SQLiteStatement insertRideMatch;
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("create table places ("
                 + "'_id' integer primary key autoincrement,"
-                + " 'geohash' text," + " 'name' text," + " 'address' text,"
-                + " 'lat' integer," + " 'lng' integer" + ");");
+                + " 'geohash' text, 'name' text, 'address' text,"
+                + " 'lat' integer, 'lng' integer);");
         db.execSQL("CREATE UNIQUE INDEX places_idx"
-                + " ON places ('geohash', 'name')" + ";");
+                + " ON places ('geohash', 'name');");
         db.execSQL("create table place_keys ("
                 + "'_id' integer primary key autoincrement,"
-                + " 'place_id' integer," + " 'key' text," + " 'value' text"
+                + " 'place_id' integer, 'key' text, 'value' text"
                 + ");");
         db.execSQL("CREATE UNIQUE INDEX place_keys_idx"
-                + " ON place_keys ('place_id', 'key')" + ";");
+                + " ON place_keys ('place_id', 'key');");
         db.execSQL("create table rides ("
                 + "'_id' integer primary key autoincrement, 'type' integer,"
                 + " 'from_id' integer, 'to_id' integer,"
-                + " 'dep' integer," + " 'arr' integer,"
-                + " 'who' text," + " 'mode' text," + " 'operator' text,"
-                + " 'distance' integer," + " 'price' integer,"
-                + " 'parent' text," + " 'expire' integer," + " 'key' text"
+                + " 'dep' integer, 'arr' integer,"
+                + " 'who' text, 'mode' text, 'operator' text,"
+                + " 'distance' integer, 'price' integer,"
+                + " 'parent' text, 'expire' integer, 'guid' text"
                 + "); ");
         db.execSQL("CREATE UNIQUE INDEX rides_idx"
                 + " ON rides ('type', 'from_id', 'to_id',"
                 + " 'dep', 'arr', 'who', 'mode', 'operator');");
+        db.execSQL("create table ride_matches ("
+                + "'_id' integer primary key autoincrement,"
+                + " 'search_guid' text, 'offer_guid' text);");
+        db.execSQL("CREATE UNIQUE INDEX ride_matches_idx"
+                + " ON ride_matches ('search_guid', 'offer_guid');");
+        db.execSQL("create table jobs ("
+                + "'_id' integer primary key autoincrement,"
+                + " 'search_guid' text unique, 'last_refresh' integer);");
     }
 
     @Override
@@ -53,6 +64,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
         insertPlace = getWritableDatabase().compileStatement(INSERT_PLACE);
         insertPlaceKey = getWritableDatabase().compileStatement(INSERT_KEY);
         insertRide = getWritableDatabase().compileStatement(INSERT_RIDE);
+        insertRideMatch = getWritableDatabase().compileStatement(INSERT_MATCH);
+        getIdByGeohash = getWritableDatabase().compileStatement(BY_GEOHASH);
+        getIdByName = getWritableDatabase().compileStatement(BY_NAME);
     }
 
     static final String INSERT_PLACE = "INSERT OR IGNORE INTO places"
@@ -95,24 +109,40 @@ class DataBaseHelper extends SQLiteOpenHelper {
         }
     }
 
-    static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides"
+    static final String INSERT_RIDE = "INSERT OR IGNORE INTO rides"
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'who',"
-            + " 'mode', 'operator', 'expire', 'parent', 'key') "
+            + " 'mode', 'operator', 'expire', 'parent', 'guid') "
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
+    static final String INSERT_MATCH = "INSERT OR IGNORE INTO ride_matches"
+            + "('search_guid', 'offer_guid') VALUES (?, ?);";
+
+    static final String BY_GEOHASH = "SELECT _id FROM places WHERE geohash=?";
+    static final String BY_NAME = "SELECT _id FROM places WHERE name=?";
+
     public long insertRide(ContentValues cv) {
+        if (cv.containsKey("from_id"))
+            insertRide.bindLong(2, cv.getAsLong("from_id"));
+        else if (cv.containsKey("from_geohash")) {
+            getIdByGeohash.bindString(1, cv.getAsString("from_geohash"));
+            insertRide.bindLong(2, getIdByGeohash.simpleQueryForLong());
+        } else if (cv.containsKey("from_name")) {
+            getIdByName.bindString(1, cv.getAsString("from_name"));
+            insertRide.bindLong(2, getIdByName.simpleQueryForLong());
+        }
+        if (cv.containsKey("to_id"))
+            insertRide.bindString(3, cv.getAsString("to_id"));
+        else if (cv.containsKey("to_geohash")) {
+            getIdByGeohash.bindString(1, cv.getAsString("to_geohash"));
+            insertRide.bindLong(2, getIdByGeohash.simpleQueryForLong());
+        } else if (cv.containsKey("to_name")) {
+            getIdByName.bindString(1, cv.getAsString("to_name"));
+            insertRide.bindLong(2, getIdByName.simpleQueryForLong());
+        }
         if (cv.containsKey("type"))
             insertRide.bindString(1, cv.getAsString("type"));
         else
             insertRide.bindLong(1, 0);
-        if (cv.containsKey("from_id"))
-            insertRide.bindString(2, cv.getAsString("from_id"));
-        else
-            insertRide.bindString(2, "");
-        if (cv.containsKey("to_id"))
-            insertRide.bindString(3, cv.getAsString("to_id"));
-        else
-            insertRide.bindString(3, "");
         if (cv.containsKey("dep"))
             insertRide.bindLong(4, cv.getAsLong("dep"));
         else
@@ -141,12 +171,18 @@ class DataBaseHelper extends SQLiteOpenHelper {
             insertRide.bindString(10, cv.getAsString("parent"));
         else
             insertRide.bindString(10, "");
-        if (cv.containsKey("key"))
-            insertRide.bindString(11, cv.getAsString("key"));
-        else
-            insertRide.bindString(11, "");
+        String guid = cv.getAsString("guid");
+        if (guid == null)
+            guid = "foo";
+        insertRide.bindString(11, guid);
         long id = insertRide.executeInsert();
-        Log.d(RidesProvider.TAG, "+ stored ride " + id);
+        
+        if (cv.containsKey("search_guid")) {
+            insertRideMatch.bindString(1, cv.getAsString("search_guid"));
+            insertRideMatch.bindString(2, guid);
+            insertRideMatch.executeInsert();
+        }
+        Log.d(RidesProvider.TAG, "+ stored ride " + id + " guid=" + guid);
         return id;
     }
 
@@ -178,10 +214,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " \"to\".name, \"to\".address, dep" + " FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON to_id=\"to\"._id"
-            + " WHERE type=" + Ride.OFFER + " ORDER BY dep;";
+            + " JOIN 'ride_matches' ON rides.guid=ride_matches.offer_guid"
+            + " WHERE type=" + Ride.OFFER + " AND ride_matches.search_guid=?"
+            + " ORDER BY dep;";
 
-    public Cursor queryRides() {
-        return getReadableDatabase().rawQuery(SELECT_RIDES, new String[] {});
+    public Cursor queryRides(String search_guid) {
+        return getReadableDatabase().rawQuery(SELECT_RIDES,
+                new String[] { search_guid });
     }
 
     static final HashSet<String> PLACE_COLUMNS = new HashSet<String>(5);

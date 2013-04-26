@@ -2,11 +2,14 @@ package org.teleportr.test;
 
 import java.util.Date;
 
+import org.teleportr.Connector;
 import org.teleportr.Place;
 import org.teleportr.Ride;
 import org.teleportr.RidesProvider;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.test.IsolatedContext;
@@ -71,11 +74,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new Ride().type(Ride.SEARCH).from(home).to(park).dep(new Date(4000))
                 .store(ctx);
         new Ride().type(Ride.SEARCH).from(park).to(döner).dep(new Date(5000))
-                .store(ctx);
+                .guid("abc").store(ctx); //rides/5
         new Ride().type(Ride.SEARCH).from(döner).to(bar).dep(new Date(6000))
                 .store(ctx);
         new Ride().type(Ride.SEARCH).from(bar).to(home).dep(new Date(7000))
-                .store(ctx);
+                .guid("bcd").store(ctx);
     }
 
     public void testSearchHistory() {
@@ -142,23 +145,70 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("never used as to", 0, places.getLong(6));
     }
 
-    public void testRides() {
-        // dummy search results
-        new Ride().type(Ride.OFFER).from(home).to(bar).dep(new Date(1000))
-                .store(ctx);
-        new Ride().type(Ride.OFFER).from(home).to(bar).dep(new Date(2000))
-                .store(ctx);
-        new Ride().type(Ride.OFFER).from(park).to(döner).dep(new Date(3000))
-                .store(ctx);
-        Cursor rides = getMockContentResolver().query(
-                Uri.parse("content://org.teleportr.test/rides"),
+    public void testBackgroundJobs() {
+        Cursor jobs = getMockContentResolver().query(
+                Uri.parse("content://org.teleportr.test/jobs"),
                 null, null, null, null);
-        assertEquals("there be three dummy rides", 3, rides.getCount());
-        rides.moveToFirst();
+        assertEquals("there be seven jobs to search", 7, jobs.getCount());
+        
+        // working hard in background...
+        ContentValues values = new ContentValues();
+        values.put("search_guid", "abc");
+        values.put("last_refresh", System.currentTimeMillis());
+        getMockContentResolver().insert(
+                Uri.parse("content://org.teleportr.test/jobs"), values);
+        jobs = getMockContentResolver().query(
+                Uri.parse("content://org.teleportr.test/jobs"),
+                null, null, null, null);
+        assertEquals("now one less job to search", 6, jobs.getCount());
+    }
+
+    public void testRideMatches() {
+        Cursor query = getMockContentResolver().query(  // park -> döner
+                Uri.parse("content://org.teleportr.test/rides/5"),
+                null, null, null, null);
+        connector.search(query);
+        connector.flushBatch(ctx);
+
+        Cursor rides = getMockContentResolver().query(
+                Uri.parse("content://org.teleportr.test/rides/abc/matches"),
+                null, null, null, null);
+        assertEquals("there be three ride matches", 3, rides.getCount());
+        rides.moveToLast();
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("from address", "Hipperstr. 42", rides.getString(2));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
         assertEquals("to_adress", "Weserstr. 125", rides.getString(4));
-        assertEquals("departure", 1000, rides.getLong(5));
+        assertEquals("departure", 3000, rides.getLong(5));
+
+        query = getMockContentResolver().query(  // another search
+                Uri.parse("content://org.teleportr.test/rides/7"),
+                null, null, null, null);
+        connector.search(query); // finding the same rides agaoin
+        connector.flushBatch(ctx);
+
+        rides = getMockContentResolver().query(
+                Uri.parse("content://org.teleportr.test/rides/bcd/matches"),
+                null, null, null, null);
+        assertEquals("there be three ride matches", 3, rides.getCount());
+
+        rides = getMockContentResolver().query(
+                Uri.parse("content://org.teleportr.test/rides/abc/matches"),
+                null, null, null, null);
+        assertEquals("there be three ride matches", 3, rides.getCount());
     }
+
+
+    Connector connector = new Connector() {
+        @Override
+        public void getRides(Place from, Place to, Date dep, Date arr) {
+            // dummy search results
+            store(new Ride()
+                .type(Ride.OFFER).from(park).to(döner).dep(new Date(1000)));
+            store(new Ride() // via döner
+                .type(Ride.OFFER).from(park).to(bar).dep(new Date(2000)));
+            store(new Ride() // via park via döner
+                .type(Ride.OFFER).from(home).to(bar).dep(new Date(3000)));
+        }
+    };
 }
