@@ -32,7 +32,6 @@ public class RidesProvider extends ContentProvider {
         route.addURI(authority, "rides/#", RIDE);
         route.addURI(authority, "rides", RIDES);
         route.addURI(authority, "jobs", JOBS);
-        route.addURI(authority, "rides/*/matches", MATCHES);
     }
 
     @Override
@@ -118,13 +117,11 @@ public class RidesProvider extends ContentProvider {
                 return db.autocompleteTo(from_id);
             }
         case JOBS:
-            return db.getReadableDatabase().query("rides LEFT JOIN jobs ON rides.guid=jobs.search_guid", null,
-                    "last_refresh IS null OR last_refresh<" + (System.currentTimeMillis() - 7000),
-                    null, null, null, null);
+            return db.queryJobs();
         case RIDE:
             return db.getReadableDatabase().query("rides", null,
                     "_id=" + uri.getLastPathSegment(), null, null, null, null);
-        case MATCHES:
+        case RIDES:
             return db.queryRides(uri.getPathSegments().get(1));
         }
         return null;
@@ -147,7 +144,7 @@ public class RidesProvider extends ContentProvider {
     }
 
     private static final int HISTORY = 1;
-    private static final int MATCHES = 2;
+//    private static final int MATCHES = 2;
     private static final int PLACES = 3;
     private static final int PLACE = 4;
     private static final int RIDES = 5;

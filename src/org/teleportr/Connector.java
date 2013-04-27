@@ -17,7 +17,6 @@ public abstract class Connector {
 
     private ArrayList<ContentValues> placesBatch;
     private ArrayList<ContentValues> ridesBatch;
-    private String search_guid;
 
     public Connector() {
         placesBatch = new ArrayList<ContentValues>();
@@ -30,15 +29,7 @@ public abstract class Connector {
     }
 
     public void store(Ride ride) {
-        ride.cv.put("search_guid", search_guid);
         ridesBatch.add(ride.cv);
-    }
-
-    public void search(Cursor query) {
-        query.moveToFirst();
-        search_guid = query.getString(13);
-        getRides(new Place(query.getLong(2)), new Place(query.getLong(3)),
-                new Date(query.getLong(4)), new Date(query.getLong(5)));
     }
 
     public void flushBatch(Context ctx) {

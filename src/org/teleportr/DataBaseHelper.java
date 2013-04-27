@@ -18,7 +18,6 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private SQLiteStatement insertRide;
     private SQLiteStatement getIdByGeohash;
     private SQLiteStatement getIdByName;
-    private SQLiteStatement insertRideMatch;
 
     @Override
     public void onCreate(SQLiteDatabase db) {
@@ -40,19 +39,14 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " 'dep' integer, 'arr' integer,"
                 + " 'who' text, 'mode' text, 'operator' text,"
                 + " 'distance' integer, 'price' integer,"
-                + " 'parent' text, 'expire' integer, 'guid' text"
+                + " 'parent' text, 'expire' integer, 'ref' text"
                 + "); ");
         db.execSQL("CREATE UNIQUE INDEX rides_idx"
                 + " ON rides ('type', 'from_id', 'to_id',"
                 + " 'dep', 'arr', 'who', 'mode', 'operator');");
-        db.execSQL("create table ride_matches ("
-                + "'_id' integer primary key autoincrement,"
-                + " 'search_guid' text, 'offer_guid' text);");
-        db.execSQL("CREATE UNIQUE INDEX ride_matches_idx"
-                + " ON ride_matches ('search_guid', 'offer_guid');");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
-                + " 'search_guid' text unique, 'last_refresh' integer);");
+                + " from_id integer, to_id integer, last_refresh integer);");
     }
 
     @Override
@@ -64,7 +58,6 @@ class DataBaseHelper extends SQLiteOpenHelper {
         insertPlace = getWritableDatabase().compileStatement(INSERT_PLACE);
         insertPlaceKey = getWritableDatabase().compileStatement(INSERT_KEY);
         insertRide = getWritableDatabase().compileStatement(INSERT_RIDE);
-        insertRideMatch = getWritableDatabase().compileStatement(INSERT_MATCH);
         getIdByGeohash = getWritableDatabase().compileStatement(BY_GEOHASH);
         getIdByName = getWritableDatabase().compileStatement(BY_NAME);
     }
@@ -111,11 +104,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String INSERT_RIDE = "INSERT OR IGNORE INTO rides"
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'who',"
-            + " 'mode', 'operator', 'expire', 'parent', 'guid') "
+            + " 'mode', 'operator', 'expire', 'parent', 'ref') "
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-
-    static final String INSERT_MATCH = "INSERT OR IGNORE INTO ride_matches"
-            + "('search_guid', 'offer_guid') VALUES (?, ?);";
 
     static final String BY_GEOHASH = "SELECT _id FROM places WHERE geohash=?";
     static final String BY_NAME = "SELECT _id FROM places WHERE name=?";
@@ -171,18 +161,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
             insertRide.bindString(10, cv.getAsString("parent"));
         else
             insertRide.bindString(10, "");
-        String guid = cv.getAsString("guid");
-        if (guid == null)
-            guid = "foo";
-        insertRide.bindString(11, guid);
+        if (cv.containsKey("ref"))
+            insertRide.bindString(10, cv.getAsString("ref"));
+        else
+            insertRide.bindString(10, "");
         long id = insertRide.executeInsert();
         
-        if (cv.containsKey("search_guid")) {
-            insertRideMatch.bindString(1, cv.getAsString("search_guid"));
-            insertRideMatch.bindString(2, guid);
-            insertRideMatch.executeInsert();
-        }
-        Log.d(RidesProvider.TAG, "+ stored ride " + id + " guid=" + guid);
+        Log.d(RidesProvider.TAG, "+ stored ride " + id);
         return id;
     }
 
@@ -207,6 +192,17 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public Cursor autocompleteTo(String from) {
         return getReadableDatabase().rawQuery(SELECT_TO,
                 new String[] { from, from });
+    }
+
+    static final String SELECT_JOBS = " SELECT * FROM rides"
+            + " LEFT JOIN jobs ON"
+                + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
+            + " WHERE type=" + Ride.SEARCH
+                + " AND last_refresh IS null OR last_refresh<?";
+
+    public Cursor queryJobs() {
+        return getReadableDatabase().rawQuery(SELECT_JOBS,
+                new String[] { "" + (System.currentTimeMillis() - 7000) });
     }
 
     static final String SELECT_RIDES = "SELECT"

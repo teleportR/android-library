@@ -52,14 +52,12 @@ public class ConnectorService extends Service {
         @Override
         public void run() {
             Log.d(TAG, "working..");
-            // Toast.makeText(ConnectorService.this, "working hard!",
-            // 1500).show();
 
             Cursor job = getContentResolver().query(
                     Uri.parse("content://org.teleportr.test/jobs"),
                     null, null, null, null);
             if (job.getCount() != 0) {
-                connector.search(job);
+//                connector.getRides();
                 connector.flushBatch(ConnectorService.this);
 
                 ContentValues values = new ContentValues();
