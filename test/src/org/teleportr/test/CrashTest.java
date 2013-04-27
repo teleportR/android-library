@@ -46,7 +46,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         getProvider().setAuthority("org.teleportr.test");
 
         // dummy places
-        park = new Place(53.4324245, 12.443534572)
+        park = new Place()
             .name("Slackline").address("Wiesn");
         park.store(ctx);
 
@@ -107,7 +107,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("42", new Place(cafe.id).get("4sq:id", ctx));
     }
 
-    public void testSortedFromPlaces() {
+    public void testSortedAsFrom() {
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
         // should be ordered by how often a place was used as 'from' in a search
@@ -138,7 +138,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Hafenstr. 125", places.getString(3));
     }
 
-    public void testSortedToPlaces() {
+    public void testSortedAsTo() {
         Cursor places = query(
                 "content://org.teleportr.test/places?from_id=" + home.id);
         assertEquals("there should be all other places", 4, places.getCount());
@@ -167,8 +167,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Whiskybar", places.getString(2));
     }
 
-    public void testBackgroundJobs() {
-        Cursor jobs = query("content://org.teleportr.test/jobs");
+    public void testRidesToSearch() {
+        Cursor jobs = query("content://org.teleportr.test/jobs/rides");
         assertEquals("there be seven jobs to search", 7, jobs.getCount());
         
         // dummy working hard in background..
@@ -177,13 +177,24 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         values.put("to_id", bar.id);
         values.put("last_refresh", System.currentTimeMillis());
         getMockContentResolver().insert(
-                Uri.parse("content://org.teleportr.test/jobs"), values);
-        jobs = getMockContentResolver().query(
-                Uri.parse("content://org.teleportr.test/jobs"),
-                null, null, null, null);
+                Uri.parse("content://org.teleportr.test/jobs/rides"), values);
+        jobs = query("content://org.teleportr.test/jobs/rides");
         assertEquals("now one less job to search", 6, jobs.getCount());
     }
 
+    public void testPlacesToResolve() {
+        Cursor jobs = query("content://org.teleportr.test/jobs/places");
+        assertEquals("there be one place to resolve", 1, jobs.getCount());
+        // dummy working hard in background..
+        jobs.moveToFirst();
+        ContentValues values = new ContentValues();
+        values.put("geohash", "abc");
+        getMockContentResolver().update(Uri.parse(
+                "content://org.teleportr.test/places/1"), values, null, null);
+        jobs = query("content://org.teleportr.test/jobs/places");
+        assertEquals("now no places to resolve any more", 0, jobs.getCount());
+    }
+    
     public void testRideMatches() {
         Connector connector = new Connector() {
             @Override

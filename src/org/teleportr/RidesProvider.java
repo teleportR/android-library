@@ -26,12 +26,13 @@ public class RidesProvider extends ContentProvider {
 
     public void setAuthority(String authority) {
         route = new UriMatcher(0);
+        route.addURI(authority, "jobs/places", RESOLVE);
+        route.addURI(authority, "jobs/rides", SEARCH);
         route.addURI(authority, "history", HISTORY);
         route.addURI(authority, "places/#", PLACE);
         route.addURI(authority, "places", PLACES);
         route.addURI(authority, "rides/#", RIDE);
         route.addURI(authority, "rides", RIDES);
-        route.addURI(authority, "jobs", JOBS);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class RidesProvider extends ContentProvider {
             case RIDES:
                 id = db.insertRide(values);
                 break;
-            case JOBS:
+            case SEARCH:
                 id = db.getWritableDatabase().replace("jobs", null, values);
                 break;
             }
@@ -116,14 +117,16 @@ public class RidesProvider extends ContentProvider {
             String q = uri.getQueryParameter("q");
             if (q == null) q = "%";
             else q = q + "%";
-            System.out.println(q);
             if (from_id == null) {
                 return db.autocompleteFrom(q);
             } else {
                 return db.autocompleteTo(from_id, q);
             }
-        case JOBS:
+        case SEARCH:
             return db.queryJobs();
+        case RESOLVE:
+            return db.getReadableDatabase().query("places", null,
+                    "geohash IS ''", null, null, null, null);
         case RIDE:
             return db.getReadableDatabase().query("rides", null,
                     "_id=" + uri.getLastPathSegment(), null, null, null, null);
@@ -138,9 +141,8 @@ public class RidesProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String sel, String[] args) {
         switch (route.match(uri)) {
-        case JOBS:
-            db.getWritableDatabase().update("rides", values, sel, null);
-            break;
+        case PLACE:
+            return db.getWritableDatabase().update("places", values, sel, args);
         }
         return 0;
     }
@@ -152,10 +154,10 @@ public class RidesProvider extends ContentProvider {
     }
 
     private static final int HISTORY = 1;
-//    private static final int MATCHES = 2;
-    private static final int PLACES = 3;
-    private static final int PLACE = 4;
-    private static final int RIDES = 5;
-    private static final int RIDE = 6;
-    private static final int JOBS = 7;
+    private static final int RESOLVE = 2;
+    private static final int SEARCH = 3;
+    private static final int PLACES = 4;
+    private static final int PLACE = 5;
+    private static final int RIDES = 6;
+    private static final int RIDE = 7;
 }

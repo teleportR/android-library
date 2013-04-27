@@ -53,18 +53,25 @@ public class ConnectorService extends Service {
         public void run() {
             Log.d(TAG, "working..");
 
-            Cursor job = getContentResolver().query(
-                    Uri.parse("content://org.teleportr.test/jobs"),
-                    null, null, null, null);
+            Uri uri = Uri.parse("content://" 
+                    + ConnectorService.this.getPackageName() + "/jobs");
+            
+            Cursor job = getContentResolver()
+                    .query(uri, null, null, null, null);
             if (job.getCount() != 0) {
-//                connector.getRides();
+                job.moveToFirst();
+                Place from = new Place(job.getLong(2));
+                Place to = new Place(job.getLong(3));
+                Date dep = new Date();
+                
+                connector.getRides(from, to, dep, null);
                 connector.flushBatch(ConnectorService.this);
 
                 ContentValues values = new ContentValues();
-                values.put("search_guid", job.getLong(13));
+                values.put("from_id", from.id);
+                values.put("to_id", to.id);
                 values.put("last_refresh", System.currentTimeMillis());
-                getContentResolver().insert(
-                        Uri.parse("content://org.teleportr.test/jobs"), values);
+                getContentResolver().insert(uri, values);
 
                 Log.d(TAG, " work done.");
                  manager.post(doSomeWork);
