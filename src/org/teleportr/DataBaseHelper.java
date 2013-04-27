@@ -191,22 +191,24 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + "SELECT count(_id) AS count, from_id FROM 'rides'"
                 + " GROUP BY from_id"
             + ") AS history ON _id=history.from_id"
+            + " WHERE name LIKE ? OR address LIKE ?"
             + " ORDER BY history.count DESC, name ASC;";
 
-    public Cursor autocompleteFrom() {
-        return getReadableDatabase().rawQuery(SELECT_FROM, null);
+    public Cursor autocompleteFrom(String q) {
+        return getReadableDatabase().rawQuery(SELECT_FROM, new String[] {q, q});
     }
 
     static final String SELECT_TO = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
                 + "SELECT count(_id) AS count, to_id FROM 'rides'"
                 + " WHERE from_id=?" + " GROUP BY to_id"
-            + ") AS history ON _id=history.to_id" + " WHERE _id<>?"
+            + ") AS history ON _id=history.to_id"
+            + " WHERE _id<>? AND (name LIKE ? OR address LIKE ?)"
             + " ORDER BY history.count DESC, name ASC;";
 
-    public Cursor autocompleteTo(String from) {
+    public Cursor autocompleteTo(String from, String q) {
         return getReadableDatabase().rawQuery(SELECT_TO,
-                new String[] { from, from });
+                new String[] { from, from, q, q });
     }
 
     static final String SELECT_JOBS = " SELECT * FROM rides"

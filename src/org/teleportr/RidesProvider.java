@@ -113,10 +113,14 @@ public class RidesProvider extends ContentProvider {
             }
         case PLACES:
             String from_id = uri.getQueryParameter("from_id");
+            String q = uri.getQueryParameter("q");
+            if (q == null) q = "%";
+            else q = q + "%";
+            System.out.println(q);
             if (from_id == null) {
-                return db.autocompleteFrom();
+                return db.autocompleteFrom(q);
             } else {
-                return db.autocompleteTo(from_id);
+                return db.autocompleteTo(from_id, q);
             }
         case JOBS:
             return db.queryJobs();
