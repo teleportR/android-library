@@ -46,7 +46,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         getProvider().setAuthority("org.teleportr.test");
 
         // dummy places
-        park = new Place(53.4324245, 12.443534572).name("Slackline");
+        park = new Place(53.4324245, 12.443534572)
+            .name("Slackline").address("Wiesn");
         park.store(ctx);
 
         home = new Place(52.439716, 13.448982)
@@ -58,7 +59,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         cafe.store(ctx);
 
         bar = new Place(52.4345, 13.44234232)
-            .name("Whiskybar").address("Weserstr. 125");
+            .name("Whiskybar").address("Hafenstr. 125");
         bar.store(ctx);
 
         döner = new Place(57.545375, 17.453748).name("Moustafa");
@@ -97,14 +98,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("there be a stored whiskybar", 1, place.getCount());
         place.moveToFirst();
         assertEquals("Whiskybar", place.getString(2));
-        assertEquals("Weserstr. 125", place.getString(3));
+        assertEquals("Hafenstr. 125", place.getString(3));
     }
 
     public void testPlaceKeys() {
         assertEquals("42", new Place(cafe.id).get("4sq:id", ctx));
     }
 
-    public void testAutocompleteFrom() {
+    public void testSortedFromPlaces() {
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
         // should be ordered by how often a place was used as 'from' in a search
@@ -125,7 +126,17 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("never used as from", 0, places.getLong(6));
     }
 
-    public void testAutocompleteTo() {
+    public void testAutocompleteFrom() {
+        Cursor places = query("content://org.teleportr.test/places?q=h");
+        assertEquals("two places starting with 'h'", 2, places.getCount());
+        places.moveToFirst();
+        assertEquals("Home", places.getString(2));
+        places.moveToNext();
+        assertEquals("Whiskybar", places.getString(2));
+        assertEquals("Hafenstr. 125", places.getString(3));
+    }
+
+    public void testSortedToPlaces() {
         Cursor places = query(
                 "content://org.teleportr.test/places?from_id=" + home.id);
         assertEquals("there should be all other places", 4, places.getCount());
@@ -142,6 +153,16 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         places.moveToLast();
         assertEquals("Moustafa", places.getString(2));
         assertEquals("never used as to", 0, places.getLong(6));
+    }
+    
+    public void testAutocompleteTo() {
+        Cursor places = query("content://org.teleportr.test/places" +
+                                "?from_id=" + home.id + "&q=W");
+        assertEquals("two places starting with 'W'", 2, places.getCount());
+        places.moveToFirst();
+        assertEquals("Wiesn", places.getString(3));
+        places.moveToNext();
+        assertEquals("Whiskybar", places.getString(2));
     }
 
     public void testBackgroundJobs() {
@@ -181,7 +202,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("from address", "Hipperstr. 42", rides.getString(2));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
-        assertEquals("to_adress", "Weserstr. 125", rides.getString(4));
+        assertEquals("to_adress", "Hafenstr. 125", rides.getString(4));
         assertEquals("departure", 2000, rides.getLong(5));
     }
 
