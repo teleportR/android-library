@@ -23,7 +23,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     private Place döner;
     private Place park;
     private IsolatedContext ctx;
-    private Connector connector;
 
     public CrashTest() {
         super(RidesProvider.class, "org.teleportr.test");
@@ -163,7 +162,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testRideMatches() {
-        connector = new Connector() {
+        Connector connector = new Connector() {
             @Override
             public void getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride() // dummy search results
@@ -175,17 +174,41 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         connector.getRides(null, null, null, null); // search the dummy rides
         connector.flushBatch(ctx);
 
-        Cursor rides = getMockContentResolver().query(
-                Uri.parse("content://org.teleportr.test/rides"
-                        + "?from_id=" + home.id + "&to_id=" + bar.id),
-                        null, null, null, null);
+        Cursor rides = query("content://org.teleportr.test/rides"
+                            + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be two ride matches", 2, rides.getCount());
         rides.moveToLast();
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("from address", "Hipperstr. 42", rides.getString(2));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
         assertEquals("to_adress", "Weserstr. 125", rides.getString(4));
-        assertEquals("departure", 3000, rides.getLong(5));
+        assertEquals("departure", 2000, rides.getLong(5));
+    }
+
+    public void testSubRideMatches() {
+        Connector connector = new Connector() {
+            @Override
+            public void getRides(Place from, Place to, Date dep, Date arr) {
+                store(new Ride().type(Ride.OFFER) // dummy search results
+                     .from(park).via(döner).to(bar).dep(new Date(1000)));
+                store(new Ride().type(Ride.OFFER)
+                    .from(home).via(park).to(döner).dep(new Date(2000)));
+                store(new Ride() // should not match the query below
+                    .type(Ride.OFFER).from(home).to(bar).dep(new Date(3000)));
+            }
+        };
+        connector.getRides(null, null, null, null); // search the dummy rides
+        connector.flushBatch(ctx);
+        
+        Cursor rides = query("content://org.teleportr.test/rides"
+                + "?from_id=" + park.id + "&to_id=" + döner.id);
+        assertEquals("there be two (sub)ride matches", 2, rides.getCount());
+        rides.moveToFirst();
+        assertEquals("from name", "Slackline", rides.getString(1));
+        assertEquals("to_name", "Whiskybar", rides.getString(3));
+        rides.moveToLast();
+        assertEquals("from name", "Home", rides.getString(1));
+        assertEquals("to_name", "Moustafa", rides.getString(3));
     }
 
 }

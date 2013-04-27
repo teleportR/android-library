@@ -80,6 +80,34 @@ public class Ride {
         return this;
     }
 
+    public Ride via(Uri via) {
+        return to(Integer.parseInt(via.getLastPathSegment()));
+    }
+    
+    public Ride via(long via_id) {
+        cv.put("via_id", via_id);
+        return this;
+    }
+    
+    public Ride via(Place via) {
+        if (via.id != 0)
+            return via(via.id);
+        else {
+            String id = via.cv.getAsString("geohash");
+            if (!id.equals("")) {
+                cv.put("via_geohash", id);
+            } else {
+                id = via.cv.getAsString("name");
+                if (!id.equals("")) {
+                    cv.put("via_name", id);
+                } else {
+                    Log.d(TAG, "place not identifyable! " + via);
+                }
+            }
+        }
+        return this;
+    }
+    
     public Ride dep(Date dep) {
         cv.put("dep", dep.getTime());
         return this;

@@ -57,7 +57,8 @@ public class RidesProvider extends ContentProvider {
             }
             db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "error " + e);
+            Log.e(TAG, "error during insert: " + e);
+            e.printStackTrace();
         } finally {
             db.getWritableDatabase().endTransaction();
             getContext().getContentResolver().notifyChange(uri, null);
@@ -83,7 +84,8 @@ public class RidesProvider extends ContentProvider {
             }
             db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "error " + e);
+            Log.e(TAG, "error during bulk insert: " + e);
+            e.printStackTrace();
         } finally {
             db.getWritableDatabase().endTransaction();
             getContext().getContentResolver().notifyChange(uri, null);
@@ -122,7 +124,9 @@ public class RidesProvider extends ContentProvider {
             return db.getReadableDatabase().query("rides", null,
                     "_id=" + uri.getLastPathSegment(), null, null, null, null);
         case RIDES:
-            return db.queryRides(uri.getPathSegments().get(1));
+            return db.queryRides(
+                    uri.getQueryParameter("from_id"),
+                    uri.getQueryParameter("to_id"));
         }
         return null;
     }
