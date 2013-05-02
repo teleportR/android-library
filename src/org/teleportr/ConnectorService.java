@@ -1,7 +1,7 @@
 package org.teleportr;
 
-import java.util.ArrayList;
 import java.util.Date;
+
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -11,89 +11,102 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
-import android.widget.Toast;
 
 public class ConnectorService extends Service {
 
     protected static final String TAG = "ConnectorService";
+    public static final String RESOLVE = "geocode";
+    public static final String SEARCH = "search";
+    private Connector fahrgemeinschaft;
+    private Connector gplaces;
     private Handler manager;
-    private Connector connector;
 
-    
-    
     @Override
     public void onCreate() {
-//        connector = new 
+        // connector = new
         HandlerThread worker = new HandlerThread("worker");
-        worker.start();			
+        worker.start();
         manager = new Handler(worker.getLooper());
         try {
-			connector = (Connector) Class.forName("de.fahrgemeinschaft.FahrgemeinschaftConnector").newInstance();
-		} catch (InstantiationException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+            fahrgemeinschaft = (Connector) Class.forName(
+                    "de.fahrgemeinschaft.FahrgemeinschaftConnector")
+                    .newInstance();
+            gplaces = (Connector) Class.forName(
+                    "de.fahrgemeinschaft.GPlaces")
+                    .newInstance();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         super.onCreate();
     }
-    
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        manager.postAtFrontOfQueue(doSomeWork);
-        return START_STICKY;
+        if (intent.getAction().equals(RESOLVE)) {
+            manager.postAtFrontOfQueue(resolve);
+        } else if (intent.getAction().equals(SEARCH)) {
+            manager.postAtFrontOfQueue(search);
+        }
+        return START_REDELIVER_INTENT;
     }
-    
-    Runnable doSomeWork = new Runnable() {
+
+    Runnable resolve = new Runnable() {
         
         @Override
         public void run() {
-            Log.d(TAG, "working..");
-            //Toast.makeText(ConnectorService.this, "working hard!", 1500).show();
+            Log.d(TAG, "resolving a place");
             
-            
-            Cursor job = getContentResolver().query(
-                    Uri.parse("content://" + getPackageName() + "/history"), null, null, null, null);
-            if (job.getCount() != 0) {
-                job.moveToFirst();
-                Place orig = new Place(job.getString(2));
-                Place dest = null;
-                String dest_geohash = job.getString(3);
-                if (!dest_geohash.equals(""))
-                    dest = new Place(dest_geohash);
-                Date dep = new Date(job.getLong(4));
-                Date arr = new Date(job.getLong(5));
-                Log.d(TAG, "  ..on " + dep);
-
-                Place.context = ConnectorService.this;
-                
-                connector.getRides(orig, dest, dep, arr);
-                
-                Ride.saveAll(ConnectorService.this);
-                
-                ContentValues values = new ContentValues();
-                values.put("expire", System.currentTimeMillis() + 42000);
-//                getContentResolver().update(Uri.parse("content://" + getPackageName() + "/history"),
-//                        values, "_id="+job.getInt(0), null);
-                
-                Place.context = null;
-                Log.d(TAG, " work done.");
-//                manager.post(doSomeWork);
+            Uri uri = Uri.parse("content://" 
+                    + ConnectorService.this.getPackageName() + "/jobs/places");
+            Cursor c = getContentResolver().query(uri, null, null, null, null);
+            if (c.getCount() != 0) {
+                c.moveToFirst();
+                Place place = new Place(c.getLong(0), ConnectorService.this);
+                gplaces.resolvePlace(place, ConnectorService.this);
+                Log.d(TAG, " done resolving.");
             } else {
-                Log.d(TAG, "Nothing to do.");
+                Log.d(TAG, "No places to resolve");
             }
         }
     };
-    
+
+    Runnable search = new Runnable() {
+
+        @Override
+        public void run() {
+            Log.d(TAG, "searching for rides..");
+            Uri uri = Uri.parse("content://" 
+                    + ConnectorService.this.getPackageName() + "/jobs/rides");
+            
+            Cursor jobs = getContentResolver()
+                    .query(uri, null, null, null, null);
+            if (jobs.getCount() != 0) {
+                jobs.moveToFirst();
+                Place from = new Place(jobs.getLong(2), ConnectorService.this);
+                Place to = new Place(jobs.getLong(3), ConnectorService.this);
+                Date dep = new Date();
+                Log.d(TAG, jobs.getCount() + " jobs to do. search from " + from.id + " to " + to.id);
+                
+                fahrgemeinschaft.getRides(from, to, dep, null);
+                fahrgemeinschaft.flushBatch(ConnectorService.this);
+
+                ContentValues values = new ContentValues();
+                values.put("from_id", from.id);
+                values.put("to_id", to.id);
+                values.put("last_refresh", System.currentTimeMillis());
+                getContentResolver().insert(uri, values);
+
+                Log.d(TAG, " done searching.");
+//                manager.post(search);
+            } else {
+                Log.d(TAG, "Nothing to search.");
+            }
+        }
+    };
+
     @Override
     public IBinder onBind(Intent intent) {
         return null;
     }
 
-
-    
 }
