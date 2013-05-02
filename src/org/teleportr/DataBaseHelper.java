@@ -37,8 +37,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + "'_id' integer primary key autoincrement, 'type' integer,"
                 + " 'from_id' integer, 'to_id' integer,"
                 + " 'dep' integer, 'arr' integer,"
-                + " 'who' text, 'mode' text, 'operator' text,"
-                + " 'distance' integer, 'price' integer,"
+                + " 'mode' text, 'operator' text, 'who' text, 'details' text,"
+                + " 'distance' integer, 'price' integer, 'seats' integer,"
                 + " 'parent' integer, 'expire' integer, 'ref' text"
                 + "); ");
         db.execSQL("CREATE UNIQUE INDEX rides_idx"
@@ -47,6 +47,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer, last_refresh integer);");
+        db.execSQL("CREATE UNIQUE INDEX jobs_idx"
+                + " ON jobs ('from_id', 'to_id');");
     }
 
     @Override
@@ -83,7 +85,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
         if (cv.size() > 5) {
             insertPlaceKeys(cv, place_id);
         }
-        Log.d(RidesProvider.TAG, "+ stored place " + cv.getAsString("geohash"));
+        Log.d(RidesProvider.TAG, "+ stored place " + cv.getAsString("name"));
         return place_id;
     }
 
@@ -103,9 +105,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     static final String INSERT_RIDE = "INSERT OR IGNORE INTO rides"
-            + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'who',"
-            + " 'mode', 'operator', 'expire', 'parent', 'ref') "
-            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+            + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
+            + "  'who', 'details', 'price', 'seats', 'expire', 'parent', 'ref')"
+            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     static final String BY_GEOHASH = "SELECT _id FROM places WHERE geohash=?";
     static final String BY_NAME = "SELECT _id FROM places WHERE name=?";
@@ -130,36 +132,48 @@ class DataBaseHelper extends SQLiteOpenHelper {
             insertRide.bindLong(5, cv.getAsLong("arr"));
         else
             insertRide.bindLong(5, 0);
-        if (cv.containsKey("who"))
-            insertRide.bindString(6, cv.getAsString("who"));
+        if (cv.containsKey("mode"))
+            insertRide.bindString(6, cv.getAsString("mode"));
         else
             insertRide.bindString(6, "");
-        if (cv.containsKey("mode"))
-            insertRide.bindString(7, cv.getAsString("mode"));
+        if (cv.containsKey("operator"))
+            insertRide.bindString(7, cv.getAsString("operator"));
         else
             insertRide.bindString(7, "");
-        if (cv.containsKey("operator"))
-            insertRide.bindString(8, cv.getAsString("operator"));
+        if (cv.containsKey("who"))
+            insertRide.bindString(8, cv.getAsString("who"));
         else
             insertRide.bindString(8, "");
-        if (cv.containsKey("expire"))
-            insertRide.bindLong(9, cv.getAsLong("expire"));
+        if (cv.containsKey("details"))
+            insertRide.bindString(9, cv.getAsString("details"));
         else
-            insertRide.bindLong(9, 0);
-        if (cv.containsKey("parent"))
-            insertRide.bindLong(10, cv.getAsLong("parent"));
+            insertRide.bindString(9, "");
+        if (cv.containsKey("price"))
+            insertRide.bindLong(10, cv.getAsLong("price"));
         else
             insertRide.bindLong(10, 0);
-        if (cv.containsKey("ref"))
-            insertRide.bindString(11, cv.getAsString("ref"));
+        if (cv.containsKey("seats"))
+            insertRide.bindLong(11, cv.getAsLong("seats"));
         else
-            insertRide.bindString(11, "");
+            insertRide.bindLong(11, 0);
+        if (cv.containsKey("expire"))
+            insertRide.bindLong(12, cv.getAsLong("expire"));
+        else
+            insertRide.bindLong(12, 0);
+        if (cv.containsKey("parent"))
+            insertRide.bindLong(13, cv.getAsLong("parent"));
+        else
+            insertRide.bindLong(13, 0);
+        if (cv.containsKey("ref"))
+            insertRide.bindString(14, cv.getAsString("ref"));
+        else
+            insertRide.bindString(14, "");
         long id = insertRide.executeInsert();
         
         long via_id = getPlaceId(cv, "via");
         if (via_id != -1) {
             // insert two subrides
-            insertRide.bindLong(10, id); // parent ride
+            insertRide.bindLong(13, id); // parent ride
             insertRide.bindLong(2, from_id);
             insertRide.bindLong(3, via_id);
             insertRide.executeInsert();
@@ -168,6 +182,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
             insertRide.executeInsert();
             // TODO calculate dep/arr times
         }
+        Log.d(RidesProvider.TAG, "+ stored ride " + id
+                + ": from=" + from_id + " to=" + to_id);
         return id;
     }
 
@@ -181,6 +197,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
         }
         if (cv.containsKey(namespace + "_name")) {
             getIdByName.bindString(1, cv.getAsString(namespace + "_name"));
+            return getIdByName.simpleQueryForLong();
+        }
+        if (cv.containsKey(namespace + "_address")) {
+            getIdByName.bindString(1, cv.getAsString(namespace + "_address"));
             return getIdByName.simpleQueryForLong();
         }
         return -1;
@@ -215,16 +235,19 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " LEFT JOIN jobs ON"
                 + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
             + " WHERE type=" + Ride.SEARCH
-                + " AND (last_refresh IS null OR last_refresh<?)";
+                + " AND (last_refresh IS null OR last_refresh<?)"
+            + " ORDER BY rides._id DESC;";
 
     public Cursor queryJobs() {
         return getReadableDatabase().rawQuery(SELECT_JOBS,
-                new String[] { "" + (System.currentTimeMillis() - 7000) });
+                new String[] { "" + (System.currentTimeMillis() - 60*1000) });
     }
 
     static final String SELECT_RIDES = "SELECT"
                 + " rides._id, \"from\".name, \"from\".address,"
-                + " \"to\".name, \"to\".address, rides.dep, rides.parent FROM 'rides'"
+                + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
+                + " rides.who, rides.details, rides.price, rides.seats,"
+                + " rides.parent, rides.ref FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
             + " LEFT JOIN 'rides' AS sub ON rides._id=sub.parent"

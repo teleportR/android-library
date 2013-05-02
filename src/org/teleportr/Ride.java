@@ -123,6 +123,11 @@ public class Ride {
         return this;
     }
 
+    public Ride details(String details) {
+        cv.put("details", details);
+        return this;
+    }
+
     public Ride type(int type) {
         cv.put("type", type);
         return this;
@@ -130,6 +135,16 @@ public class Ride {
 
     public Ride guid(String type) {
         cv.put("guid", type);
+        return this;
+    }
+
+    public Ride price(long price) {
+        cv.put("price", price);
+        return this;
+    }
+
+    public Ride seats(long seats) {
+        cv.put("seats", seats);
         return this;
     }
 }

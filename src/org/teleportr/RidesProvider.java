@@ -142,7 +142,8 @@ public class RidesProvider extends ContentProvider {
     public int update(Uri uri, ContentValues values, String sel, String[] args) {
         switch (route.match(uri)) {
         case PLACE:
-            return db.getWritableDatabase().update("places", values, sel, args);
+            return db.getWritableDatabase().update("places", values,
+                    "_id=?", new String[] { uri.getLastPathSegment() });
         }
         return 0;
     }

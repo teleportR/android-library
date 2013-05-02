@@ -9,7 +9,6 @@ import org.teleportr.RidesProvider;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.test.IsolatedContext;
@@ -167,22 +166,25 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Whiskybar", places.getString(2));
     }
 
-    public void testRidesToSearch() {
+    public void testRidesToSearchJobs() {
         Cursor jobs = query("content://org.teleportr.test/jobs/rides");
         assertEquals("there be seven jobs to search", 7, jobs.getCount());
+        jobs.moveToFirst();
+        assertEquals("last search first", bar.id, jobs.getLong(2));
+        assertEquals("last search first", home.id, jobs.getLong(3));
         
         // dummy working hard in background..
         ContentValues values = new ContentValues();
-        values.put("from_id", home.id);
-        values.put("to_id", bar.id);
+        values.put("from_id", bar.id);
+        values.put("to_id", home.id);
         values.put("last_refresh", System.currentTimeMillis());
         getMockContentResolver().insert(
                 Uri.parse("content://org.teleportr.test/jobs/rides"), values);
         jobs = query("content://org.teleportr.test/jobs/rides");
-        assertEquals("now one less job to search", 6, jobs.getCount());
+        assertEquals("now one job less to search", 6, jobs.getCount());
     }
 
-    public void testPlacesToResolve() {
+    public void testPlacesToResolveJobs() {
         Cursor jobs = query("content://org.teleportr.test/jobs/places");
         assertEquals("there be one place to resolve", 1, jobs.getCount());
         // dummy working hard in background..
@@ -201,7 +203,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             public void getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride() // dummy search results
                     .type(Ride.OFFER).from(home).to(bar).dep(new Date(1000)));
-                store(new Ride()
+                store(new Ride().who("Anyone").details("fu").price(42).seats(3)
                     .type(Ride.OFFER).from(home).to(bar).dep(new Date(2000)));
             }
         };
@@ -217,6 +219,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("to_name", "Whiskybar", rides.getString(3));
         assertEquals("to_adress", "Hafenstr. 125", rides.getString(4));
         assertEquals("departure", 2000, rides.getLong(5));
+        assertEquals("who", "Anyone", rides.getString(7));
+        assertEquals("details", "fu", rides.getString(8));
+        assertEquals("price", 42, rides.getLong(9));
+        assertEquals("seats", 3, rides.getLong(10));
     }
 
     public void testSubRideMatches() {
@@ -238,9 +244,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 + "?from_id=" + park.id + "&to_id=" + döner.id);
         assertEquals("there be two (sub)ride matches", 2, rides.getCount());
         rides.moveToFirst();
+        System.out.println(rides.getLong(9));
         assertEquals("from name", "Slackline", rides.getString(1));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
         rides.moveToLast();
+        System.out.println(rides.getLong(9));
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("to_name", "Moustafa", rides.getString(3));
     }

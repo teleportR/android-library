@@ -15,8 +15,11 @@ import android.util.Log;
 public class ConnectorService extends Service {
 
     protected static final String TAG = "ConnectorService";
+    public static final String RESOLVE = "geocode";
+    public static final String SEARCH = "search";
+    private Connector fahrgemeinschaft;
+    private Connector gplaces;
     private Handler manager;
-    private Connector connector;
 
     @Override
     public void onCreate() {
@@ -25,17 +28,13 @@ public class ConnectorService extends Service {
         worker.start();
         manager = new Handler(worker.getLooper());
         try {
-            connector = (Connector) Class.forName(
+            fahrgemeinschaft = (Connector) Class.forName(
                     "de.fahrgemeinschaft.FahrgemeinschaftConnector")
                     .newInstance();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
+            gplaces = (Connector) Class.forName(
+                    "de.fahrgemeinschaft.GPlaces")
+                    .newInstance();
+        } catch (Exception e) {
             e.printStackTrace();
         }
         super.onCreate();
@@ -43,29 +42,53 @@ public class ConnectorService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        manager.postAtFrontOfQueue(doSomeWork);
-        return START_STICKY;
+        if (intent.getAction().equals(RESOLVE)) {
+            manager.postAtFrontOfQueue(resolve);
+        } else if (intent.getAction().equals(SEARCH)) {
+            manager.postAtFrontOfQueue(search);
+        }
+        return START_REDELIVER_INTENT;
     }
 
-    Runnable doSomeWork = new Runnable() {
+    Runnable resolve = new Runnable() {
+        
+        @Override
+        public void run() {
+            Log.d(TAG, "resolving a place");
+            
+            Uri uri = Uri.parse("content://" 
+                    + ConnectorService.this.getPackageName() + "/jobs/places");
+            Cursor c = getContentResolver().query(uri, null, null, null, null);
+            if (c.getCount() != 0) {
+                c.moveToFirst();
+                Place place = new Place(c.getLong(0), ConnectorService.this);
+                gplaces.resolvePlace(place, ConnectorService.this);
+                Log.d(TAG, " done resolving.");
+            } else {
+                Log.d(TAG, "No places to resolve");
+            }
+        }
+    };
+
+    Runnable search = new Runnable() {
 
         @Override
         public void run() {
-            Log.d(TAG, "working..");
-
+            Log.d(TAG, "searching for rides..");
             Uri uri = Uri.parse("content://" 
-                    + ConnectorService.this.getPackageName() + "/jobs");
+                    + ConnectorService.this.getPackageName() + "/jobs/rides");
             
-            Cursor job = getContentResolver()
+            Cursor jobs = getContentResolver()
                     .query(uri, null, null, null, null);
-            if (job.getCount() != 0) {
-                job.moveToFirst();
-                Place from = new Place(job.getLong(2));
-                Place to = new Place(job.getLong(3));
+            if (jobs.getCount() != 0) {
+                jobs.moveToFirst();
+                Place from = new Place(jobs.getLong(2), ConnectorService.this);
+                Place to = new Place(jobs.getLong(3), ConnectorService.this);
                 Date dep = new Date();
+                Log.d(TAG, jobs.getCount() + " jobs to do. search from " + from.id + " to " + to.id);
                 
-                connector.getRides(from, to, dep, null);
-                connector.flushBatch(ConnectorService.this);
+                fahrgemeinschaft.getRides(from, to, dep, null);
+                fahrgemeinschaft.flushBatch(ConnectorService.this);
 
                 ContentValues values = new ContentValues();
                 values.put("from_id", from.id);
@@ -73,10 +96,10 @@ public class ConnectorService extends Service {
                 values.put("last_refresh", System.currentTimeMillis());
                 getContentResolver().insert(uri, values);
 
-                Log.d(TAG, " work done.");
-                 manager.post(doSomeWork);
+                Log.d(TAG, " done searching.");
+//                manager.post(search);
             } else {
-                Log.d(TAG, "Nothing to do.");
+                Log.d(TAG, "Nothing to search.");
             }
         }
     };
