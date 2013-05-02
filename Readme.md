@@ -1,4 +1,4 @@
-TeleportR Android Library for mobility
+TeleportR Android Library for Mobility Apps
 
     Copyright (C) 2013 by it's authors.
 
