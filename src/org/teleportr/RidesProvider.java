@@ -50,7 +50,7 @@ public class RidesProvider extends ContentProvider {
                 id = db.insertPlace(values);
                 break;
             case RIDES:
-                id = db.insertRide(values);
+                id = db.insertRide(0, 0, values);
                 break;
             case SEARCH:
                 id = db.getWritableDatabase().replace("jobs", null, values);
@@ -78,8 +78,10 @@ public class RidesProvider extends ContentProvider {
                 }
                 break;
             case RIDES:
+                long from = Long.parseLong(uri.getQueryParameter("from_id"));
+                long to = Long.parseLong(uri.getQueryParameter("to_id"));
                 for (int i = 0; i < values.length; i++) {
-                    db.insertRide(values[i]);
+                    db.insertRide(from, to, values[i]);
                 }
                 break;
             }

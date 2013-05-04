@@ -1,5 +1,6 @@
 package org.teleportr;
 
+import java.util.ArrayList;
 import java.util.Date;
 
 import android.content.ContentValues;
@@ -14,6 +15,7 @@ public class Ride {
     private static final String TAG = "Connector";
 
     ContentValues cv;
+    ArrayList<Ride> subrides;
 
     public Ride() {
         cv = new ContentValues();

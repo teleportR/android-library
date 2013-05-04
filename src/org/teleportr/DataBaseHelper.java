@@ -2,6 +2,7 @@ package org.teleportr;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.UUID;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -18,6 +19,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private SQLiteStatement insertRide;
     private SQLiteStatement getIdByGeohash;
     private SQLiteStatement getIdByName;
+    private SQLiteStatement insertMatch;
 
     @Override
     public void onCreate(SQLiteDatabase db) {
@@ -49,6 +51,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " from_id integer, to_id integer, last_refresh integer);");
         db.execSQL("CREATE UNIQUE INDEX jobs_idx"
                 + " ON jobs ('from_id', 'to_id');");
+        db.execSQL("create table route_matches ("
+                + "'_id' integer primary key autoincrement,"
+                + " from_id integer, to_id integer,"
+                + " sub_from_id integer, sub_to_id integer"
+                + ");");
+        db.execSQL("CREATE UNIQUE INDEX matches_idx ON route_matches"
+                + " ('from_id', 'to_id', 'sub_from_id', 'sub_to_id' );");
     }
 
     @Override
@@ -60,6 +69,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
         insertPlace = getWritableDatabase().compileStatement(INSERT_PLACE);
         insertPlaceKey = getWritableDatabase().compileStatement(INSERT_KEY);
         insertRide = getWritableDatabase().compileStatement(INSERT_RIDE);
+        insertMatch = getWritableDatabase().compileStatement(INSERT_MATCH);
         getIdByGeohash = getWritableDatabase().compileStatement(BY_GEOHASH);
         getIdByName = getWritableDatabase().compileStatement(BY_NAME);
     }
@@ -108,66 +118,41 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
             + "  'who', 'details', 'price', 'seats', 'expire', 'parent', 'ref')"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+    static final String INSERT_MATCH = "INSERT OR IGNORE INTO route_matches"
+            + " ('from_id', 'to_id', sub_from_id, 'sub_to_id')"
+            + " VALUES (?, ?, ?, ?);";
 
     static final String BY_GEOHASH = "SELECT _id FROM places WHERE geohash=?";
     static final String BY_NAME = "SELECT _id FROM places WHERE name=?";
 
-    public long insertRide(ContentValues cv) {
+    public long insertRide(long from, long to, ContentValues cv) {
         
         long from_id = getPlaceId(cv, "from");
-        insertRide.bindLong(2, from_id);
-        
         long to_id = getPlaceId(cv, "to");
+
+        insertMatch.bindLong(1, from_id);
+        insertMatch.bindLong(2, to_id);
+        insertMatch.bindLong(3, from);
+        insertMatch.bindLong(4, to);
+        insertMatch.executeInsert();
+
+        insertRide.bindLong(2, from_id);
         insertRide.bindLong(3, to_id);
         
-        if (cv.containsKey("type"))
-            insertRide.bindLong(1, cv.getAsLong("type"));
-        else
-            insertRide.bindLong(1, 0);
-        if (cv.containsKey("dep"))
-            insertRide.bindLong(4, cv.getAsLong("dep"));
-        else
-            insertRide.bindLong(4, 0);
-        if (cv.containsKey("arr"))
-            insertRide.bindLong(5, cv.getAsLong("arr"));
-        else
-            insertRide.bindLong(5, 0);
-        if (cv.containsKey("mode"))
-            insertRide.bindString(6, cv.getAsString("mode"));
-        else
-            insertRide.bindString(6, "");
-        if (cv.containsKey("operator"))
-            insertRide.bindString(7, cv.getAsString("operator"));
-        else
-            insertRide.bindString(7, "");
-        if (cv.containsKey("who"))
-            insertRide.bindString(8, cv.getAsString("who"));
-        else
-            insertRide.bindString(8, "");
-        if (cv.containsKey("details"))
-            insertRide.bindString(9, cv.getAsString("details"));
-        else
-            insertRide.bindString(9, "");
-        if (cv.containsKey("price"))
-            insertRide.bindLong(10, cv.getAsLong("price"));
-        else
-            insertRide.bindLong(10, 0);
-        if (cv.containsKey("seats"))
-            insertRide.bindLong(11, cv.getAsLong("seats"));
-        else
-            insertRide.bindLong(11, 0);
-        if (cv.containsKey("expire"))
-            insertRide.bindLong(12, cv.getAsLong("expire"));
-        else
-            insertRide.bindLong(12, 0);
-        if (cv.containsKey("parent"))
-            insertRide.bindLong(13, cv.getAsLong("parent"));
-        else
-            insertRide.bindLong(13, 0);
+        bind(cv, 1, "type", 0);
+        bind(cv, 4, "dep", 0);
+        bind(cv, 5, "arr", 0);
+        bind(cv, 6, "mode", "");
+        bind(cv, 7, "operator", "");
+        bind(cv, 8, "who", "");
+        bind(cv, 9, "details", "");
+        bind(cv, 10, "price", 0);
+        bind(cv, 11, "seats", 0);
+        bind(cv, 12, "expire", 0);
+        bind(cv, 13, "parent", 0);
+        bind(cv, 14, "ref", UUID.randomUUID().toString());
         if (cv.containsKey("ref"))
             insertRide.bindString(14, cv.getAsString("ref"));
-        else
-            insertRide.bindString(14, "");
         long id = insertRide.executeInsert();
         
         long via_id = getPlaceId(cv, "via");
@@ -185,6 +170,20 @@ class DataBaseHelper extends SQLiteOpenHelper {
         Log.d(RidesProvider.TAG, "+ stored ride " + id
                 + ": from=" + from_id + " to=" + to_id);
         return id;
+    }
+
+    private void bind(ContentValues cv, int index, String key, String defVal) {
+        if (cv.containsKey(key))
+            insertRide.bindString(index, cv.getAsString(key));
+        else if (defVal != null)
+            insertRide.bindString(index, defVal);
+    }
+
+    private void bind(ContentValues cv, int index, String key, long defVal) {
+        if (cv.containsKey(key))
+            insertRide.bindLong(index, cv.getAsLong(key));
+        else if (defVal != 0)
+            insertRide.bindLong(index, defVal);
     }
 
     private long getPlaceId(ContentValues cv, String namespace) {
@@ -247,18 +246,20 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides._id, \"from\".name, \"from\".address,"
                 + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
                 + " rides.who, rides.details, rides.price, rides.seats,"
-                + " rides.parent, rides.ref FROM 'rides'"
+                + " rides.parent, rides.ref FROM 'route_matches' AS match"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
-            + " LEFT JOIN 'rides' AS sub ON rides._id=sub.parent"
+            + " LEFT JOIN 'rides' ON "
+                + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE rides.type=" + Ride.OFFER
-                + " AND ((rides.parent=0 AND rides.from_id=? AND rides.to_id=?)"
-                    + " OR (sub.from_id=? AND sub.to_id=?))"
+                + " AND match.sub_from_id=?"
+                + " AND match.sub_to_id=?"
+            + " GROUP BY rides.ref"
             + " ORDER BY rides.dep;";
 
     public Cursor queryRides(String from_id, String to_id) {
         return getReadableDatabase().rawQuery(SELECT_RIDES,
-                new String[] { from_id, to_id, from_id, to_id });
+                new String[] { from_id, to_id });
     }
 
     static final HashSet<String> PLACE_COLUMNS = new HashSet<String>(5);

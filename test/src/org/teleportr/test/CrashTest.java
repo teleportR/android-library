@@ -219,7 +219,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("from address", "Hipperstr. 42", rides.getString(2));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
         assertEquals("to_adress", "Hafenstr. 125", rides.getString(4));
-        assertEquals("departure", 2000, rides.getLong(5));
+        assertEquals("departure", 3000, rides.getLong(5));
         assertEquals("who", "Anyone", rides.getString(7));
         assertEquals("details", "fu", rides.getString(8));
         assertEquals("price", 42, rides.getLong(9));
@@ -231,7 +231,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             @Override
             public void getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER) // dummy search results
-                     .from(park).via(döner).to(bar).dep(new Date(1000)));
+                     .from(park).via(döner).via(home).to(bar).dep(new Date(1000)));
                 store(new Ride().type(Ride.OFFER)
                     .from(home).via(park).to(döner).dep(new Date(2000)));
                 store(new Ride() // should not match the query below
