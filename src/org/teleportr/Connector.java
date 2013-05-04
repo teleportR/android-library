@@ -39,15 +39,23 @@ public abstract class Connector {
         ridesBatch.add(ride.cv);
     }
 
-    public void flushBatch(Context ctx) {
+    public void search(Context ctx, long from, long to, long dep, long arr) {
+        getRides(new Place(from, ctx), new Place(to, ctx), new Date(dep), null);
         ctx.getContentResolver().bulkInsert(
                 Uri.parse("content://" + ctx.getPackageName() + "/places"),
                 placesBatch.toArray(new ContentValues[placesBatch.size()]));
-        ctx.getContentResolver().bulkInsert(
-                Uri.parse("content://" + ctx.getPackageName() + "/rides"),
-                ridesBatch.toArray(new ContentValues[ridesBatch.size()]));
         placesBatch.clear();
+        ctx.getContentResolver().bulkInsert(
+                Uri.parse("content://" + ctx.getPackageName() +
+                        "/rides?from_id=" + from + "&to_id=" + to),
+                ridesBatch.toArray(new ContentValues[ridesBatch.size()]));
         ridesBatch.clear();
+        ContentValues done = new ContentValues();
+        done.put("from_id", from);
+        done.put("to_id", to);
+        done.put("last_refresh", System.currentTimeMillis());
+        ctx.getContentResolver().insert(
+                Uri.parse("content://" + ctx.getPackageName() + "/jobs"), done);
     }
 
     public static String httpGet(String url) {

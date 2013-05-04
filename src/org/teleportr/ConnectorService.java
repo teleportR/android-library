@@ -82,19 +82,10 @@ public class ConnectorService extends Service {
                     .query(uri, null, null, null, null);
             if (jobs.getCount() != 0) {
                 jobs.moveToFirst();
-                Place from = new Place(jobs.getLong(2), ConnectorService.this);
-                Place to = new Place(jobs.getLong(3), ConnectorService.this);
-                Date dep = new Date();
-                Log.d(TAG, jobs.getCount() + " jobs to do. search from " + from.id + " to " + to.id);
-                
-                fahrgemeinschaft.getRides(from, to, dep, null);
-                fahrgemeinschaft.flushBatch(ConnectorService.this);
-
-                ContentValues values = new ContentValues();
-                values.put("from_id", from.id);
-                values.put("to_id", to.id);
-                values.put("last_refresh", System.currentTimeMillis());
-                getContentResolver().insert(uri, values);
+                Log.d(TAG, jobs.getCount() + " jobs to do. search from "
+                        + jobs.getLong(2) + " to " + jobs.getLong(3));
+                fahrgemeinschaft.search(ConnectorService.this,
+                        jobs.getLong(2), jobs.getLong(3), 0, 0);
 
                 Log.d(TAG, " done searching.");
 //                manager.post(search);

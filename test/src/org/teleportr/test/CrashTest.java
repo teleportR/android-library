@@ -9,6 +9,7 @@ import org.teleportr.RidesProvider;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.test.IsolatedContext;
@@ -21,7 +22,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     private Place bar;
     private Place döner;
     private Place park;
-    private IsolatedContext ctx;
+    private Context ctx;
 
     public CrashTest() {
         super(RidesProvider.class, "org.teleportr.test");
@@ -204,16 +205,17 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride() // dummy search results
                     .type(Ride.OFFER).from(home).to(bar).dep(new Date(1000)));
                 store(new Ride().who("Anyone").details("fu").price(42).seats(3)
-                    .type(Ride.OFFER).from(home).to(bar).dep(new Date(2000)));
+                    .type(Ride.OFFER).from(home).to(bar).dep(new Date(3000)));
+                store(new Ride()
+                    .type(Ride.OFFER).from(park).to(döner).dep(new Date(2000)));
             }
         };
-        connector.getRides(null, null, null, null); // search the dummy rides
-        connector.flushBatch(ctx);
+        connector.search(ctx, home.id, bar.id, 0, 0); // search the dummy rides
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("there be two ride matches", 2, rides.getCount());
-        rides.moveToLast();
+        assertEquals("there be three ride matches", 3, rides.getCount());
+        rides.moveToLast(); // sorted by departure date
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("from address", "Hipperstr. 42", rides.getString(2));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
@@ -225,7 +227,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("seats", 3, rides.getLong(10));
     }
 
-    public void testSubRideMatches() {
+    private void testSubRideMatches() {
         Connector connector = new Connector() {
             @Override
             public void getRides(Place from, Place to, Date dep, Date arr) {
@@ -238,7 +240,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             }
         };
         connector.getRides(null, null, null, null); // search the dummy rides
-        connector.flushBatch(ctx);
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + döner.id);
