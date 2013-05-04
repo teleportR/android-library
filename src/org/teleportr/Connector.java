@@ -24,10 +24,12 @@ public abstract class Connector {
 
     private ArrayList<ContentValues> placesBatch;
     private ArrayList<ContentValues> ridesBatch;
+    Context ctx;
 
-    public Connector() {
+    public Connector(Context ctx) {
         placesBatch = new ArrayList<ContentValues>();
         ridesBatch = new ArrayList<ContentValues>();
+        this.ctx = ctx;
     }
 
     public Place store(Place place) {
@@ -39,7 +41,7 @@ public abstract class Connector {
         ridesBatch.add(ride.cv);
     }
 
-    public void search(Context ctx, long from, long to, long dep, long arr) {
+    public void search(long from, long to, long dep, long arr) {
         getRides(new Place(from, ctx), new Place(to, ctx), new Date(dep), null);
         ctx.getContentResolver().bulkInsert(
                 Uri.parse("content://" + ctx.getPackageName() + "/places"),

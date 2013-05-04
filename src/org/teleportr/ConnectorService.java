@@ -4,6 +4,7 @@ import java.util.Date;
 
 import android.app.Service;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
@@ -30,7 +31,7 @@ public class ConnectorService extends Service {
         try {
             fahrgemeinschaft = (Connector) Class.forName(
                     "de.fahrgemeinschaft.FahrgemeinschaftConnector")
-                    .newInstance();
+                    .getConstructor(Context.class).newInstance(this);
             gplaces = (Connector) Class.forName(
                     "de.fahrgemeinschaft.GPlaces")
                     .newInstance();
@@ -84,8 +85,7 @@ public class ConnectorService extends Service {
                 jobs.moveToFirst();
                 Log.d(TAG, jobs.getCount() + " jobs to do. search from "
                         + jobs.getLong(2) + " to " + jobs.getLong(3));
-                fahrgemeinschaft.search(ConnectorService.this,
-                        jobs.getLong(2), jobs.getLong(3), 0, 0);
+                fahrgemeinschaft.search(jobs.getLong(2), jobs.getLong(3), 0, 0);
 
                 Log.d(TAG, " done searching.");
 //                manager.post(search);

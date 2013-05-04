@@ -199,7 +199,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
     
     public void testRideMatches() {
-        Connector connector = new Connector() {
+        new Connector(ctx) {
             @Override
             public void getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride() // dummy search results
@@ -209,8 +209,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride()
                     .type(Ride.OFFER).from(park).to(döner).dep(new Date(2000)));
             }
-        };
-        connector.search(ctx, home.id, bar.id, 0, 0); // search the dummy rides
+        }.search(home.id, bar.id, 0, 0); // search the dummy rides
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id);
@@ -228,7 +227,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     private void testSubRideMatches() {
-        Connector connector = new Connector() {
+        new Connector(ctx) {
             @Override
             public void getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER) // dummy search results
@@ -238,8 +237,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride() // should not match the query below
                     .type(Ride.OFFER).from(home).to(bar).dep(new Date(3000)));
             }
-        };
-        connector.getRides(null, null, null, null); // search the dummy rides
+        }.getRides(null, null, null, null); // search the dummy rides
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + döner.id);
