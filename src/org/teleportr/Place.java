@@ -9,16 +9,17 @@ import ch.hsr.geohash.GeoHash;
 
 public class Place {
 
-    public long id;
+    private static final String TAG = "Place";
     protected ContentValues cv;
     private Cursor cursor;
+    public int id;
 
-    public Place(long id) {
+    public Place(int id) {
         this();
         this.id = id;
     }
 
-    public Place(long id, Context ctx) {
+    public Place(int id, Context ctx) {
         this(id);
         cursor = ctx.getContentResolver().query(
                 Uri.parse("content://" + ctx.getPackageName() + "/places/"+id),
@@ -31,11 +32,13 @@ public class Place {
     }
 
     public double getLat() {
-        return ((double) cursor.getLong(4)) / 1E6;
+        return GeoHash.fromGeohashString(cursor.getString(1))
+                .getPoint().getLatitude();
     }
 
     public double getLng() {
-        return ((double) cursor.getLong(5)) / 1E6;
+        return GeoHash.fromGeohashString(cursor.getString(1))
+                .getPoint().getLongitude();
     }
 
     public Place() {
@@ -65,9 +68,8 @@ public class Place {
         cv.put("geohash", geohash);
         try {
             GeoHash gh = GeoHash.fromGeohashString(geohash);
-            cv.put("lat", (int) (Math.round(gh.getPoint().getLatitude() * 1E6)));
-            cv.put("lng",
-                    (int) (Math.round(gh.getPoint().getLongitude() * 1E6)));
+//            cv.put("lat", (int) (Math.round(gh.getPoint().getLatitude() * 1E6)));
+//            cv.put("lng",(int) (Math.round(gh.getPoint().getLongitude() * 1E6)));
         } catch (NullPointerException e) {
             System.out.println("not a geohash: " + geohash);
         }
@@ -78,8 +80,8 @@ public class Place {
         cv.put("geohash",
                 GeoHash.withBitPrecision(((double) lat) / 1E6,
                         ((double) lng) / 1E6, 55).toBase32());
-        cv.put("lat", lat);
-        cv.put("lng", lng);
+//        cv.put("lat", lat);
+//        cv.put("lng", lng);
         return this;
     }
 
@@ -103,12 +105,24 @@ public class Place {
         return this;
     }
 
+    public String getId() {
+        if (id != 0) return String.valueOf(id);
+        if (cv.containsKey("geohash"))
+            return "geohash:" + cv.getAsString("geohash");
+        if (cv.containsKey("name"))
+            return "name:" + cv.getAsString("name");
+        if (cv.containsKey("address"))
+            return "address:" + cv.getAsString("address");
+        Log.d(TAG, "place not identifyable! " + this);
+        return null;
+    }
+
     public Uri store(Context ctx) {
         if (id == 0) {
-            toContentValues();
+//            toContentValues();
             Uri uri = ctx.getContentResolver().insert(Uri.parse(
                     "content://" + ctx.getPackageName() + "/places"), cv);
-            id = Long.parseLong(uri.getLastPathSegment());
+            id = Integer.parseInt(uri.getLastPathSegment());
             return uri;
         } else {
             Log.d("Places", "update place " + id + " : " + cv);

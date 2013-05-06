@@ -1,5 +1,7 @@
 package org.teleportr;
 
+import java.util.ArrayList;
+
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -26,6 +28,7 @@ public class RidesProvider extends ContentProvider {
 
     public void setAuthority(String authority) {
         route = new UriMatcher(0);
+        route.addURI(authority, "rides/#/rides", SUBRIDES);
         route.addURI(authority, "jobs/places", RESOLVE);
         route.addURI(authority, "jobs/rides", SEARCH);
         route.addURI(authority, "history", HISTORY);
@@ -50,7 +53,9 @@ public class RidesProvider extends ContentProvider {
                 id = db.insertPlace(values);
                 break;
             case RIDES:
-                id = db.insertRide(0, 0, values);
+                id = db.insertRide("",
+                        values.getAsInteger("from_id"),
+                        values.getAsInteger("to_id"), values);
                 break;
             case SEARCH:
                 id = db.getWritableDatabase().replace("jobs", null, values);
@@ -78,12 +83,25 @@ public class RidesProvider extends ContentProvider {
                 }
                 break;
             case RIDES:
-                long from = Long.parseLong(uri.getQueryParameter("from_id"));
-                long to = Long.parseLong(uri.getQueryParameter("to_id"));
+                int from;
+                int to;
+                int s_from = Integer.parseInt(uri.getQueryParameter("from_id"));
+                int s_to = Integer.parseInt(uri.getQueryParameter("to_id"));
+                ArrayList<Integer> placeId = new ArrayList<Integer>();
+                String ref = null;
                 for (int i = 0; i < values.length; i++) {
-                    db.insertRide(from, to, values[i]);
+                    if (ref == null && !values[i].containsKey("ref")) {
+                        placeId.add(db.insertPlace(values[i]));
+                    } else {
+                        from = placeId.get(values[i].getAsInteger("from_id"));
+                        to = placeId.get(values[i].getAsInteger("to_id"));
+                        if (values[i].containsKey("ref")) {
+                            ref = values[i].getAsString("ref");
+                            db.insertMatch(from, to, s_from, s_to);
+                        }
+                        db.insertRide(ref, from, to, values[i]);
+                    }
                 }
-                break;
             }
             db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
@@ -128,7 +146,7 @@ public class RidesProvider extends ContentProvider {
             return db.queryJobs();
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
-                    "geohash IS ''", null, null, null, null);
+                    "geohash IS NULL", null, null, null, null);
         case RIDE:
             return db.getReadableDatabase().query("rides", null,
                     "_id=" + uri.getLastPathSegment(), null, null, null, null);
@@ -136,6 +154,8 @@ public class RidesProvider extends ContentProvider {
             return db.queryRides(
                     uri.getQueryParameter("from_id"),
                     uri.getQueryParameter("to_id"));
+        case SUBRIDES:
+            return db.querySubRides(uri.getPathSegments().get(1));
         }
         return null;
     }
@@ -156,6 +176,7 @@ public class RidesProvider extends ContentProvider {
         return 0;
     }
 
+    private static final int SUBRIDES = 0;
     private static final int HISTORY = 1;
     private static final int RESOLVE = 2;
     private static final int SEARCH = 3;

@@ -15,7 +15,7 @@ public class Ride {
     private static final String TAG = "Connector";
 
     ContentValues cv;
-    ArrayList<Ride> subrides;
+    ArrayList<ContentValues> subrides;
 
     public Ride() {
         cv = new ContentValues();
@@ -26,90 +26,65 @@ public class Ride {
                 Uri.parse("content://" + ctx.getPackageName() + "/rides"), cv);
     }
 
+
+
     public Ride from(Uri from) {
         return from(Integer.parseInt(from.getLastPathSegment()));
     }
-    
-    public Ride from(long from_id) {
+
+    public Ride from(Place from) {
+        return from(from.id);
+    }
+
+    public Ride from(int from_id) {
         cv.put("from_id", from_id);
         return this;
     }
 
-    public Ride from(Place from) {
-        if (from.id != 0)
-            return from(from.id);
-        else {
-            String id = from.cv.getAsString("geohash");
-            if (!id.equals("")) {
-                cv.put("from_geohash", id);
-            } else {
-                id = from.cv.getAsString("name");
-                if (!id.equals("")) {
-                    cv.put("from_name", id);
-                } else {
-                    Log.d(TAG, "place not identifyable! " + from);
-                }
-            }
-        }
+
+
+    public Ride via(Uri via) {
+        return to(Integer.parseInt(via.getLastPathSegment()));
+    }
+
+    public Ride via(Place via) {
+        return via(via.id);
+    }
+
+    public Ride via(long via_id) {
+        if (subrides == null) {
+            subrides = new ArrayList<ContentValues>();
+            ContentValues sub = new ContentValues(cv);
+            sub.put("to_id", via_id);
+            subrides.add(sub);
+        } else
+            subrides.get(subrides.size()-1).put("to_id", via_id);
+        ContentValues sub = new ContentValues();
+        sub.put("from_id", via_id);
+        subrides.add(sub);
         return this;
     }
+
 
     public Ride to(Uri to) {
         return to(Integer.parseInt(to.getLastPathSegment()));
     }
 
+    public Ride to(Place to) {
+        return to(to.id);
+    }
+
     public Ride to(long to_id) {
         cv.put("to_id", to_id);
-        return this;
-    }
-
-    public Ride to(Place to) {
-        if (to.id != 0)
-            return to(to.id);
-        else {
-            String id = to.cv.getAsString("geohash");
-            if (!id.equals("")) {
-                cv.put("to_geohash", id);
-            } else {
-                id = to.cv.getAsString("name");
-                if (!id.equals("")) {
-                    cv.put("to_name", id);
-                } else {
-                    Log.d(TAG, "place not identifyable! " + to);
-                }
-            }
+        if (subrides != null) {
+            subrides.get(subrides.size()-1)
+                .put("to_id", to_id);
         }
         return this;
     }
 
-    public Ride via(Uri via) {
-        return to(Integer.parseInt(via.getLastPathSegment()));
-    }
-    
-    public Ride via(long via_id) {
-        cv.put("via_id", via_id);
-        return this;
-    }
-    
-    public Ride via(Place via) {
-        if (via.id != 0)
-            return via(via.id);
-        else {
-            String id = via.cv.getAsString("geohash");
-            if (!id.equals("")) {
-                cv.put("via_geohash", id);
-            } else {
-                id = via.cv.getAsString("name");
-                if (!id.equals("")) {
-                    cv.put("via_name", id);
-                } else {
-                    Log.d(TAG, "place not identifyable! " + via);
-                }
-            }
-        }
-        return this;
-    }
-    
+
+
     public Ride dep(Date dep) {
         cv.put("dep", dep.getTime());
         return this;

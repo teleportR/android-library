@@ -20,15 +20,18 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private SQLiteStatement getIdByGeohash;
     private SQLiteStatement getIdByName;
     private SQLiteStatement insertMatch;
+    private SQLiteStatement getIdByAddress;
 
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("create table places ("
                 + "'_id' integer primary key autoincrement,"
-                + " 'geohash' text, 'name' text, 'address' text,"
+                + " 'geohash' text unique,"
+                + " 'name' text unique,"
+                + " 'address' text unique,"
                 + " 'lat' integer, 'lng' integer);");
-        db.execSQL("CREATE UNIQUE INDEX places_idx"
-                + " ON places ('geohash', 'name');");
+//        db.execSQL("CREATE UNIQUE INDEX places_idx"
+//                + " ON places ('geohash', 'name', 'address');");
         db.execSQL("create table place_keys ("
                 + "'_id' integer primary key autoincrement,"
                 + " 'place_id' integer, 'key' text, 'value' text"
@@ -70,105 +73,101 @@ class DataBaseHelper extends SQLiteOpenHelper {
         insertPlaceKey = getWritableDatabase().compileStatement(INSERT_KEY);
         insertRide = getWritableDatabase().compileStatement(INSERT_RIDE);
         insertMatch = getWritableDatabase().compileStatement(INSERT_MATCH);
-        getIdByGeohash = getWritableDatabase().compileStatement(BY_GEOHASH);
-        getIdByName = getWritableDatabase().compileStatement(BY_NAME);
+        getIdByGeohash = getReadableDatabase().compileStatement(BY_GEOH);
+        getIdByAddress = getReadableDatabase().compileStatement(BY_ADDR);
+        getIdByName = getReadableDatabase().compileStatement(BY_NAME);
     }
 
     static final String INSERT_PLACE = "INSERT OR IGNORE INTO places"
             + " ('geohash', 'name', 'address', 'lat', 'lng')"
             + " VALUES (?, ?, ?, ?, ?);";
 
-    public long insertPlace(ContentValues cv) {
-        insertPlace.bindString(1, cv.getAsString("geohash"));
-        insertPlace.bindString(2, cv.getAsString("name"));
-        insertPlace.bindString(3, cv.getAsString("address"));
-        insertPlace.bindLong(4, cv.getAsLong("lat"));
-        insertPlace.bindLong(5, cv.getAsLong("lng"));
-        long place_id = insertPlace.executeInsert();
-        if (place_id == -1) { // insert has been ignored as place already exists
-            Cursor c = getReadableDatabase().rawQuery(
-                    "SELECT _id from places" + " WHERE name=?",
-                    new String[] { cv.getAsString("name") });
-            c.moveToFirst();
-            place_id = c.getLong(0);
-        }
-        if (cv.size() > 5) {
-            insertPlaceKeys(cv, place_id);
-        }
-        Log.d(RidesProvider.TAG, "+ stored place " + cv.getAsString("name"));
-        return place_id;
-    }
-
     static final String INSERT_KEY = "INSERT OR IGNORE INTO place_keys"
             + " ('place_id', 'key', 'value')" + " VALUES (?, ?, ?);";
+    
+    static final String BY_GEOH = "SELECT sum(_id) FROM places WHERE geohash=?";
+    static final String BY_ADDR = "SELECT sum(_id) FROM places WHERE address=?";
+    static final String BY_NAME = "SELECT sum(_id) FROM places WHERE name=?";
 
-    public void insertPlaceKeys(ContentValues cv, long place_id) {
-        insertPlaceKey.bindLong(1, place_id);
-        for (Entry<String, Object> entry : cv.valueSet()) {
-            if (!PLACE_COLUMNS.contains(entry.getKey())) {
+    public int insertPlace(ContentValues cv) {
+        long place_id = 0;
+        String key = cv.getAsString("geohash");
+        if (key != null) {
+            getIdByGeohash.bindString(1, key);
+            place_id = getIdByGeohash.simpleQueryForLong();
+            if (place_id == 0)
+                insertPlace.bindString(1, key);
+            cv.remove("geohash");
+            System.out.println("key: geohash " + key + "--> " + place_id);
+        } else insertPlace.bindNull(1);
+        key = cv.getAsString("address");
+        if (key != null) {
+            if (place_id == 0) {
+                getIdByAddress.bindString(1, key);
+                place_id = getIdByAddress.simpleQueryForLong();
+                if (place_id == 0)
+                    insertPlace.bindString(3, key);
+            }
+            cv.remove("address");
+            System.out.println("key: address " + key + "--> " + place_id);
+        } else if (place_id == 0) insertPlace.bindNull(3);
+        key = cv.getAsString("name");
+        if (key != null) {
+            if (place_id == 0) {
+                getIdByName.bindString(1, key);
+                place_id = getIdByName.simpleQueryForLong();
+                if (place_id == 0)
+                    insertPlace.bindString(2, key);
+            }
+            cv.remove("name");
+            System.out.println("key: name " + key + "--> " + place_id);
+        } else if (place_id == 0) insertPlace.bindNull(2);
+        if (place_id == 0)
+            place_id = (int) insertPlace.executeInsert();
+        if (place_id == -1) { // insert has been ignored / already exists
+            System.out.println("how could this possibly ever happen???");
+        }
+        if (cv.size() > 0) { // insert keys
+            insertPlaceKey.bindLong(1, place_id);
+            for (Entry<String, Object> entry : cv.valueSet()) {
                 insertPlaceKey.bindString(2, entry.getKey());
                 insertPlaceKey.bindString(3, (String) entry.getValue());
                 insertPlaceKey.executeInsert();
                 Log.d(RidesProvider.TAG, "+ stored key " + entry);
             }
         }
+        Log.d(RidesProvider.TAG, "+ stored place " + place_id);
+        return (int) place_id;
     }
+
 
     static final String INSERT_RIDE = "INSERT OR IGNORE INTO rides"
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
             + "  'who', 'details', 'price', 'seats', 'expire', 'parent', 'ref')"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
-    static final String INSERT_MATCH = "INSERT OR IGNORE INTO route_matches"
-            + " ('from_id', 'to_id', sub_from_id, 'sub_to_id')"
-            + " VALUES (?, ?, ?, ?);";
 
-    static final String BY_GEOHASH = "SELECT _id FROM places WHERE geohash=?";
-    static final String BY_NAME = "SELECT _id FROM places WHERE name=?";
+    public long insertRide(String ref, int from, int to, ContentValues cv) {
 
-    public long insertRide(long from, long to, ContentValues cv) {
-        
-        long from_id = getPlaceId(cv, "from");
-        long to_id = getPlaceId(cv, "to");
+        insertRide.bindLong(2, from);
+        insertRide.bindLong(3, to);
 
-        insertMatch.bindLong(1, from_id);
-        insertMatch.bindLong(2, to_id);
-        insertMatch.bindLong(3, from);
-        insertMatch.bindLong(4, to);
-        insertMatch.executeInsert();
-
-        insertRide.bindLong(2, from_id);
-        insertRide.bindLong(3, to_id);
-        
-        bind(cv, 1, "type", 0);
-        bind(cv, 4, "dep", 0);
-        bind(cv, 5, "arr", 0);
-        bind(cv, 6, "mode", "");
-        bind(cv, 7, "operator", "");
-        bind(cv, 8, "who", "");
-        bind(cv, 9, "details", "");
-        bind(cv, 10, "price", 0);
-        bind(cv, 11, "seats", 0);
-        bind(cv, 12, "expire", 0);
-        bind(cv, 13, "parent", 0);
-        bind(cv, 14, "ref", UUID.randomUUID().toString());
-        if (cv.containsKey("ref"))
-            insertRide.bindString(14, cv.getAsString("ref"));
-        long id = insertRide.executeInsert();
-        
-        long via_id = getPlaceId(cv, "via");
-        if (via_id != -1) {
-            // insert two subrides
-            insertRide.bindLong(13, id); // parent ride
-            insertRide.bindLong(2, from_id);
-            insertRide.bindLong(3, via_id);
-            insertRide.executeInsert();
-            insertRide.bindLong(2, via_id);
-            insertRide.bindLong(3, to_id);
-            insertRide.executeInsert();
-            // TODO calculate dep/arr times
+        if (ref != null) {
+            bind(cv, 1, "type", 0);
+            bind(cv, 4, "dep", 0);
+            bind(cv, 5, "arr", 0);
+            bind(cv, 6, "mode", "");
+            bind(cv, 7, "operator", "");
+            bind(cv, 8, "who", "");
+            bind(cv, 9, "details", "");
+            bind(cv, 10, "price", 0);
+            bind(cv, 11, "seats", 0);
+            bind(cv, 12, "expire", 0);
+            bind(cv, 13, "parent", 0);
+            bind(cv, 14, "ref", ref);
         }
+        long id = insertRide.executeInsert();
         Log.d(RidesProvider.TAG, "+ stored ride " + id
-                + ": from=" + from_id + " to=" + to_id);
+                + ": from=" + from + " to=" + to);
         return id;
     }
 
@@ -186,24 +185,19 @@ class DataBaseHelper extends SQLiteOpenHelper {
             insertRide.bindLong(index, defVal);
     }
 
-    private long getPlaceId(ContentValues cv, String namespace) {
-        if (cv.containsKey(namespace + "_id")) {
-            return cv.getAsLong(namespace + "_id");
-        }
-        if (cv.containsKey(namespace + "_geohash")) {
-            getIdByGeohash.bindString(1, cv.getAsString(namespace +"_geohash"));
-            return getIdByGeohash.simpleQueryForLong();
-        }
-        if (cv.containsKey(namespace + "_name")) {
-            getIdByName.bindString(1, cv.getAsString(namespace + "_name"));
-            return getIdByName.simpleQueryForLong();
-        }
-        if (cv.containsKey(namespace + "_address")) {
-            getIdByName.bindString(1, cv.getAsString(namespace + "_address"));
-            return getIdByName.simpleQueryForLong();
-        }
-        return -1;
+    static final String INSERT_MATCH = "INSERT OR IGNORE INTO route_matches"
+            + " ('from_id', 'to_id', sub_from_id, 'sub_to_id')"
+            + " VALUES (?, ?, ?, ?);";
+    
+    public void insertMatch(int from, int to, int sub_from, int sub_to) {
+        insertMatch.bindLong(1, from);
+        insertMatch.bindLong(2, to);
+        insertMatch.bindLong(3, sub_from);
+        insertMatch.bindLong(4, sub_to);
+        insertMatch.executeInsert();
     }
+
+
 
     static final String SELECT_FROM = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
@@ -220,14 +214,27 @@ class DataBaseHelper extends SQLiteOpenHelper {
     static final String SELECT_TO = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
                 + "SELECT count(_id) AS count, to_id FROM 'rides'"
-                + " WHERE from_id=?" + " GROUP BY to_id"
+                + " GROUP BY to_id"
+            + ") AS history ON _id=history.to_id"
+            + " WHERE name LIKE ? OR address LIKE ?"
+            + " ORDER BY history.count DESC, name ASC;";
+
+    static final String SELECT_TO_FOR_FROM = "SELECT * FROM 'places'"
+            + " LEFT JOIN ("
+            + "SELECT count(_id) AS count, to_id FROM 'rides'"
+            + " WHERE from_id=?" + " GROUP BY to_id"
             + ") AS history ON _id=history.to_id"
             + " WHERE _id<>? AND (name LIKE ? OR address LIKE ?)"
             + " ORDER BY history.count DESC, name ASC;";
 
     public Cursor autocompleteTo(String from, String q) {
-        return getReadableDatabase().rawQuery(SELECT_TO,
-                new String[] { from, from, q, q });
+        if (from.equals("0")) {
+            return getReadableDatabase().rawQuery(SELECT_TO,
+                    new String[] { q, q });
+        } else {
+            return getReadableDatabase().rawQuery(SELECT_TO_FOR_FROM,
+                    new String[] { from, from, q, q });
+        }
     }
 
     static final String SELECT_JOBS = " SELECT * FROM rides"
@@ -261,13 +268,19 @@ class DataBaseHelper extends SQLiteOpenHelper {
         return getReadableDatabase().rawQuery(SELECT_RIDES,
                 new String[] { from_id, to_id });
     }
-
-    static final HashSet<String> PLACE_COLUMNS = new HashSet<String>(5);
-    static {
-        PLACE_COLUMNS.add("geohash");
-        PLACE_COLUMNS.add("name");
-        PLACE_COLUMNS.add("address");
-        PLACE_COLUMNS.add("lat");
-        PLACE_COLUMNS.add("lng");
+    
+    static final String SELECT_SUBRIDES = "SELECT"
+            + " rides._id, \"from\".name, \"from\".address,"
+            + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
+            + " rides.who, rides.details, rides.price, rides.seats,"
+            + " rides.parent, rides.ref FROM 'rides'"
+            + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
+            + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
+            + " WHERE ref=(SELECT ref FROM rides WHERE _id=?)"
+            + " ORDER BY rides.dep;";
+    
+    public Cursor querySubRides(String ride_ref) {
+        return getReadableDatabase().rawQuery(SELECT_SUBRIDES,
+                new String[] { ride_ref });
     }
 }

@@ -62,7 +62,7 @@ public class ConnectorService extends Service {
             Cursor c = getContentResolver().query(uri, null, null, null, null);
             if (c.getCount() != 0) {
                 c.moveToFirst();
-                Place place = new Place(c.getLong(0), ConnectorService.this);
+                Place place = new Place((int) c.getLong(0), ConnectorService.this);
                 gplaces.resolvePlace(place, ConnectorService.this);
                 Log.d(TAG, " done resolving.");
             } else {
@@ -78,14 +78,14 @@ public class ConnectorService extends Service {
             Log.d(TAG, "searching for rides..");
             Uri uri = Uri.parse("content://" 
                     + ConnectorService.this.getPackageName() + "/jobs/rides");
-            
+
             Cursor jobs = getContentResolver()
                     .query(uri, null, null, null, null);
             if (jobs.getCount() != 0) {
                 jobs.moveToFirst();
                 Log.d(TAG, jobs.getCount() + " jobs to do. search from "
                         + jobs.getLong(2) + " to " + jobs.getLong(3));
-                fahrgemeinschaft.search(jobs.getLong(2), jobs.getLong(3), 0, 0);
+                fahrgemeinschaft.search(jobs.getInt(2), jobs.getInt(3), 0, 0);
 
                 Log.d(TAG, " done searching.");
 //                manager.post(search);
