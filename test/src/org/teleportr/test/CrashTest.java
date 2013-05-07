@@ -123,6 +123,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSortedAsFrom() {
+        dummyConnector.search(cafe.id, bar.id, 0, 0); // execute
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
         // should be ordered by how often a place was used as 'from' in a search
@@ -132,12 +133,15 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("used four times as from", 4, places.getLong(6));
         // then alphabetically for equally often used places
         places.moveToNext();
-        assertEquals("Moustafa", places.getString(2));
-        assertEquals("used once as from", 1, places.getLong(6));
-        places.moveToNext();
         assertEquals("Slackline", places.getString(2));
+        assertEquals("used once as from", 1, places.getLong(6));
+        assertEquals("but two times as to", 2, places.getLong(8));
         places.moveToNext();
         assertEquals("Whiskybar", places.getString(2));
+        places.moveToNext();
+        assertEquals("Moustafa", places.getString(2));
+        assertEquals("used once as from", 1, places.getLong(6));
+        assertEquals("and once as to", 1, places.getLong(8));
         places.moveToLast();
         assertEquals("Cafe Schön", places.getString(2));
         assertEquals("never used as from", 0, places.getLong(6));
@@ -160,16 +164,19 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         // should be ordered by how often a place was used as 'to' from 'home'
         places.moveToFirst();
         assertEquals("first", "Slackline", places.getString(2));
-        assertEquals("used two times as to", 2, places.getLong(6));
+        assertEquals("used twice as to", 2, places.getLong(8));
+        assertEquals("and once as from", 1, places.getLong(6));
         // then alphabetically for equally often used places
         places.moveToNext();
-        assertEquals("Cafe Schön", places.getString(2));
-        assertEquals("used once as to", 1, places.getLong(6));
-        places.moveToNext();
         assertEquals("Whiskybar", places.getString(2));
+        assertEquals("used once as to", 1, places.getLong(8));
+        assertEquals("and once as from", 1, places.getLong(6));
+        places.moveToNext();
+        assertEquals("Cafe Schön", places.getString(2));
+        assertEquals("used once as to", 1, places.getLong(8));
+        assertEquals("and never as from", 0, places.getLong(6));
         places.moveToLast();
         assertEquals("Moustafa", places.getString(2));
-        assertEquals("never used as to", 0, places.getLong(6));
     }
     
     public void testAutocompleteTo() {

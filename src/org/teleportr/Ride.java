@@ -110,8 +110,8 @@ public class Ride {
         return this;
     }
 
-    public Ride guid(String type) {
-        cv.put("guid", type);
+    public Ride ref(String ref) {
+        cv.put("ref", ref);
         return this;
     }
 

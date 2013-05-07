@@ -202,10 +202,17 @@ class DataBaseHelper extends SQLiteOpenHelper {
     static final String SELECT_FROM = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
                 + "SELECT count(_id) AS count, from_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
                 + " GROUP BY from_id"
-            + ") AS history ON _id=history.from_id"
-            + " WHERE name LIKE ? OR address LIKE ?"
-            + " ORDER BY history.count DESC, name ASC;";
+                + ") AS from_history ON _id=from_history.from_id"
+            + " LEFT JOIN ("
+                + "SELECT count(_id) AS count, to_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
+                + " GROUP BY to_id"
+                + ") AS to_history ON _id=to_history.to_id"
+            + " WHERE (from_history.count > 0 OR to_history.count > 0)"
+                + " AND (name LIKE ? OR address LIKE ?)"
+            + " ORDER BY from_history.count DESC, to_history.count DESC, name ASC;";
 
     public Cursor autocompleteFrom(String q) {
         return getReadableDatabase().rawQuery(SELECT_FROM, new String[] {q, q});
@@ -213,13 +220,36 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_TO = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
+                + "SELECT count(_id) AS count, from_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
+                + " GROUP BY from_id"
+                + ") AS from_history ON _id=from_history.from_id"
+            + " LEFT JOIN ("
                 + "SELECT count(_id) AS count, to_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
                 + " GROUP BY to_id"
-            + ") AS history ON _id=history.to_id"
-            + " WHERE name LIKE ? OR address LIKE ?"
-            + " ORDER BY history.count DESC, name ASC;";
+            + ") AS to_history ON _id=to_history.to_id"
+            + " WHERE (from_history.count > 0 OR to_history.count > 0)"
+                    + " AND (name LIKE ? OR address LIKE ?)"
+            + " ORDER BY to_history.count DESC, from_history.count DESC, name ASC;";
 
     static final String SELECT_TO_FOR_FROM = "SELECT * FROM 'places'"
+            + " LEFT JOIN ("
+                + "SELECT count(_id) AS count, from_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
+                + " GROUP BY from_id"
+                + ") AS from_history ON _id=from_history.from_id"
+            + " LEFT JOIN ("
+                + "SELECT count(_id) AS count, to_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH + " AND from_id=?"
+                + " GROUP BY to_id"
+                + ") AS to_history ON _id=to_history.to_id"
+            + " WHERE (from_history.count > 0 OR to_history.count > 0)"
+                    + " AND _id<>? AND (name LIKE ? OR address LIKE ?)"
+            + " ORDER BY to_history.count DESC, from_history.count DESC, name ASC;";
+
+
+    static final String SELECT_TO_FOR_ = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
             + "SELECT count(_id) AS count, to_id FROM 'rides'"
             + " WHERE from_id=?" + " GROUP BY to_id"
@@ -262,7 +292,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " AND match.sub_from_id=?"
                 + " AND match.sub_to_id=?"
             + " GROUP BY rides.ref"
-            + " ORDER BY rides.dep;";
+            + " ORDER BY rides.dep, rides._id;";
 
     public Cursor queryRides(String from_id, String to_id) {
         return getReadableDatabase().rawQuery(SELECT_RIDES,
