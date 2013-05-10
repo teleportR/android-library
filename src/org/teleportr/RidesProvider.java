@@ -53,7 +53,7 @@ public class RidesProvider extends ContentProvider {
                 id = db.insertPlace(values);
                 break;
             case RIDES:
-                id = db.insertRide("",
+                id = db.insertRide(0,
                         values.getAsInteger("from_id"),
                         values.getAsInteger("to_id"), values);
                 break;
@@ -87,19 +87,20 @@ public class RidesProvider extends ContentProvider {
                 int to;
                 int s_from = Integer.parseInt(uri.getQueryParameter("from_id"));
                 int s_to = Integer.parseInt(uri.getQueryParameter("to_id"));
-                ArrayList<Integer> placeId = new ArrayList<Integer>();
-                String ref = null;
+                ArrayList<Integer> placeIdx = new ArrayList<Integer>();
+                long parent = 0;
                 for (int i = 0; i < values.length; i++) {
-                    if (ref == null && !values[i].containsKey("ref")) {
-                        placeId.add(db.insertPlace(values[i]));
+                    if (parent == 0 && !values[i].containsKey("ref")) {
+                        placeIdx.add(db.insertPlace(values[i]));
                     } else {
-                        from = placeId.get(values[i].getAsInteger("from_id"));
-                        to = placeId.get(values[i].getAsInteger("to_id"));
+                        from = placeIdx.get(values[i].getAsInteger("from_id"));
+                        to = placeIdx.get(values[i].getAsInteger("to_id"));
                         if (values[i].containsKey("ref")) {
-                            ref = values[i].getAsString("ref");
+                            parent = db.insertRide(0, from, to, values[i]);
                             db.insertMatch(from, to, s_from, s_to);
+                        } else {
+                            db.insertRide(parent, from, to, values[i]);
                         }
-                        db.insertRide(ref, from, to, values[i]);
                     }
                 }
             }

@@ -164,17 +164,20 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         // should be ordered by how often a place was used as 'to' from 'home'
         places.moveToFirst();
         assertEquals("first", "Slackline", places.getString(2));
+        assertEquals("used twice as to from home", 2, places.getLong(6));
         assertEquals("used twice as to", 2, places.getLong(8));
-        assertEquals("and once as from", 1, places.getLong(6));
+        assertEquals("and once as from", 1, places.getLong(10));
         // then alphabetically for equally often used places
         places.moveToNext();
         assertEquals("Whiskybar", places.getString(2));
-        assertEquals("used once as to", 1, places.getLong(8));
-        assertEquals("and once as from", 1, places.getLong(6));
+        assertEquals("used once as to from home", 1, places.getLong(6));
+        assertEquals("used twice as to", 2, places.getLong(8));
+        assertEquals("and once as from", 1, places.getLong(10));
         places.moveToNext();
         assertEquals("Cafe Schön", places.getString(2));
+        assertEquals("used once as to from home", 1, places.getLong(6));
         assertEquals("used once as to", 1, places.getLong(8));
-        assertEquals("and never as from", 0, places.getLong(6));
+        assertEquals("and never as from", 0, places.getLong(10));
         places.moveToLast();
         assertEquals("Moustafa", places.getString(2));
     }
@@ -189,7 +192,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Whiskybar", places.getString(2));
     }
 
-    public void testRidesToSearchJobs() {
+    public void testSearchJobs() {
         Cursor jobs = query("content://org.teleportr.test/jobs/rides");
         assertEquals("there be seven jobs to search", 7, jobs.getCount());
         jobs.moveToFirst();
@@ -207,7 +210,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("now one job less to search", 6, jobs.getCount());
     }
 
-    public void testPlacesToResolveJobs() {
+    public void testResolveJobs() {
         Cursor jobs = query("content://org.teleportr.test/jobs/places");
         assertEquals("there be one place to resolve", 1, jobs.getCount());
         // dummy working hard in background..
@@ -260,38 +263,43 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
     public void testSubRideMatches() {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
-        new Connector(ctx) {
+        Connector connector = new Connector(ctx) {
             @Override
             public void getRides(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().type(Ride.OFFER).dep(new Date(2000))
+                store(new Ride().type(Ride.OFFER).ref("a").dep(new Date(2000))
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
                         .to(store(new Place().name("Home"))));
-                store(new Ride().type(Ride.OFFER).dep(new Date(1000))
+                store(new Ride().type(Ride.OFFER).ref("b").dep(new Date(1000))
                         .from(store(new Place().name("Home")))
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
                         .to(store(new Place().name("Whiskybar"))));
             }
-        }.search(park.id, bar.id, 0, 0); // execute connector
+        };
+        connector.search(park.id, bar.id, 0, 0); // execute connector
+        connector.search(park.id, bar.id, 0, 0);
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + bar.id);
         assertEquals("there be two (sub)ride matches", 2, rides.getCount());
         rides.moveToLast();
-        System.out.println(rides.getString(12));
-        System.out.println(rides.getString(1));
-        System.out.println(rides.getString(3));
         assertEquals("from name", "Slackline", rides.getString(1));
         assertEquals("to_name", "Home", rides.getString(3));
         rides.moveToFirst();
-        System.out.println(rides.getString(12));
-        System.out.println(rides.getString(1));
-        System.out.println(rides.getString(3));
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
         rides = query("content://org.teleportr.test"
                 + "/rides/" + rides.getLong(0) + "/rides");
-        assertEquals("there be four (sub)rides", 4, rides.getCount());
+        assertEquals("there be four (sub)rides", 3, rides.getCount());
+        rides.moveToFirst();
+        assertEquals("from name", "Home", rides.getString(1));
+        assertEquals("to_name", "Cafe Schön", rides.getString(3));
+        rides.moveToNext();
+        assertEquals("from name", "Cafe Schön", rides.getString(1));
+        assertEquals("to_name", "Slackline", rides.getString(3));
+        rides.moveToLast();
+        assertEquals("from name", "Slackline", rides.getString(1));
+        assertEquals("to_name", "Whiskybar", rides.getString(3));
     }
 }

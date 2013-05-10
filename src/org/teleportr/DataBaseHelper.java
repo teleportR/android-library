@@ -1,8 +1,6 @@
 package org.teleportr;
 
-import java.util.HashSet;
 import java.util.Map.Entry;
-import java.util.UUID;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -14,6 +12,8 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
+    private static final int VERSION = 3;
+    private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
     private SQLiteStatement insertRide;
@@ -44,11 +44,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " 'dep' integer, 'arr' integer,"
                 + " 'mode' text, 'operator' text, 'who' text, 'details' text,"
                 + " 'distance' integer, 'price' integer, 'seats' integer,"
-                + " 'parent' integer, 'expire' integer, 'ref' text"
+                + " 'parent_id' integer, 'expire' integer, 'ref' text"
                 + "); ");
         db.execSQL("CREATE UNIQUE INDEX rides_idx"
-                + " ON rides ('type', 'from_id', 'to_id',"
-                + " 'dep', 'arr', 'who', 'mode', 'operator');");
+                + " ON rides ('type', 'from_id', 'to_id', 'dep', 'ref');");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer, last_refresh integer);");
@@ -65,10 +64,17 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersn, int newVersn) {
+        Log.d(TAG, "upgrade db schema");
+        db.execSQL("DROP table places;");
+        db.execSQL("DROP table place_keys;");
+        db.execSQL("DROP table rides;");
+        db.execSQL("DROP table jobs;");
+        db.execSQL("DROP table route_matches;");
+        onCreate(db);
     }
 
     public DataBaseHelper(Context context) {
-        super(context, "teleportr.db", null, 1);
+        super(context, "teleportr.db", null, VERSION);
         insertPlace = getWritableDatabase().compileStatement(INSERT_PLACE);
         insertPlaceKey = getWritableDatabase().compileStatement(INSERT_KEY);
         insertRide = getWritableDatabase().compileStatement(INSERT_RIDE);
@@ -98,7 +104,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             if (place_id == 0)
                 insertPlace.bindString(1, key);
             cv.remove("geohash");
-            System.out.println("key: geohash " + key + "--> " + place_id);
+            Log.d(TAG, "* resolve place by geohash " + key + " -> " + place_id);
         } else insertPlace.bindNull(1);
         key = cv.getAsString("address");
         if (key != null) {
@@ -109,7 +115,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     insertPlace.bindString(3, key);
             }
             cv.remove("address");
-            System.out.println("key: address " + key + "--> " + place_id);
+            Log.d(TAG, "* resolve place by address " + key + " -> " + place_id);
         } else if (place_id == 0) insertPlace.bindNull(3);
         key = cv.getAsString("name");
         if (key != null) {
@@ -120,12 +126,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     insertPlace.bindString(2, key);
             }
             cv.remove("name");
-            System.out.println("key: name " + key + "--> " + place_id);
+            Log.d(TAG, "* resolve place by name " + key + " -> " + place_id);
         } else if (place_id == 0) insertPlace.bindNull(2);
         if (place_id == 0)
             place_id = (int) insertPlace.executeInsert();
+            Log.d(RidesProvider.TAG, "+ stored place " + place_id);
         if (place_id == -1) { // insert has been ignored / already exists
-            System.out.println("how could this possibly ever happen???");
+            Log.d(TAG, "how could this possibly ever happen???");
         }
         if (cv.size() > 0) { // insert keys
             insertPlaceKey.bindLong(1, place_id);
@@ -136,22 +143,26 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 Log.d(RidesProvider.TAG, "+ stored key " + entry);
             }
         }
-        Log.d(RidesProvider.TAG, "+ stored place " + place_id);
         return (int) place_id;
     }
 
 
-    static final String INSERT_RIDE = "INSERT OR IGNORE INTO rides"
+    static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides"
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
-            + "  'who', 'details', 'price', 'seats', 'expire', 'parent', 'ref')"
+            + "  'who', 'details', 'price', 'seats', 'expire', 'parent_id', 'ref')"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
-    public long insertRide(String ref, int from, int to, ContentValues cv) {
+    public long insertRide(long parent, int from, int to, ContentValues cv) {
 
+        if (from == to) {
+            Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
+            return 0;
+        }
+        insertRide.bindLong(13, parent);
         insertRide.bindLong(2, from);
         insertRide.bindLong(3, to);
 
-        if (ref != null) {
+        if (parent == 0) {
             bind(cv, 1, "type", 0);
             bind(cv, 4, "dep", 0);
             bind(cv, 5, "arr", 0);
@@ -162,12 +173,11 @@ class DataBaseHelper extends SQLiteOpenHelper {
             bind(cv, 10, "price", 0);
             bind(cv, 11, "seats", 0);
             bind(cv, 12, "expire", 0);
-            bind(cv, 13, "parent", 0);
-            bind(cv, 14, "ref", ref);
+            bind(cv, 14, "ref", "");
         }
         long id = insertRide.executeInsert();
         Log.d(RidesProvider.TAG, "+ stored ride " + id
-                + ": from=" + from + " to=" + to);
+                + ": parent=" + parent + "   from=" + from + " to=" + to);
         return id;
     }
 
@@ -235,18 +245,24 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_TO_FOR_FROM = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS count, from_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
-                + " GROUP BY from_id"
-                + ") AS from_history ON _id=from_history.from_id"
-            + " LEFT JOIN ("
-                + "SELECT count(_id) AS count, to_id FROM 'rides'"
+                + "SELECT count(_id) AS cnt, to_id FROM 'rides'"
                 + " WHERE type=" + Ride.SEARCH + " AND from_id=?"
                 + " GROUP BY to_id"
-                + ") AS to_history ON _id=to_history.to_id"
-            + " WHERE (from_history.count > 0 OR to_history.count > 0)"
+                + ") AS to_h_from ON _id=to_h_from.to_id"
+            + " LEFT JOIN ("
+                + "SELECT count(_id) AS cnt, to_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
+                + " GROUP BY to_id"
+                + ") AS to_h ON _id=to_h.to_id"
+            + " LEFT JOIN ("
+                + "SELECT count(_id) AS cnt, from_id FROM 'rides'"
+                + " WHERE type=" + Ride.SEARCH
+                + " GROUP BY from_id"
+                + ") AS from_h ON _id=from_h.from_id"
+            + " WHERE (to_h_from.cnt > 0 OR to_h.cnt > 0 OR from_h.cnt > 0)"
                     + " AND _id<>? AND (name LIKE ? OR address LIKE ?)"
-            + " ORDER BY to_history.count DESC, from_history.count DESC, name ASC;";
+            + " ORDER BY to_h_from.cnt DESC, to_h.cnt DESC, from_h.cnt DESC,"
+                    + " name ASC;";
 
 
     static final String SELECT_TO_FOR_ = "SELECT * FROM 'places'"
@@ -283,34 +299,33 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides._id, \"from\".name, \"from\".address,"
                 + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
                 + " rides.who, rides.details, rides.price, rides.seats,"
-                + " rides.parent, rides.ref FROM 'route_matches' AS match"
+                + " rides.parent_id, rides.ref FROM 'route_matches' AS match"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
             + " LEFT JOIN 'rides' ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
-            + " WHERE rides.type=" + Ride.OFFER
+            + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
                 + " AND match.sub_from_id=?"
                 + " AND match.sub_to_id=?"
-            + " GROUP BY rides.ref"
             + " ORDER BY rides.dep, rides._id;";
 
     public Cursor queryRides(String from_id, String to_id) {
         return getReadableDatabase().rawQuery(SELECT_RIDES,
                 new String[] { from_id, to_id });
     }
-    
+
     static final String SELECT_SUBRIDES = "SELECT"
             + " rides._id, \"from\".name, \"from\".address,"
             + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
             + " rides.who, rides.details, rides.price, rides.seats,"
-            + " rides.parent, rides.ref FROM 'rides'"
+            + " rides.parent_id, rides.ref FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
-            + " WHERE ref=(SELECT ref FROM rides WHERE _id=?)"
+            + " WHERE parent_id=?"
             + " ORDER BY rides.dep;";
     
-    public Cursor querySubRides(String ride_ref) {
+    public Cursor querySubRides(String parent_id) {
         return getReadableDatabase().rawQuery(SELECT_SUBRIDES,
-                new String[] { ride_ref });
+                new String[] { parent_id });
     }
 }

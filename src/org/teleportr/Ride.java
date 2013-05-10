@@ -6,13 +6,11 @@ import java.util.Date;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 
 public class Ride {
 
     public static final int SEARCH = 42;
     public static final int OFFER = 47;
-    private static final String TAG = "Connector";
 
     ContentValues cv;
     ArrayList<ContentValues> subrides;
@@ -54,7 +52,8 @@ public class Ride {
     public Ride via(long via_id) {
         if (subrides == null) {
             subrides = new ArrayList<ContentValues>();
-            ContentValues sub = new ContentValues(cv);
+            ContentValues sub = new ContentValues();
+            sub.put("from_id", cv.getAsLong("from_id"));
             sub.put("to_id", via_id);
             subrides.add(sub);
         } else

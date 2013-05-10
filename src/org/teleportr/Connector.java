@@ -41,12 +41,12 @@ public abstract class Connector {
         String id = place.getId();
         if (placeIdx.containsKey(id)) {
             place.id = placeIdx.get(place.getId());
-            System.out.println("connector store place " + id + "already");
+            Log.d(TAG, "  place " + id + " - already");
         } else {
             place.id = placesBatch.size();
             placeIdx.put(id, place.id);
             placesBatch.add(place.cv);
-            System.out.println("connector store place " + id + "added");
+            Log.d(TAG, "  place " + id + " - added");
         }
         return place;
     }
@@ -60,6 +60,7 @@ public abstract class Connector {
     }
 
     public void search(int from, int to, long dep, long arr) {
+        Log.d(TAG, "Begin executing Connector");
         getRides(new Place(from, ctx), new Place(to, ctx), new Date(), null);
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
@@ -74,6 +75,7 @@ public abstract class Connector {
                 Uri.parse("content://" + ctx.getPackageName() + "/jobs"), done);
         placesBatch.clear();
         ridesBatch.clear();
+        placeIdx.clear();
     }
 
     public static String httpGet(String url) {
