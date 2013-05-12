@@ -18,7 +18,7 @@ public abstract class Connector {
 
     private static final String TAG = "Connector";
 
-    public void getRides(Place from, Place to, Date dep, Date arr) {}
+    public long getRides(Place from, Place to, Date dep, Date arr) { return 0; }
 
     public void postRide(Place from, Place to, Date dep, Date arr) {}
 
@@ -61,7 +61,9 @@ public abstract class Connector {
 
     public void search(int from, int to, long dep, long arr) {
         Log.d(TAG, "Begin executing Connector");
-        getRides(new Place(from, ctx), new Place(to, ctx), new Date(), null);
+        long latest_dep = getRides(
+                new Place(from, ctx), new Place(to, ctx),
+                new Date(dep), null);
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
                 Uri.parse("content://" + ctx.getPackageName() +
@@ -70,9 +72,11 @@ public abstract class Connector {
         ContentValues done = new ContentValues();
         done.put("from_id", from);
         done.put("to_id", to);
+        System.out.println("store latest dep " + latest_dep);
+        done.put("latest_dep", latest_dep);
         done.put("last_refresh", System.currentTimeMillis());
-        ctx.getContentResolver().insert(
-                Uri.parse("content://" + ctx.getPackageName() + "/jobs"), done);
+        ctx.getContentResolver().insert(Uri.parse(
+                "content://" + ctx.getPackageName() + "/jobs/rides"), done);
         placesBatch.clear();
         ridesBatch.clear();
         placeIdx.clear();

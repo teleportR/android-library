@@ -79,18 +79,20 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 .store(ctx);
         new Ride().type(Ride.SEARCH).from(döner).to(bar).dep(new Date(6000))
                 .store(ctx);
-        new Ride().type(Ride.SEARCH).from(bar).to(home).dep(new Date(7000))
+        new Ride().type(Ride.SEARCH).from(bar).to(home)
+                .dep(new Date(7000)).arr(new Date(9000))
                 .store(ctx);
 
         dummyConnector = new Connector(ctx) { // dummy search results
             @Override
-            public void getRides(Place from, Place to, Date dep, Date arr) {
+            public long getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER)
                         .from(store(new Place().name("Moustafa")))
                         .to(store(new Place().name("Cafe Schön"))));
                 store(new Ride().type(Ride.OFFER)
                         .from(store(new Place().name("Cafe Schön")))
                         .to(store(new Place().name("Somewhere..."))));
+                return 0;
             }
         };
     }
@@ -193,21 +195,35 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSearchJobs() {
-        Cursor jobs = query("content://org.teleportr.test/jobs/rides");
+        String uri = "content://org.teleportr.test/jobs/rides";
+        Cursor jobs = query(uri);
         assertEquals("there be seven jobs to search", 7, jobs.getCount());
         jobs.moveToFirst();
         assertEquals("last search first", bar.id, jobs.getLong(2));
         assertEquals("last search first", home.id, jobs.getLong(3));
+        assertEquals("dep of last search", 7000, jobs.getLong(4));
+        assertEquals("arr of last search", 9000, jobs.getLong(5));
         
-        // dummy working hard in background..
+        // working dummy hard in background..
         ContentValues values = new ContentValues();
         values.put("from_id", bar.id);
         values.put("to_id", home.id);
+        values.put("latest_dep", 8000); // smaller than arr
         values.put("last_refresh", System.currentTimeMillis());
-        getMockContentResolver().insert(
-                Uri.parse("content://org.teleportr.test/jobs/rides"), values);
-        jobs = query("content://org.teleportr.test/jobs/rides");
+        getMockContentResolver().insert(Uri.parse(uri), values);
+        jobs = query(uri);
+        assertEquals("still seven jobs to search", 7, jobs.getCount());
+        values.put("latest_dep", 9000); // not smaller than arr
+        getMockContentResolver().insert(Uri.parse(uri), values);
+        jobs = query(uri);
         assertEquals("now one job less to search", 6, jobs.getCount());
+        new Ride().type(Ride.SEARCH).from(bar).to(home)
+            .dep(new Date(7000)).arr(new Date(9500))
+            .store(ctx); // same ride arrive later
+        jobs = query(uri);
+        assertEquals("again seven jobs to search", 7, jobs.getCount());
+        jobs.moveToFirst();
+        assertEquals("latest_dep", 9000, jobs.getLong(19)); // continue..
     }
 
     public void testResolveJobs() {
@@ -227,7 +243,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
         new Connector(ctx) {
             @Override
-            public void getRides(Place from, Place to, Date dep, Date arr) {
+            public long getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride() // dummy search results
                     .type(Ride.OFFER)
                     .from(store(new Place().name("Home")))
@@ -243,6 +259,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) //döner
                     .dep(new Date(2000)));
+                return 0;
             }
         }.search(home.id, bar.id, 0, 0); // execute  connector
 
@@ -265,7 +282,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
         Connector connector = new Connector(ctx) {
             @Override
-            public void getRides(Place from, Place to, Date dep, Date arr) {
+            public long getRides(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER).ref("a").dep(new Date(2000))
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
@@ -275,6 +292,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
                         .to(store(new Place().name("Whiskybar"))));
+                return 0;
             }
         };
         connector.search(park.id, bar.id, 0, 0); // execute connector

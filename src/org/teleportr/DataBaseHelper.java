@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 3;
+    private static final int VERSION = 4;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -30,12 +30,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " 'name' text unique,"
                 + " 'address' text unique,"
                 + " 'lat' integer, 'lng' integer);");
-//        db.execSQL("CREATE UNIQUE INDEX places_idx"
-//                + " ON places ('geohash', 'name', 'address');");
         db.execSQL("create table place_keys ("
                 + "'_id' integer primary key autoincrement,"
-                + " 'place_id' integer, 'key' text, 'value' text"
-                + ");");
+                + " 'place_id' integer, 'key' text, 'value' text);");
         db.execSQL("CREATE UNIQUE INDEX place_keys_idx"
                 + " ON place_keys ('place_id', 'key');");
         db.execSQL("create table rides ("
@@ -50,7 +47,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " ON rides ('type', 'from_id', 'to_id', 'dep', 'ref');");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
-                + " from_id integer, to_id integer, last_refresh integer);");
+                + " from_id integer, to_id integer,"
+                + " latest_dep integer, last_refresh integer);");
         db.execSQL("CREATE UNIQUE INDEX jobs_idx"
                 + " ON jobs ('from_id', 'to_id');");
         db.execSQL("create table route_matches ("
@@ -287,12 +285,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " LEFT JOIN jobs ON"
                 + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
             + " WHERE type=" + Ride.SEARCH
-                + " AND (last_refresh IS null OR last_refresh<?)"
+                + " AND (latest_dep < arr"
+                    + " OR (last_refresh IS null OR last_refresh<?))"
             + " ORDER BY rides._id DESC;";
 
     public Cursor queryJobs() {
         return getReadableDatabase().rawQuery(SELECT_JOBS,
-                new String[] { "" + (System.currentTimeMillis() - 60*1000) });
+                new String[] { "" + (System.currentTimeMillis() - 3600*1000) });
     }
 
     static final String SELECT_RIDES = "SELECT"
