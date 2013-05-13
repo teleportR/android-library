@@ -298,10 +298,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides._id, \"from\".name, \"from\".address,"
                 + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
                 + " rides.who, rides.details, rides.price, rides.seats,"
-                + " rides.parent_id, rides.ref FROM 'route_matches' AS match"
+                + " rides.parent_id, rides.ref FROM rides"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
-            + " LEFT JOIN 'rides' ON "
+            + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
                 + " AND match.sub_from_id=?"
