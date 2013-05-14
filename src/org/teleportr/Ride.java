@@ -19,11 +19,44 @@ public class Ride {
         cv = new ContentValues();
     }
 
-    public Uri store(Context ctx) {
-        return ctx.getContentResolver().insert(
-                Uri.parse("content://" + ctx.getPackageName() + "/rides"), cv);
+    public Ride(Uri uri) {
+        cv = new ContentValues();
+        type(Ride.SEARCH);
+        from(Integer.parseInt(uri.getQueryParameter("from_id")));
+        to(Integer.parseInt(uri.getQueryParameter("to_id")));
+        if (uri.getQueryParameter("dep") != null)
+            dep(Long.parseLong(uri.getQueryParameter("dep")));
+        if (uri.getQueryParameter("arr") != null)
+            arr(Long.parseLong(uri.getQueryParameter("arr")));
     }
 
+    public Uri store(Context ctx) {
+        ctx.getContentResolver().insert(
+                Uri.parse("content://" + ctx.getPackageName() + "/rides"), cv);
+        return Uri.parse("content://" + ctx.getPackageName() + "/rides?"
+                + "from_id=" + getFromId() + "&to_id=" + getToId()
+                + "dep=" + getDep() + "&arr=" + getArr());
+    }
+
+    public int getFromId() {
+            return cv.getAsInteger("from_id");
+    }
+
+    public int getToId() {
+        return cv.getAsInteger("to_id");
+    }
+
+    public long getDep() {
+        if (cv.containsKey("dep"))
+            return cv.getAsLong("dep");
+        else return System.currentTimeMillis();
+    }
+
+    public long getArr() {
+        if (cv.containsKey("arr"))
+            return cv.getAsLong("arr");
+        else return System.currentTimeMillis();
+    }
 
 
     public Ride from(Uri from) {
@@ -85,12 +118,20 @@ public class Ride {
 
 
     public Ride dep(Date dep) {
-        cv.put("dep", dep.getTime());
+        return dep(dep.getTime());
+    }
+
+    public Ride dep(long dep) {
+        cv.put("dep", dep);
         return this;
     }
 
     public Ride arr(Date arr) {
-        cv.put("arr", arr.getTime());
+        return arr(arr.getTime());
+    }
+
+    public Ride arr(long arr) {
+        cv.put("arr", arr);
         return this;
     }
 

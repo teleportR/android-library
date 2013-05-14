@@ -116,8 +116,7 @@ public class RidesProvider extends ContentProvider {
     }
 
     @Override
-    public Cursor query(Uri uri, String[] proj, String sel, String[] args,
-            String ord) {
+    public Cursor query(Uri uri, String[] p, String s, String[] a, String o) {
         switch (route.match(uri)) {
         case HISTORY:
             return db.getReadableDatabase().query("rides", null,
@@ -152,9 +151,11 @@ public class RidesProvider extends ContentProvider {
             return db.getReadableDatabase().query("rides", null,
                     "_id=" + uri.getLastPathSegment(), null, null, null, null);
         case RIDES:
-            return db.queryRides(
+            Cursor results = db.queryRides(
                     uri.getQueryParameter("from_id"),
                     uri.getQueryParameter("to_id"));
+            results.setNotificationUri(getContext().getContentResolver(), uri);
+            return results;
         case SUBRIDES:
             return db.querySubRides(uri.getPathSegments().get(1));
         }
