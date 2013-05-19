@@ -1,7 +1,5 @@
 package org.teleportr;
 
-import java.util.Date;
-
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Context;

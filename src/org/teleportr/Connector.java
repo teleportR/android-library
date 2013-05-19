@@ -12,6 +12,7 @@ import java.util.UUID;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 public abstract class Connector {
@@ -80,6 +81,10 @@ public abstract class Connector {
         placesBatch.clear();
         ridesBatch.clear();
         placeIdx.clear();
+    }
+
+    public int getSetting(String key) {
+        return PreferenceManager.getDefaultSharedPreferences(ctx).getInt(key, 1);
     }
 
     public static String httpGet(String url) {
