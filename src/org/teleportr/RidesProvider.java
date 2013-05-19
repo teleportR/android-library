@@ -8,6 +8,7 @@ import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
 import android.net.Uri;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 public class RidesProvider extends ContentProvider {
@@ -143,7 +144,9 @@ public class RidesProvider extends ContentProvider {
                 return db.autocompleteTo(from_id, q);
             }
         case SEARCH:
-            return db.queryJobs();
+            String refresh = PreferenceManager.getDefaultSharedPreferences(
+                    getContext()).getString("refresh", "0");
+            return db.queryJobs(refresh);
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
                     "geohash IS NULL", null, null, null, null);

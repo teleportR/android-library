@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 4;
+    private static final int VERSION = 6;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -289,9 +289,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     + " OR (last_refresh IS null OR last_refresh<?))"
             + " ORDER BY rides._id DESC;";
 
-    public Cursor queryJobs() {
+    public Cursor queryJobs(String olderThan) {
         return getReadableDatabase().rawQuery(SELECT_JOBS,
-                new String[] { "" + (System.currentTimeMillis() - 3600*1000) });
+                new String[] { olderThan });
     }
 
     static final String SELECT_RIDES = "SELECT"
