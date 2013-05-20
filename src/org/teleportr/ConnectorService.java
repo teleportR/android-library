@@ -94,8 +94,8 @@ public class ConnectorService extends Service {
                 }
                 else System.out.println("last_dep: " + dep);
                 fahrgemeinschaft.search(jobs.getInt(2), jobs.getInt(3), dep, 0);
-
                 Log.d(TAG, " done searching.");
+                jobs.close();
                 manager.post(search);
             } else {
                 Log.d(TAG, "Nothing to search.");
