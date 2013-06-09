@@ -156,7 +156,8 @@ public class RidesProvider extends ContentProvider {
         case RIDES:
             Cursor results = db.queryRides(
                     uri.getQueryParameter("from_id"),
-                    uri.getQueryParameter("to_id"));
+                    uri.getQueryParameter("to_id"),
+                    uri.getQueryParameter("dep"));
             results.setNotificationUri(getContext().getContentResolver(), uri);
             return results;
         case SUBRIDES:
