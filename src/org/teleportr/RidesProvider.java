@@ -144,8 +144,13 @@ public class RidesProvider extends ContentProvider {
                 return db.autocompleteTo(from_id, q);
             }
         case SEARCH:
-            String refresh = PreferenceManager.getDefaultSharedPreferences(
-                    getContext()).getString("refresh", "0");
+            String refresh;
+            try {
+                refresh = PreferenceManager.getDefaultSharedPreferences(
+                        getContext()).getString("refresh", "0");
+            } catch (Exception e) {
+                refresh = String.valueOf(3600 * 1000);
+            }
             return db.queryJobs(refresh);
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
