@@ -258,9 +258,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride()
                     .type(Ride.OFFER)
                     .from(store(new Place().name("Slackline")))
-                    .to(store(new Place(57.545375, 17.453748))) //döner
+                    .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
-                store(new Ride().from(2).to(3).dep(4000));
                 return 0;
             }
         }.search(home.id, bar.id, 0, 0); // execute  connector
@@ -268,7 +267,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
                             + "&dep=999");
-        assertEquals("there be four ride matches", 4, rides.getCount());
+        assertEquals("there be three ride matches", 3, rides.getCount());
         rides.moveToLast(); // sorted by departure date
         assertEquals("from name", "Home", rides.getString(1));
         assertEquals("from address", "Hipperstr. 42", rides.getString(2));
