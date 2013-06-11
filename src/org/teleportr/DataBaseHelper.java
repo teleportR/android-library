@@ -311,7 +311,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
         return getReadableDatabase().rawQuery(SELECT_RIDES,
-                new String[] { from_id, to_id, dep });
+                new String[] { from_id, to_id, (dep != null)? dep : "0" });
     }
 
     static final String SELECT_SUBRIDES = "SELECT"
