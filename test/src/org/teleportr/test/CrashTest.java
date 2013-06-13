@@ -322,4 +322,26 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("from name", "Slackline", rides.getString(1));
         assertEquals("to_name", "Whiskybar", rides.getString(3));
     }
+
+    public void testRideEdit() {
+        Uri uri = new Ride().type(Ride.OFFER)
+                .from(home).via(bar).to(park)
+                .dep(100).who("m").store(ctx); // 'm' is some unique user id
+        
+        Ride my_ride = new Ride(uri); // query ride to prepopulate editor UI
+        assertEquals(home.id, my_ride.getFromId());
+        assertEquals(park.id, my_ride.getToId());
+        assertEquals(100, my_ride.getArr());
+        
+        // edit and update Ride
+        my_ride.dep(200).from(home).via(cafe).via(döner).to(park).store(ctx);
+
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        //                                      oder /rides?type=offer&who=m
+        assertEquals("there should be only one ride", 1, my_rides.getCount());
+        my_rides.moveToFirst();
+        Cursor subrides = query("content://org.teleportr.test/rides/"
+                + my_rides.getLong(0) + "/rides");
+        assertEquals("with two subrides", 2, subrides.getCount());
+    }
 }
