@@ -56,7 +56,7 @@ public class ConnectorService extends Service {
             Log.d(TAG, "resolving a place");
             
             Uri uri = Uri.parse("content://" 
-                    + ConnectorService.this.getPackageName() + "/jobs/places");
+                    + ConnectorService.this.getPackageName() + "/jobs/resolve");
             Cursor c = getContentResolver().query(uri, null, null, null, null);
             if (c.getCount() != 0) {
                 c.moveToFirst();
@@ -75,7 +75,7 @@ public class ConnectorService extends Service {
         public void run() {
             Log.d(TAG, "searching for rides..");
             Uri uri = Uri.parse("content://" 
-                    + ConnectorService.this.getPackageName() + "/jobs/rides");
+                    + ConnectorService.this.getPackageName() + "/jobs/search");
 
             Cursor jobs = getContentResolver()
                     .query(uri, null, null, null, null);

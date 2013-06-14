@@ -30,9 +30,11 @@ public class RidesProvider extends ContentProvider {
     public void setAuthority(String authority) {
         route = new UriMatcher(0);
         route.addURI(authority, "rides/#/rides", SUBRIDES);
-        route.addURI(authority, "jobs/places", RESOLVE);
-        route.addURI(authority, "jobs/rides", SEARCH);
+        route.addURI(authority, "jobs/resolve", RESOLVE);
+        route.addURI(authority, "jobs/publish", PUBLISH);
+        route.addURI(authority, "jobs/search", SEARCH);
         route.addURI(authority, "history", HISTORY);
+        route.addURI(authority, "myrides", MYRIDES);
         route.addURI(authority, "places/#", PLACE);
         route.addURI(authority, "places", PLACES);
         route.addURI(authority, "rides/#", RIDE);
@@ -119,9 +121,6 @@ public class RidesProvider extends ContentProvider {
     @Override
     public Cursor query(Uri uri, String[] p, String s, String[] a, String o) {
         switch (route.match(uri)) {
-        case HISTORY:
-            return db.getReadableDatabase().query("rides", null,
-                    "type=" + Ride.SEARCH, null, null, null, "_id DESC");
         case PLACE:
             String key = uri.getQueryParameter("key");
             if (key != null) {
@@ -143,6 +142,21 @@ public class RidesProvider extends ContentProvider {
             } else {
                 return db.autocompleteTo(from_id, q);
             }
+        case RIDES:
+            Cursor results = db.queryRides(
+                    uri.getQueryParameter("from_id"),
+                    uri.getQueryParameter("to_id"),
+                    uri.getQueryParameter("dep"));
+            results.setNotificationUri(getContext().getContentResolver(), uri);
+            return results;
+        case SUBRIDES:
+            return db.querySubRides(uri.getPathSegments().get(1));
+        case RIDE:
+            return db.getReadableDatabase().query("rides", null,
+                    "_id=" + uri.getLastPathSegment(), null, null, null, null);
+        case HISTORY:
+            return db.getReadableDatabase().query("rides", null,
+                    "type=" + Ride.SEARCH, null, null, null, "_id DESC");
         case SEARCH:
             String refresh;
             try {
@@ -155,18 +169,6 @@ public class RidesProvider extends ContentProvider {
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
                     "geohash IS NULL", null, null, null, null);
-        case RIDE:
-            return db.getReadableDatabase().query("rides", null,
-                    "_id=" + uri.getLastPathSegment(), null, null, null, null);
-        case RIDES:
-            Cursor results = db.queryRides(
-                    uri.getQueryParameter("from_id"),
-                    uri.getQueryParameter("to_id"),
-                    uri.getQueryParameter("dep"));
-            results.setNotificationUri(getContext().getContentResolver(), uri);
-            return results;
-        case SUBRIDES:
-            return db.querySubRides(uri.getPathSegments().get(1));
         }
         return null;
     }
@@ -187,12 +189,14 @@ public class RidesProvider extends ContentProvider {
         return 0;
     }
 
-    private static final int SUBRIDES = 0;
-    private static final int HISTORY = 1;
-    private static final int RESOLVE = 2;
-    private static final int SEARCH = 3;
-    private static final int PLACES = 4;
-    private static final int PLACE = 5;
-    private static final int RIDES = 6;
-    private static final int RIDE = 7;
+    private static final int RIDE = 0;
+    private static final int RIDES = 1;
+    private static final int PLACE = 2;
+    private static final int PLACES = 3;
+    private static final int SEARCH = 4;
+    private static final int RESOLVE = 5;
+    private static final int PUBLISH = 6;
+    private static final int MYRIDES = 7;
+    private static final int HISTORY = 8;
+    private static final int SUBRIDES = 9;
 }
