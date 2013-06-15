@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 6;
+    private static final int VERSION = 7;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -39,9 +39,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + "'_id' integer primary key autoincrement, 'type' integer,"
                 + " 'from_id' integer, 'to_id' integer,"
                 + " 'dep' integer, 'arr' integer,"
-                + " 'mode' text, 'operator' text, 'who' text, 'details' text,"
-                + " 'distance' integer, 'price' integer, 'seats' integer,"
-                + " 'parent_id' integer, 'expire' integer, 'ref' text"
+                + " distance integer, price integer, seats integer,"
+                + " mode text, operator text, who text, details text,"
+                + " marked integer, dirty integer, parent_id integer, ref text"
                 + "); ");
         db.execSQL("CREATE UNIQUE INDEX rides_idx"
                 + " ON rides ('type', 'from_id', 'to_id', 'dep', 'ref');");
@@ -147,8 +147,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides"
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
-            + "  'who', 'details', 'price', 'seats', 'expire', 'parent_id', 'ref')"
-            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+            + "  'who', 'details', 'price', 'seats', 'marked', 'dirty', 'parent_id', 'ref')"
+            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     public long insertRide(long parent, int from, int to, ContentValues cv) {
 
@@ -156,7 +156,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
             return 0;
         }
-        insertRide.bindLong(13, parent);
+        insertRide.bindLong(14, parent);
         insertRide.bindLong(2, from);
         insertRide.bindLong(3, to);
 
@@ -170,8 +170,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
             bind(cv, 9, "details", "");
             bind(cv, 10, "price", 0);
             bind(cv, 11, "seats", 0);
-            bind(cv, 12, "expire", 0);
-            bind(cv, 14, "ref", "");
+            bind(cv, 12, "marked", 0);
+            bind(cv, 15, "ref", "");
         }
         long id = insertRide.executeInsert();
         Log.d(RidesProvider.TAG, "+ stored ride " + id
@@ -293,39 +293,48 @@ class DataBaseHelper extends SQLiteOpenHelper {
         return getReadableDatabase().rawQuery(SELECT_JOBS,
                 new String[] { olderThan });
     }
-
-    static final String SELECT_RIDES = "SELECT"
-                + " rides._id, \"from\".name, \"from\".address,"
-                + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
-                + " rides.who, rides.details, rides.price, rides.seats,"
-                + " rides.parent_id, rides.ref FROM rides"
+    
+    static final String SELECT_RIDES = "SELECT rides._id, rides.type,"
+                + " \"from\"._id, \"from\".name, \"from\".address,"
+                + " \"to\"._id, \"to\".name, \"to\".address,"
+                + " rides.dep, rides.arr,"
+                + " rides.mode, rides.operator, rides.who, rides.details,"
+                + " rides.distance, rides.price, rides.seats, rides.marked,"
+                + " rides.dirty, rides.parent_id, rides.ref FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
-            + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
+            + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id";
+
+    public Cursor queryRide(String id) {
+        return getReadableDatabase().rawQuery(SELECT_RIDES
+                + " WHERE rides._id=?", new String[] { id });
+    }
+
+    static final String SELECT_RIDE_MATCHES = SELECT_RIDES
             + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
                 + " AND match.sub_from_id=?"
-                + " AND match.sub_to_id=?"
+                + " AND match.sub_to_id =?"
                 + " AND rides.dep > ?"
             + " ORDER BY rides.dep, rides._id;";
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
-        return getReadableDatabase().rawQuery(SELECT_RIDES,
+        return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
                 new String[] { from_id, to_id, (dep != null)? dep : "0" });
     }
 
-    static final String SELECT_SUBRIDES = "SELECT"
-            + " rides._id, \"from\".name, \"from\".address,"
-            + " \"to\".name, \"to\".address, rides.dep, rides.arr,"
-            + " rides.who, rides.details, rides.price, rides.seats,"
-            + " rides.parent_id, rides.ref FROM 'rides'"
-            + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
-            + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id"
+    static final String SELECT_SUB_RIDES = SELECT_RIDES
             + " WHERE parent_id=?"
             + " ORDER BY rides.dep;";
     
     public Cursor querySubRides(String parent_id) {
-        return getReadableDatabase().rawQuery(SELECT_SUBRIDES,
+        return getReadableDatabase().rawQuery(SELECT_SUB_RIDES,
                 new String[] { parent_id });
+    }
+
+    public Cursor queryMyRides() {
+        return getReadableDatabase().rawQuery(SELECT_RIDES
+                + " WHERE type = " + Ride.OFFER
+                + " AND marked = 1 AND parent_id = 0;", null);
     }
 }

@@ -56,7 +56,7 @@ public class RidesProvider extends ContentProvider {
                 id = db.insertPlace(values);
                 break;
             case RIDES:
-                id = db.insertRide(0,
+                id = db.insertRide(values.getAsInteger("parent_id"),
                         values.getAsInteger("from_id"),
                         values.getAsInteger("to_id"), values);
                 break;
@@ -152,11 +152,12 @@ public class RidesProvider extends ContentProvider {
         case SUBRIDES:
             return db.querySubRides(uri.getPathSegments().get(1));
         case RIDE:
-            return db.getReadableDatabase().query("rides", null,
-                    "_id=" + uri.getLastPathSegment(), null, null, null, null);
+            return db.queryRide(uri.getLastPathSegment());
         case HISTORY:
             return db.getReadableDatabase().query("rides", null,
                     "type=" + Ride.SEARCH, null, null, null, "_id DESC");
+        case MYRIDES:
+            return db.queryMyRides();
         case SEARCH:
             String refresh;
             try {
@@ -179,14 +180,17 @@ public class RidesProvider extends ContentProvider {
         case PLACE:
             return db.getWritableDatabase().update("places", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
+        case RIDES:
+            return db.getWritableDatabase().update("rides", values,
+                    "_id=?", new String[] { uri.getLastPathSegment() });
         }
         return 0;
     }
 
     @Override
-    public int delete(Uri arg0, String arg1, String[] arg2) {
-        // TODO Auto-generated method stub
-        return 0;
+    public int delete(Uri uri, String where, String[] args) {
+        return db.getWritableDatabase().delete("rides",
+                "parent_id=?", new String[] { uri.getLastPathSegment() });
     }
 
     private static final int RIDE = 0;

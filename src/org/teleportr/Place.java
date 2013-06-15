@@ -11,7 +11,7 @@ public class Place {
 
     private static final String TAG = "Place";
     protected ContentValues cv;
-    private Cursor cursor;
+    private Context ctx;
     public int id;
 
     public Place(int id) {
@@ -21,23 +21,28 @@ public class Place {
 
     public Place(int id, Context ctx) {
         this(id);
-        cursor = ctx.getContentResolver().query(
-                Uri.parse("content://" + ctx.getPackageName() + "/places/"+id),
-                        null, null, null, null);
+        this.ctx = ctx;
+        Cursor cursor = ctx.getContentResolver().query(
+                Uri.parse("content://" + ctx.getPackageName()
+                        + "/places/"+id), null, null, null, null);
         cursor.moveToFirst();
+        geohash(cursor.getString(1));
+        name(cursor.getString(2));
+        address(cursor.getString(3));
+        cursor.close();
     }
 
     public String getName() {
-        return cursor.getString(2);
+        return cv.getAsString("name");
     }
 
     public double getLat() {
-        return GeoHash.fromGeohashString(cursor.getString(1))
+        return GeoHash.fromGeohashString(cv.getAsString("geohash"))
                 .getPoint().getLatitude();
     }
 
     public double getLng() {
-        return GeoHash.fromGeohashString(cursor.getString(1))
+        return GeoHash.fromGeohashString(cv.getAsString("geohash"))
                 .getPoint().getLongitude();
     }
 
@@ -147,7 +152,7 @@ public class Place {
         return cv;
     }
 
-    public String get(String key, Context ctx) {
+    public String get(String key) {
         Cursor values = ctx.getContentResolver().query(
                 Uri.parse("content://" + ctx.getPackageName() + "/places/" + id
                         + "?key=" + key), null, null, null, null);

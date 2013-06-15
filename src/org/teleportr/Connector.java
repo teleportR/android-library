@@ -77,7 +77,7 @@ public abstract class Connector {
         done.put("latest_dep", latest_dep);
         done.put("last_refresh", System.currentTimeMillis());
         ctx.getContentResolver().insert(Uri.parse(
-                "content://" + ctx.getPackageName() + "/jobs/rides"), done);
+                "content://" + ctx.getPackageName() + "/jobs/search"), done);
         placesBatch.clear();
         ridesBatch.clear();
         placeIdx.clear();

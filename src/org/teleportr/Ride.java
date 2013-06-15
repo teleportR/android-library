@@ -2,9 +2,12 @@ package org.teleportr;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 
 public class Ride {
@@ -12,6 +15,7 @@ public class Ride {
     public static final int SEARCH = 42;
     public static final int OFFER = 47;
 
+    Context ctx;
     ContentValues cv;
     ArrayList<ContentValues> subrides;
 
@@ -19,44 +23,6 @@ public class Ride {
         cv = new ContentValues();
     }
 
-    public Ride(Uri uri) {
-        cv = new ContentValues();
-        type(Ride.SEARCH);
-        from(Integer.parseInt(uri.getQueryParameter("from_id")));
-        to(Integer.parseInt(uri.getQueryParameter("to_id")));
-        if (uri.getQueryParameter("dep") != null)
-            dep(Long.parseLong(uri.getQueryParameter("dep")));
-        if (uri.getQueryParameter("arr") != null)
-            arr(Long.parseLong(uri.getQueryParameter("arr")));
-    }
-
-    public Uri store(Context ctx) {
-        ctx.getContentResolver().insert(
-                Uri.parse("content://" + ctx.getPackageName() + "/rides"), cv);
-        return Uri.parse("content://" + ctx.getPackageName() + "/rides?"
-                + "from_id=" + getFromId() + "&to_id=" + getToId()
-                + "dep=" + getDep() + "&arr=" + getArr());
-    }
-
-    public int getFromId() {
-            return cv.getAsInteger("from_id");
-    }
-
-    public int getToId() {
-        return cv.getAsInteger("to_id");
-    }
-
-    public long getDep() {
-        if (cv.containsKey("dep"))
-            return cv.getAsLong("dep");
-        else return System.currentTimeMillis();
-    }
-
-    public long getArr() {
-        if (cv.containsKey("arr"))
-            return cv.getAsLong("arr");
-        else return System.currentTimeMillis();
-    }
 
 
     public Ride from(Uri from) {
@@ -69,9 +35,10 @@ public class Ride {
 
     public Ride from(int from_id) {
         cv.put("from_id", from_id);
+        if (subrides != null)
+            subrides = null;
         return this;
     }
-
 
 
     public Ride via(Uri via) {
@@ -164,4 +131,152 @@ public class Ride {
         cv.put("seats", seats);
         return this;
     }
+
+    public Ride marked() {
+        cv.put("marked", 1);
+        return this;
+    }
+
+    public Uri store(Context ctx) {
+        Uri ride;
+        cv.put("parent_id", 0);
+        Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
+        if (!cv.containsKey("_id")) {
+            ride = ctx.getContentResolver().insert(uri, cv);
+        } else {
+            ride = ContentUris.withAppendedId(uri, cv.getAsInteger("_id"));
+            ctx.getContentResolver().update(ride, cv, null, null);
+            ctx.getContentResolver().delete(ride, null, null);
+        }
+        if (subrides != null) {
+            for (ContentValues v : subrides) {
+                v.put("parent_id", Integer.valueOf(ride.getLastPathSegment()));
+                ctx.getContentResolver().insert(uri, v);
+            }
+        }
+        return ride;
+    }
+
+
+
+    public static final class COLUMNS {
+        public static final short ID = 0;
+        public static final short TYPE = 1;
+        public static final short FROM_ID = 2;
+        public static final short FROM_NAME = 3;
+        public static final short FROM_ADDRESS = 4;
+        public static final short TO_ID = 5;
+        public static final short TO_NAME = 6;
+        public static final short TO_ADDRESS = 7;
+        public static final short DEPARTURE = 8;
+        public static final short ARRIVAL = 9;
+        public static final short MODE = 10;
+        public static final short OPERATOR = 11;
+        public static final short WHO = 12;
+        public static final short DETAILS = 13;
+        public static final short DISTANCE = 14;
+        public static final short PRICE = 15;
+        public static final short SEATS = 16;
+        public static final short MARKED = 17;
+        public static final short DIRTY = 18;
+        public static final short PARENT_ID = 19;
+        public static final short REF = 20;
+    }
+
+
+    public Ride(Context ctx) {
+        this.ctx = ctx;
+    }
+    
+    public Ride(Uri uri) {
+        cv = new ContentValues();
+        type(Ride.SEARCH);
+        from(Integer.parseInt(uri.getQueryParameter("from_id")));
+        to(Integer.parseInt(uri.getQueryParameter("to_id")));
+        if (uri.getQueryParameter("dep") != null)
+            dep(Long.parseLong(uri.getQueryParameter("dep")));
+        if (uri.getQueryParameter("arr") != null)
+            arr(Long.parseLong(uri.getQueryParameter("arr")));
+    }
+    
+
+    public Ride(Cursor cursor, Context ctx) {
+        cv = new ContentValues();
+        cv.put("_id", cursor.getLong(COLUMNS.ID));
+        type(cursor.getInt(COLUMNS.TYPE));
+        from(cursor.getInt(COLUMNS.FROM_ID));
+        to(cursor.getInt(COLUMNS.TO_ID));
+        dep(cursor.getLong(COLUMNS.DEPARTURE));
+        arr(cursor.getLong(COLUMNS.ARRIVAL));
+        who(cursor.getString(COLUMNS.WHO));
+        details(cursor.getString(COLUMNS.DETAILS));
+        price(cursor.getInt(COLUMNS.PRICE));
+        seats(cursor.getInt(COLUMNS.SEATS));
+        ref(cursor.getString(COLUMNS.REF));
+        Cursor s = ctx.getContentResolver().query(
+                Uri.parse("content://" + ctx.getPackageName() + "/rides/"
+                        + cursor.getInt(0) + "/rides/"), null, null, null, null);
+        subrides = new ArrayList<ContentValues>();
+        for (int i = 0; i < s.getCount(); i++) {
+            s.moveToPosition(i);
+            subrides.add(new Ride(s, ctx).cv);
+        }
+        this.ctx = ctx;
+    }
+
+    public List<Ride> getSubrides() {
+        ArrayList<Ride> subs = new ArrayList<Ride>();
+        for (ContentValues v : subrides) {
+            Ride r = new Ride(ctx);
+            r.cv = v;
+            subs.add(r);
+        }
+        return subs;
+    }
+
+    public Place getFrom() {
+        return new Place(getFromId(), ctx);
+    }
+
+    public Place getTo() {
+        return new Place(getToId(), ctx);
+    }
+
+    public int getFromId() {
+            return cv.getAsInteger("from_id");
+    }
+
+    public int getToId() {
+        return cv.getAsInteger("to_id");
+    }
+
+    public long getDep() {
+        if (cv.containsKey("dep"))
+            return cv.getAsLong("dep");
+        else return System.currentTimeMillis();
+    }
+
+    public long getArr() {
+        if (cv.containsKey("arr"))
+            return cv.getAsLong("arr");
+        else return System.currentTimeMillis();
+    }
+
+    public String getWho() {
+        return cv.getAsString("who");
+    }
+    
+    public String getDetails() {
+        return cv.getAsString("details");
+    }
+    
+    public int getPrice() {
+        return cv.getAsInteger("price");
+    }
+    
+    public int getSeats() {
+        return cv.getAsInteger("seats");
+    }
+
+    
 }
