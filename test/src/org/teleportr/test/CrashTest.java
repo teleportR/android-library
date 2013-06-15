@@ -5,6 +5,7 @@ import java.util.Date;
 import org.teleportr.Connector;
 import org.teleportr.Place;
 import org.teleportr.Ride;
+import org.teleportr.Ride.COLUMNS;
 import org.teleportr.RidesProvider;
 
 import android.content.ContentResolver;
@@ -119,7 +120,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testPlaceKeys() {
-        assertEquals("42", new Place(cafe.id).get("4sq:id", ctx));
+        assertEquals("42", new Place(cafe.id, ctx).get("4sq:id"));
         assertEquals(52.4397162348032, new Place(home.id, ctx).getLat());
         assertEquals("2", new Place().name("Home").store(ctx).getLastPathSegment());
     }
@@ -195,7 +196,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSearchJobs() {
-        String uri = "content://org.teleportr.test/jobs/rides";
+        String uri = "content://org.teleportr.test/jobs/search";
         Cursor jobs = query(uri);
         assertEquals("there be seven jobs to search", 7, jobs.getCount());
         jobs.moveToFirst();
@@ -223,11 +224,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         jobs = query(uri);
         assertEquals("again seven jobs to search", 7, jobs.getCount());
         jobs.moveToFirst();
-        assertEquals("latest_dep", 9000, jobs.getLong(19)); // continue..
+        assertEquals("latest_dep", 9000, jobs.getLong(20    )); // continue..
     }
 
     public void testResolveJobs() {
-        Cursor jobs = query("content://org.teleportr.test/jobs/places");
+        Cursor jobs = query("content://org.teleportr.test/jobs/resolve");
         assertEquals("there be one place to resolve", 1, jobs.getCount());
         // dummy working hard in background..
         jobs.moveToFirst();
@@ -235,7 +236,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         values.put("geohash", "abc");
         getMockContentResolver().update(Uri.parse(
                 "content://org.teleportr.test/places/1"), values, null, null);
-        jobs = query("content://org.teleportr.test/jobs/places");
+        jobs = query("content://org.teleportr.test/jobs/resolve");
         assertEquals("now no places to resolve any more", 0, jobs.getCount());
     }
     
@@ -256,7 +257,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .to(store(new Place().address("Hafenstr. 125")))
                     .dep(new Date(3000)));
                 store(new Ride()
-                    .type(Ride.OFFER)
+                    .type(Ride.OFFER).price(42)
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
@@ -269,15 +270,15 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                             + "&dep=999");
         assertEquals("there be three ride matches", 3, rides.getCount());
         rides.moveToLast(); // sorted by departure date
-        assertEquals("from name", "Home", rides.getString(1));
-        assertEquals("from address", "Hipperstr. 42", rides.getString(2));
-        assertEquals("to_name", "Whiskybar", rides.getString(3));
-        assertEquals("to_adress", "Hafenstr. 125", rides.getString(4));
-        assertEquals("departure", 3000, rides.getLong(5));
-        assertEquals("who", "Anyone", rides.getString(7));
-        assertEquals("details", "fu", rides.getString(8));
-        assertEquals("price", 42, rides.getLong(9));
-        assertEquals("seats", 3, rides.getLong(10));
+        assertEquals("Home", rides.getString(COLUMNS.FROM_NAME));
+        assertEquals("Hipperstr. 42", rides.getString(COLUMNS.FROM_ADDRESS));
+        assertEquals("Whiskybar", rides.getString(COLUMNS.TO_NAME));
+        assertEquals("Hafenstr. 125", rides.getString(COLUMNS.TO_ADDRESS));
+        assertEquals("departure", 3000, rides.getLong(COLUMNS.DEPARTURE));
+        assertEquals("who", "Anyone", rides.getString(COLUMNS.WHO));
+        assertEquals("details", "fu", rides.getString(COLUMNS.DETAILS));
+        assertEquals("price", 42, rides.getLong(COLUMNS.PRICE));
+        assertEquals("seats", 3, rides.getLong(COLUMNS.SEATS));
     }
 
     public void testSubRideMatches() {
@@ -304,44 +305,54 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 + "?from_id=" + park.id + "&to_id=" + bar.id);
         assertEquals("there be two (sub)ride matches", 2, rides.getCount());
         rides.moveToLast();
-        assertEquals("from name", "Slackline", rides.getString(1));
-        assertEquals("to_name", "Home", rides.getString(3));
+        assertEquals("Slackline", rides.getString(COLUMNS.FROM_NAME));
+        assertEquals("Home", rides.getString(COLUMNS.TO_NAME));
         rides.moveToFirst();
-        assertEquals("from name", "Home", rides.getString(1));
-        assertEquals("to_name", "Whiskybar", rides.getString(3));
+        assertEquals("Home", rides.getString(COLUMNS.FROM_NAME));
+        assertEquals("Whiskybar", rides.getString(COLUMNS.TO_NAME));
         rides = query("content://org.teleportr.test"
                 + "/rides/" + rides.getLong(0) + "/rides");
         assertEquals("there be four (sub)rides", 3, rides.getCount());
         rides.moveToFirst();
-        assertEquals("from name", "Home", rides.getString(1));
-        assertEquals("to_name", "Cafe Schön", rides.getString(3));
+        assertEquals("Home", rides.getString(COLUMNS.FROM_NAME));
+        assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
         rides.moveToNext();
-        assertEquals("from name", "Cafe Schön", rides.getString(1));
-        assertEquals("to_name", "Slackline", rides.getString(3));
+        assertEquals("Cafe Schön", rides.getString(COLUMNS.FROM_NAME));
+        assertEquals("Slackline", rides.getString(COLUMNS.TO_NAME));
         rides.moveToLast();
-        assertEquals("from name", "Slackline", rides.getString(1));
-        assertEquals("to_name", "Whiskybar", rides.getString(3));
+        assertEquals("Slackline", rides.getString(COLUMNS.FROM_NAME));
+        assertEquals("Whiskybar", rides.getString(COLUMNS.TO_NAME));
     }
 
     public void testRideEdit() {
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
-                .dep(100).who("m").store(ctx); // 'm' is some unique user id
+                .price(42).details("foo bar")
+                .dep(100).marked().store(ctx); // 'm' is some unique user id
+        Cursor cursor = query(uri.toString());
+        cursor.moveToFirst();
+        Ride myRide = new Ride(cursor, ctx); // query ride
+        assertEquals("foo bar", myRide.getDetails());
+        assertEquals(home.id, myRide.getFromId());
+        assertEquals(park.id, myRide.getToId());
+        assertEquals(42, myRide.getPrice());
+        assertEquals(100, myRide.getDep());
         
-        Ride my_ride = new Ride(uri); // query ride to prepopulate editor UI
-        assertEquals(home.id, my_ride.getFromId());
-        assertEquals(park.id, my_ride.getToId());
-        assertEquals(100, my_ride.getArr());
+        assertEquals("two subrides as objects", 2, myRide.getSubrides().size());
+        assertEquals("Home", myRide.getSubrides().get(0).getFrom().getName());
+        assertEquals(home.id, myRide.getSubrides().get(0).getFrom().id);
+        assertEquals(bar.id, myRide.getSubrides().get(1).getFrom().id);
+        assertEquals(park.id, myRide.getSubrides().get(1).getTo().id);
         
         // edit and update Ride
-        my_ride.dep(200).from(home).via(cafe).via(döner).to(park).store(ctx);
+        myRide.dep(200).from(home).via(cafe).via(döner).to(park).store(ctx);
 
         Cursor my_rides = query("content://org.teleportr.test/myrides");
-        //                                      oder /rides?type=offer&who=m
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
+        System.out.println(my_rides.getInt(COLUMNS.MARKED));
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
-        assertEquals("with two subrides", 2, subrides.getCount());
+        assertEquals("with two subrides", 3, subrides.getCount());
     }
 }
