@@ -219,6 +219,7 @@ public class Ride implements Parcelable {
         to(cursor.getInt(COLUMNS.TO_ID));
         dep(cursor.getLong(COLUMNS.DEPARTURE));
         arr(cursor.getLong(COLUMNS.ARRIVAL));
+        mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
         who(cursor.getString(COLUMNS.WHO));
         details(cursor.getString(COLUMNS.DETAILS));
         price(cursor.getInt(COLUMNS.PRICE));
