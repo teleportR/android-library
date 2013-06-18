@@ -200,10 +200,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor jobs = query(uri);
         assertEquals("there be seven jobs to search", 7, jobs.getCount());
         jobs.moveToFirst();
-        assertEquals("last search first", bar.id, jobs.getLong(2));
-        assertEquals("last search first", home.id, jobs.getLong(3));
-        assertEquals("dep of last search", 7000, jobs.getLong(4));
-        assertEquals("arr of last search", 9000, jobs.getLong(5));
+        assertEquals("last search first", bar.id, jobs.getLong(0));
+        assertEquals("last search first", home.id, jobs.getLong(1));
+        assertEquals("dep of last search", 7000, jobs.getLong(2));
+        assertEquals("arr of last search", 9000, jobs.getLong(3));
         
         // working dummy hard in background..
         ContentValues values = new ContentValues();
@@ -224,7 +224,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         jobs = query(uri);
         assertEquals("again seven jobs to search", 7, jobs.getCount());
         jobs.moveToFirst();
-        assertEquals("latest_dep", 9000, jobs.getLong(20    )); // continue..
+        assertEquals("latest_dep", 9000, jobs.getLong(4)); // continue..
     }
 
     public void testResolveJobs() {

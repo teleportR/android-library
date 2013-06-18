@@ -82,18 +82,13 @@ public class ConnectorService extends Service {
             if (jobs.getCount() != 0) {
                 jobs.moveToFirst();
                 Log.d(TAG, jobs.getCount() + " jobs to do. search from "
-                        + jobs.getLong(2) + " to " + jobs.getLong(3));
-                long dep = jobs.getLong(19);
-                if (dep == 0) dep = jobs.getLong(4);
-                if (dep > jobs.getLong(5)) {
-                    ContentValues values = new ContentValues();
-                    values.put("from_id", jobs.getLong(2));
-                    values.put("to_id", jobs.getLong(3));
-                    values.put("latest_search", jobs.getLong(4));
-                    dep = jobs.getLong(4);
+                        + jobs.getLong(0) + " to " + jobs.getLong(1));
+                long dep = jobs.getLong(4);
+                if (dep == 0) dep = jobs.getLong(2);
+                if (dep < jobs.getLong(3)) {
+                    System.out.println("last_dep: " + dep);
                 }
-                else System.out.println("last_dep: " + dep);
-                fahrgemeinschaft.search(jobs.getInt(2), jobs.getInt(3), dep, 0);
+                fahrgemeinschaft.search(jobs.getInt(0), jobs.getInt(1), dep, 0);
                 Log.d(TAG, " done searching.");
                 jobs.close();
                 manager.post(search);
