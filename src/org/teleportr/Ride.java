@@ -9,8 +9,10 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Parcel;
+import android.os.Parcelable;
 
-public class Ride {
+public class Ride implements Parcelable {
 
     public static final int SEARCH = 42;
     public static final int OFFER = 47;
@@ -291,5 +293,36 @@ public class Ride {
         return cv.getAsInteger("seats");
     }
 
-    
+
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+
+
+    @Override
+    public void writeToParcel(Parcel out, int flags) {
+        out.writeTypedList(subrides);
+        out.writeParcelable(cv, 0);
+    }
+
+    public static final Parcelable.Creator<Ride> CREATOR
+        = new Parcelable.Creator<Ride>() {
+
+            @Override
+            public Ride createFromParcel(Parcel in) {
+                Ride ride = new Ride();
+                ride.subrides = new ArrayList<ContentValues>();
+                in.readTypedList(ride.subrides, ContentValues.CREATOR);
+                ride.cv = in.readParcelable(getClass().getClassLoader());
+                return ride;
+            }
+
+            @Override
+            public Ride[] newArray(int size) {
+                return new Ride[size];
+            }
+        };
 }
