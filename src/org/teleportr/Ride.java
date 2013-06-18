@@ -15,6 +15,10 @@ public class Ride {
     public static final int SEARCH = 42;
     public static final int OFFER = 47;
 
+    public static enum Mode {
+        CAR, TRAIN
+    };
+
     Context ctx;
     ContentValues cv;
     ArrayList<ContentValues> subrides;
@@ -83,7 +87,6 @@ public class Ride {
     }
 
 
-
     public Ride dep(Date dep) {
         return dep(dep.getTime());
     }
@@ -99,6 +102,12 @@ public class Ride {
 
     public Ride arr(long arr) {
         cv.put("arr", arr);
+        return this;
+    }
+
+
+    public Ride mode(Mode mode) {
+        cv.put("mode", mode.name());
         return this;
     }
 
@@ -260,6 +269,10 @@ public class Ride {
         if (cv.containsKey("arr"))
             return cv.getAsLong("arr");
         else return System.currentTimeMillis();
+    }
+
+    public Mode getMode() {
+        return Mode.valueOf(cv.getAsString("mode"));
     }
 
     public String getWho() {
