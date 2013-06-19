@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 public class Ride implements Parcelable {
 
@@ -41,11 +42,13 @@ public class Ride implements Parcelable {
 
     public Ride from(int from_id) {
         cv.put("from_id", from_id);
-        if (subrides != null)
-            subrides = null;
         return this;
     }
 
+
+    public void removeVias() {
+        subrides = null;
+    }
 
     public Ride via(Uri via) {
         return to(Integer.parseInt(via.getLastPathSegment()));
@@ -81,7 +84,7 @@ public class Ride implements Parcelable {
 
     public Ride to(long to_id) {
         cv.put("to_id", to_id);
-        if (subrides != null) {
+        if (subrides != null && subrides.size() > 0) {
             subrides.get(subrides.size()-1)
                 .put("to_id", to_id);
         }
@@ -149,6 +152,9 @@ public class Ride implements Parcelable {
     }
 
     public Uri store(Context ctx) {
+        if (!cv.containsKey("mode")) {
+            mode(Mode.CAR);
+        }
         Uri ride;
         cv.put("parent_id", 0);
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
@@ -247,11 +253,28 @@ public class Ride implements Parcelable {
     }
 
     public Place getFrom() {
-        return new Place(getFromId(), ctx);
+        if (getFromId() != 0)
+            return new Place(getFromId(), ctx);
+        else
+            return new Place().name("from");
     }
 
     public Place getTo() {
-        return new Place(getToId(), ctx);
+        if (getToId() != 0)
+            return new Place(getToId(), ctx);
+        else
+            return new Place().name("to");
+    }
+
+    public List<Place> getVias() {
+        ArrayList<Place> vias = new ArrayList<Place>();
+        if (subrides != null) {
+            for (int i = 1; i < subrides.size(); i++) {
+                vias.add(new Place(subrides.get(i)
+                        .getAsInteger("from_id"), ctx));
+            }
+        }
+        return vias;
     }
 
     public int getFromId() {
@@ -305,8 +328,9 @@ public class Ride implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel out, int flags) {
-        out.writeTypedList(subrides);
+//        out.writeTypedList(subrides);
         out.writeParcelable(cv, 0);
+        Log.d("Ride", "store " + cv.getAsString("from_id"));
     }
 
     public static final Parcelable.Creator<Ride> CREATOR
@@ -315,9 +339,10 @@ public class Ride implements Parcelable {
             @Override
             public Ride createFromParcel(Parcel in) {
                 Ride ride = new Ride();
-                ride.subrides = new ArrayList<ContentValues>();
-                in.readTypedList(ride.subrides, ContentValues.CREATOR);
+//                ride.subrides = new ArrayList<ContentValues>();
+//                in.readTypedList(ride.subrides, ContentValues.CREATOR);
                 ride.cv = in.readParcelable(getClass().getClassLoader());
+                Log.d("Ride", "read " + ride.cv.getAsString("from_id"));
                 return ride;
             }
 

@@ -335,6 +335,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("foo bar", myRide.getDetails());
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
+        assertEquals(1, myRide.getVias().size());
+        assertEquals(bar.id, myRide.getVias().get(0).id);
         assertEquals(42, myRide.getPrice());
         assertEquals(100, myRide.getDep());
         
@@ -345,12 +347,12 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals(park.id, myRide.getSubrides().get(1).getTo().id);
         
         // edit and update Ride
+        myRide.removeVias();
         myRide.dep(200).from(home).via(cafe).via(döner).to(park).store(ctx);
 
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
-        System.out.println(my_rides.getInt(COLUMNS.MARKED));
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with two subrides", 3, subrides.getCount());
