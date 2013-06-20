@@ -296,7 +296,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .from(store(new Place().name("Home")))
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
-                        .to(store(new Place().name("Whiskybar"))));
+                        .to(store(new Place().name("Cafe Schön"))));
                 return 0;
             }
         };
@@ -305,13 +305,13 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + bar.id);
-        assertEquals("there be two (sub)ride matches", 2, rides.getCount());
+        assertEquals("there be two ride matches", 2, rides.getCount());
         rides.moveToLast();
         assertEquals("Slackline", rides.getString(COLUMNS.FROM_NAME));
         assertEquals("Home", rides.getString(COLUMNS.TO_NAME));
         rides.moveToFirst();
         assertEquals("Home", rides.getString(COLUMNS.FROM_NAME));
-        assertEquals("Whiskybar", rides.getString(COLUMNS.TO_NAME));
+        assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
         rides = query("content://org.teleportr.test"
                 + "/rides/" + rides.getLong(0) + "/rides");
         assertEquals("there be four (sub)rides", 3, rides.getCount());
@@ -323,7 +323,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Slackline", rides.getString(COLUMNS.TO_NAME));
         rides.moveToLast();
         assertEquals("Slackline", rides.getString(COLUMNS.FROM_NAME));
-        assertEquals("Whiskybar", rides.getString(COLUMNS.TO_NAME));
+        assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
     }
 
     public void testRideEdit() {

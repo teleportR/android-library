@@ -44,7 +44,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " marked integer, dirty integer, parent_id integer, ref text"
                 + "); ");
         db.execSQL("CREATE UNIQUE INDEX rides_idx"
-                + " ON rides ('type', 'from_id', 'to_id', 'dep', 'ref');");
+                + " ON rides ('type', 'from_id', 'to_id', 'dep', 'ref', 'parent_id');");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer,"
