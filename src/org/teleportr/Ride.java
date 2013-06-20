@@ -31,6 +31,15 @@ public class Ride implements Parcelable {
     }
 
     public Ride set(String key, String value) {
+        String existing = get(key);
+        if (existing.equals("")) {
+            cv.put("details",
+                    cv.getAsString("details") + ";" + key + "=" + value);
+        } else {
+            cv.put("details",
+                    cv.getAsString("details").replace(
+                            key + "=" + existing, key + "=" +value));
+        }
         return this;
     }
 
@@ -124,7 +133,7 @@ public class Ride implements Parcelable {
     }
 
     public Ride details(String details) {
-        cv.put("details", details);
+        cv.put("details", getDetails() + ";details=" + details);
         return this;
     }
 
@@ -165,7 +174,7 @@ public class Ride implements Parcelable {
         } else {
             ride = ContentUris.withAppendedId(uri, cv.getAsInteger("_id"));
             ctx.getContentResolver().update(ride, cv, null, null);
-            ctx.getContentResolver().delete(ride, null, null);
+            ctx.getContentResolver().delete(ride, null, null); // rm subrides
         }
         if (subrides != null) {
             for (ContentValues v : subrides) {
@@ -230,7 +239,7 @@ public class Ride implements Parcelable {
         arr(cursor.getLong(COLUMNS.ARRIVAL));
         mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
         who(cursor.getString(COLUMNS.WHO));
-        details(cursor.getString(COLUMNS.DETAILS));
+        cv.put("details", cursor.getString(COLUMNS.DETAILS));
         price(cursor.getInt(COLUMNS.PRICE));
         seats(cursor.getInt(COLUMNS.SEATS));
         ref(cursor.getString(COLUMNS.REF));
@@ -246,7 +255,15 @@ public class Ride implements Parcelable {
     }
 
     public String get(String key) {
-        return null;
+        if (cv.containsKey("details")) {
+            String[] props = cv.getAsString("details").split(";");
+            for (int i = 0; i < props.length; i++) {
+                String[] split = props[i].split("=");
+                if (split[0].equals(key))
+                    return split[1];
+            }
+        }
+        return "";
     }
     
     public List<Ride> getSubrides() {
@@ -313,7 +330,7 @@ public class Ride implements Parcelable {
     }
     
     public String getDetails() {
-        return cv.getAsString("details");
+        return get("details");
     }
     
     public int getPrice() {

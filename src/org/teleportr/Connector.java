@@ -9,6 +9,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.teleportr.Ride.Mode;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
@@ -54,7 +56,10 @@ public abstract class Connector {
 
     public void store(Ride ride) {
         if (!ride.cv.containsKey("ref"))
-            ride.cv.put("ref", UUID.randomUUID().toString());
+            ride.ref(UUID.randomUUID().toString());
+        if (!ride.cv.containsKey("mode")) {
+            ride.mode(Mode.CAR);
+        }
         ridesBatch.add(ride.cv);
         if (ride.subrides != null)
             ridesBatch.addAll(ride.subrides);

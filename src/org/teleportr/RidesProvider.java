@@ -180,7 +180,7 @@ public class RidesProvider extends ContentProvider {
         case PLACE:
             return db.getWritableDatabase().update("places", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
-        case RIDES:
+        case RIDE:
             return db.getWritableDatabase().update("rides", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
         }

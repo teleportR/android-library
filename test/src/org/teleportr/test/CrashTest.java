@@ -276,7 +276,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Hafenstr. 125", rides.getString(COLUMNS.TO_ADDRESS));
         assertEquals("departure", 3000, rides.getLong(COLUMNS.DEPARTURE));
         assertEquals("who", "Anyone", rides.getString(COLUMNS.WHO));
-        assertEquals("details", "fu", rides.getString(COLUMNS.DETAILS));
+        assertNotSame("details", "fu", rides.getString(COLUMNS.DETAILS)); // BEWARE!
+        Ride convenience = new Ride(rides, ctx);
+        assertNotSame("details", "fu", convenience.getDetails());
         assertEquals("price", 42, rides.getLong(COLUMNS.PRICE));
         assertEquals("seats", 3, rides.getLong(COLUMNS.SEATS));
     }
