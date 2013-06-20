@@ -357,4 +357,17 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with two subrides", 3, subrides.getCount());
     }
+
+    public void testRideProperties() {
+        Uri uri = new Ride().from(bar).to(park).set("foo", "bar").store(ctx);
+        Cursor cursor = query(uri.toString());
+        cursor.moveToFirst();
+        Ride myRide = new Ride(cursor, ctx); // query ride
+        assertEquals("bar", myRide.get("foo"));
+        myRide.set("foo", "baz").store(ctx);
+        cursor = query(uri.toString());
+        cursor.moveToFirst();
+        myRide = new Ride(cursor, ctx); // query ride
+        assertEquals("baz", myRide.get("foo"));
+    }
 }

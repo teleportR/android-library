@@ -30,7 +30,9 @@ public class Ride implements Parcelable {
         cv = new ContentValues();
     }
 
-
+    public Ride set(String key, String value) {
+        return this;
+    }
 
     public Ride from(Uri from) {
         return from(Integer.parseInt(from.getLastPathSegment()));
@@ -200,6 +202,7 @@ public class Ride implements Parcelable {
         public static final short REF = 20;
     }
 
+    
 
     public Ride(Context ctx) {
         this.ctx = ctx;
@@ -242,6 +245,10 @@ public class Ride implements Parcelable {
         this.ctx = ctx;
     }
 
+    public String get(String key) {
+        return null;
+    }
+    
     public List<Ride> getSubrides() {
         ArrayList<Ride> subs = new ArrayList<Ride>();
         for (ContentValues v : subrides) {
