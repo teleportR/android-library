@@ -32,7 +32,7 @@ public class Ride implements Parcelable {
 
     public Ride set(String key, String value) {
         String existing = get(key);
-        if (existing.equals("")) {
+        if (existing == null || existing.equals("")) {
             cv.put("details",
                     cv.getAsString("details") + ";" + key + "=" + value);
         } else {
@@ -133,7 +133,7 @@ public class Ride implements Parcelable {
     }
 
     public Ride details(String details) {
-        cv.put("details", getDetails() + ";details=" + details);
+        set("details", details);
         return this;
     }
 
@@ -256,14 +256,19 @@ public class Ride implements Parcelable {
 
     public String get(String key) {
         if (cv.containsKey("details")) {
-            String[] props = cv.getAsString("details").split(";");
-            for (int i = 0; i < props.length; i++) {
-                String[] split = props[i].split("=");
-                if (split[0].equals(key))
-                    return split[1];
-            }
+            return get(key, cv.getAsString("details"));
         }
-        return "";
+        return null;
+    }
+
+    public static String get(String key, String kvp) {
+        String[] props = kvp.split(";");
+        for (int i = 0; i < props.length; i++) {
+            String[] split = props[i].split("=");
+            if (split[0].equals(key) && split.length > 1)
+                return split[1];
+        }
+        return null;
     }
     
     public List<Ride> getSubrides() {

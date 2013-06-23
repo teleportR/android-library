@@ -367,9 +367,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Ride myRide = new Ride(cursor, ctx); // query ride
         assertEquals("bar", myRide.get("foo"));
         myRide.set("foo", "baz").store(ctx);
+        myRide.set("fooo", "baaz").store(ctx);
+        myRide.details("some comment").store(ctx);
         cursor = query(uri.toString());
         cursor.moveToFirst();
+        System.out.println(cursor.getString(COLUMNS.DETAILS));
         myRide = new Ride(cursor, ctx); // query ride
         assertEquals("baz", myRide.get("foo"));
+        assertEquals("baaz", myRide.get("fooo"));
+        assertEquals("some comment", myRide.getDetails());
     }
 }
