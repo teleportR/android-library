@@ -288,12 +288,12 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
             + " WHERE type=" + Ride.SEARCH
                 + " AND (latest_dep < arr"
-                    + " OR (last_refresh IS null OR last_refresh<?))"
+                    + " OR (last_refresh IS null OR last_refresh < ?))"
             + " ORDER BY rides._id DESC;";
 
-    public Cursor queryJobs(String olderThan) {
+    public Cursor queryJobs(long older_than_last_refresh) {
         return getReadableDatabase().rawQuery(SELECT_JOBS,
-                new String[] { olderThan });
+                new String[] { String.valueOf(older_than_last_refresh) });
     }
     
     static final String SELECT_RIDES = "SELECT rides._id, rides.type,"
