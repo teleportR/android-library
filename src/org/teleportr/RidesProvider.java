@@ -159,14 +159,14 @@ public class RidesProvider extends ContentProvider {
         case MYRIDES:
             return db.queryMyRides();
         case SEARCH:
-            String refresh;
+            long olderThan;
             try {
-                refresh = PreferenceManager.getDefaultSharedPreferences(
-                        getContext()).getString("refresh", "0");
+                olderThan = PreferenceManager.getDefaultSharedPreferences(
+                        getContext()).getLong("refresh", 0);
             } catch (Exception e) {
-                refresh = String.valueOf(3600 * 1000);
+                olderThan = 10 * 60 * 1000; // 10min
             }
-            return db.queryJobs(refresh);
+            return db.queryJobs(System.currentTimeMillis() - olderThan);
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
                     "geohash IS NULL", null, null, null, null);
