@@ -27,6 +27,8 @@ public abstract class Connector {
 
     public void resolvePlace(Place place, Context ctx) {}
 
+    public String authenticate() { return null; }
+
     private HashMap<String, Integer> placeIdx;
     private ArrayList<ContentValues> placesBatch;
     private ArrayList<ContentValues> ridesBatch;
@@ -37,6 +39,10 @@ public abstract class Connector {
         placesBatch = new ArrayList<ContentValues>();
         ridesBatch = new ArrayList<ContentValues>();
         this.ctx = ctx;
+    }
+
+    protected String getAuth() {
+        return authenticate();
     }
 
     public Place store(Place place) {

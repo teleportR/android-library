@@ -1,17 +1,19 @@
 package org.teleportr;
 
 import android.app.Service;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
-public class ConnectorService extends Service {
+public class ConnectorService extends Service implements OnSharedPreferenceChangeListener {
 
     protected static final String TAG = "ConnectorService";
     public static final String RESOLVE = "geocode";
@@ -36,18 +38,39 @@ public class ConnectorService extends Service {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        PreferenceManager.getDefaultSharedPreferences(this)
+                .registerOnSharedPreferenceChangeListener(this);
         super.onCreate();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent.getAction().equals(RESOLVE)) {
+        String action = intent.getAction();
+        if (action == null)
+            return START_STICKY;
+        if (action.equals(RESOLVE)) {
             manager.postAtFrontOfQueue(resolve);
-        } else if (intent.getAction().equals(SEARCH)) {
+        } else if (action.equals(SEARCH)) {
             manager.postAtFrontOfQueue(search);
         }
         return START_REDELIVER_INTENT;
     }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
+        if (key.equals("username") || key.equals("password")) {
+            manager.postAtFrontOfQueue(auth);
+        }
+    }
+
+    Runnable auth = new Runnable() {
+
+        @Override
+        public void run() {
+            Log.d(TAG, "authenticating");
+            fahrgemeinschaft.authenticate();
+        }
+    };
 
     Runnable resolve = new Runnable() {
         
