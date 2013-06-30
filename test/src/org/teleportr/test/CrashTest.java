@@ -399,7 +399,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         String uri = "content://org.teleportr.test/rides/";
 
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("there be two ride matches", 3, rides.getCount());
+        assertEquals("there be three ride matches", 3, rides.getCount());
 
         getMockContentResolver().delete(Uri.parse(uri + "?dep=2"), null, null);
         Cursor left = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
