@@ -390,9 +390,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new Connector(ctx) {
             @Override
             public long getRides(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().from(home).to(bar).dep(1000));
-                store(new Ride().from(home).to(bar).dep(2000));
-                store(new Ride().from(home).to(bar).dep(3000));
+                store(new Ride().from(home).to(bar).dep(1)); // timestamp
+                store(new Ride().from(home).to(bar).dep(2));
+                store(new Ride().from(home).to(bar).dep(3));
                 return 0;
             }
         }.search(home.id, bar.id, 0, 0); // execute
@@ -401,12 +401,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be two ride matches", 3, rides.getCount());
 
-        getMockContentResolver().delete(
-                Uri.parse(uri + "?older_than=2000"), null, null);
-        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("there be two rides newer than 2000", 2, rides.getCount());
+        getMockContentResolver().delete(Uri.parse(uri + "?dep=2"), null, null);
+        Cursor left = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("two rides departing after time 2", 2, left.getCount());
 
-        getMockContentResolver().delete(Uri.parse(uri), null, null);
+        getMockContentResolver().delete(Uri.parse(uri), null, null); // all
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be all rides deleted", 0, rides.getCount());
     }
