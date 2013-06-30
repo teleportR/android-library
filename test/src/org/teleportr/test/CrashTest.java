@@ -385,4 +385,29 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("baaz", myRide.get("fooo"));
         assertEquals("some comment", myRide.getDetails());
     }
+
+    public void testClearCache() {
+        new Connector(ctx) {
+            @Override
+            public long getRides(Place from, Place to, Date dep, Date arr) {
+                store(new Ride().from(home).to(bar).dep(1000));
+                store(new Ride().from(home).to(bar).dep(2000));
+                store(new Ride().from(home).to(bar).dep(3000));
+                return 0;
+            }
+        }.search(home.id, bar.id, 0, 0); // execute
+        String uri = "content://org.teleportr.test/rides/";
+
+        Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("there be two ride matches", 3, rides.getCount());
+
+        getMockContentResolver().delete(
+                Uri.parse(uri + "?older_than=2000"), null, null);
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("there be two rides newer than 2000", 2, rides.getCount());
+
+        getMockContentResolver().delete(Uri.parse(uri), null, null);
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("there be all rides deleted", 0, rides.getCount());
+    }
 }
