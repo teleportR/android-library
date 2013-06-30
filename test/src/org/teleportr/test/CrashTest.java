@@ -214,10 +214,18 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         getMockContentResolver().insert(Uri.parse(uri), values);
         jobs = query(uri);
         assertEquals("still seven jobs to search", 7, jobs.getCount());
+
         values.put("latest_dep", 9000); // not smaller than arr
+        values.put("last_refresh", System.currentTimeMillis() - 10 * 60 * 1001);
+        getMockContentResolver().insert(Uri.parse(uri), values);
+        jobs = query(uri);
+        assertEquals("still seven jobs to search", 7, jobs.getCount());
+        
+        values.put("last_refresh", System.currentTimeMillis());
         getMockContentResolver().insert(Uri.parse(uri), values);
         jobs = query(uri);
         assertEquals("now one job less to search", 6, jobs.getCount());
+
         new Ride().type(Ride.SEARCH).from(bar).to(home)
             .dep(new Date(7000)).arr(new Date(9500))
             .store(ctx); // same ride arrive later
