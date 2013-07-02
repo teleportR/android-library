@@ -90,6 +90,7 @@ public class ConnectorService extends Service implements OnSharedPreferenceChang
                 c.moveToFirst();
                 Place place = new Place((int) c.getLong(0), ConnectorService.this);
                 gplaces.resolvePlace(place, ConnectorService.this);
+                c.close();
                 Log.d(TAG, " done resolving.");
             } else {
                 Log.d(TAG, "No places to resolve");

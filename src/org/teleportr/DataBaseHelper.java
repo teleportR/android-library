@@ -171,6 +171,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             bind(cv, 10, "price", 0);
             bind(cv, 11, "seats", 0);
             bind(cv, 12, "marked", 0);
+            bind(cv, 13, "dirty", 0);
             bind(cv, 15, "ref", "");
         }
         long id = insertRide.executeInsert();
