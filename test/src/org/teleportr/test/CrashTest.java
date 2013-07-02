@@ -268,7 +268,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         jobs = query("content://org.teleportr.test/jobs/resolve");
         assertEquals("now no places to resolve any more", 0, jobs.getCount());
     }
-    
+
     public void testRideMatches() {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
         new Connector(ctx) {
@@ -412,9 +412,15 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new Connector(ctx) {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().from(home).to(bar).dep(1000)); // ms
-                store(new Ride().from(home).to(bar).dep(2000));
-                store(new Ride().from(home).to(bar).dep(3000));
+                store(new Ride().type(Ride.OFFER).ref("a")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(1000));
+                store(new Ride().type(Ride.OFFER).ref("b")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(2000));
+                store(new Ride().type(Ride.OFFER).ref("b")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(3000));
                 return 0;
             }
         }.search(home.id, bar.id, 0, 0); // execute
@@ -424,8 +430,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         getMockContentResolver().delete(
                 Uri.parse(uri + "?older_than=2000"), null, null);
-        Cursor left = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("two rides departing after time 2", 2, left.getCount());
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("two rides departing after time 2", 2, rides.getCount());
 
         getMockContentResolver().delete(Uri.parse(uri), null, null);
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
