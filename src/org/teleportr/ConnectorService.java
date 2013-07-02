@@ -12,6 +12,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import android.widget.Toast;
 
 public class ConnectorService extends Service implements OnSharedPreferenceChangeListener {
 
@@ -68,7 +69,11 @@ public class ConnectorService extends Service implements OnSharedPreferenceChang
         @Override
         public void run() {
             Log.d(TAG, "authenticating");
-            fahrgemeinschaft.authenticate();
+            try {
+                Toast.makeText(ConnectorService.this, fahrgemeinschaft.getAuth(), 900).show();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     };
 

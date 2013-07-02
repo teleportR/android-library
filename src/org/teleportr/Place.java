@@ -36,6 +36,10 @@ public class Place {
         return cv.getAsString("name");
     }
 
+    public String getAddress() {
+        return cv.getAsString("address");
+    }
+
     public double getLat() {
         return GeoHash.fromGeohashString(cv.getAsString("geohash"))
                 .getPoint().getLatitude();

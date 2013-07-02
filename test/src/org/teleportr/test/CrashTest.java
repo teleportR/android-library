@@ -86,7 +86,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         dummyConnector = new Connector(ctx) { // dummy search results
             @Override
-            public long getRides(Place from, Place to, Date dep, Date arr) {
+            public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER)
                         .from(store(new Place().name("Moustafa")))
                         .to(store(new Place().name("Cafe Schön"))));
@@ -252,7 +252,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
         new Connector(ctx) {
             @Override
-            public long getRides(Place from, Place to, Date dep, Date arr) {
+            public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().from(1).to(2).dep(500));
                 store(new Ride() // dummy search results
                     .type(Ride.OFFER)
@@ -295,7 +295,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
         Connector connector = new Connector(ctx) {
             @Override
-            public long getRides(Place from, Place to, Date dep, Date arr) {
+            public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER).ref("a").dep(new Date(2000))
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
@@ -389,7 +389,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     public void testClearCache() {
         new Connector(ctx) {
             @Override
-            public long getRides(Place from, Place to, Date dep, Date arr) {
+            public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().from(home).to(bar).dep(1000)); // ms
                 store(new Ride().from(home).to(bar).dep(2000));
                 store(new Ride().from(home).to(bar).dep(3000));

@@ -16,6 +16,7 @@ public class RidesProvider extends ContentProvider {
     static final String TAG = "RideProvider";
     private DataBaseHelper db;
     private UriMatcher route;
+    private Uri jobs;
 
     @Override
     public boolean onCreate() {
@@ -39,6 +40,7 @@ public class RidesProvider extends ContentProvider {
         route.addURI(authority, "places", PLACES);
         route.addURI(authority, "rides/#", RIDE);
         route.addURI(authority, "rides", RIDES);
+        jobs = Uri.parse("content://" + authority + "/jobs/search");
     }
 
     @Override
@@ -176,11 +178,13 @@ public class RidesProvider extends ContentProvider {
 
     @Override
     public int update(Uri uri, ContentValues values, String sel, String[] args) {
+        getContext().getContentResolver().notifyChange(uri, null);
         switch (route.match(uri)) {
         case PLACE:
             return db.getWritableDatabase().update("places", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
         case RIDE:
+            getContext().getContentResolver().notifyChange(jobs, null);
             return db.getWritableDatabase().update("rides", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
         }
@@ -189,6 +193,7 @@ public class RidesProvider extends ContentProvider {
 
     @Override
     public int delete(Uri uri, String where, String[] args) {
+        getContext().getContentResolver().notifyChange(uri, null);
         return db.getWritableDatabase().delete("rides",
                 "parent_id=?", new String[] { uri.getLastPathSegment() });
     }

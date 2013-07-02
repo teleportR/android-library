@@ -1,18 +1,21 @@
 package org.teleportr;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.teleportr.Ride.Mode;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -21,13 +24,13 @@ public abstract class Connector {
 
     private static final String TAG = "Connector";
 
-    public long getRides(Place from, Place to, Date dep, Date arr) { return 0; }
+    public abstract long search(Place from, Place to, Date dep, Date arr);
 
-    public void postRide(Place from, Place to, Date dep, Date arr) {}
+    public int publish(Ride offer) throws Exception { return 0; }
 
     public void resolvePlace(Place place, Context ctx) {}
 
-    public String authenticate() { return null; }
+    public String authenticate() throws Exception { return null; }
 
     private HashMap<String, Integer> placeIdx;
     private ArrayList<ContentValues> placesBatch;
@@ -42,7 +45,19 @@ public abstract class Connector {
     }
 
     protected String getAuth() {
-        return authenticate();
+        SharedPreferences prefs = PreferenceManager
+                .getDefaultSharedPreferences(ctx);
+        String auth = prefs.getString("auth", null);
+        if (auth == null) {
+            try {
+                auth = authenticate();
+                prefs.edit().putString("auth", auth);
+                return auth;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return "";
     }
 
     public Place store(Place place) {
@@ -73,7 +88,7 @@ public abstract class Connector {
 
     public void search(int from, int to, long dep, long arr) {
         Log.d(TAG, "Begin executing Connector");
-        long latest_dep = getRides(
+        long latest_dep = search(
                 new Place(from, ctx), new Place(to, ctx),
                 new Date(dep), null);
         placesBatch.addAll(ridesBatch);
@@ -94,32 +109,45 @@ public abstract class Connector {
         placeIdx.clear();
     }
 
-    public int getSetting(String key) {
-        return PreferenceManager.getDefaultSharedPreferences(ctx).getInt(key, 1);
+    public void set(String key, String value) {
+        PreferenceManager.getDefaultSharedPreferences(ctx).edit()
+                .putString(key, value).commit();
     }
 
-    public static String httpGet(String url) {
-        HttpURLConnection conn = null;
-        StringBuilder jsonResults = new StringBuilder();
-        try {
-            conn = (HttpURLConnection) new URL(url).openConnection();
-            InputStreamReader in = new InputStreamReader(conn.getInputStream());
+    public String get(String key) {
+        return String.valueOf(PreferenceManager
+                .getDefaultSharedPreferences(ctx).getAll().get(key));
+    }
 
+    public static JSONObject loadJson(HttpURLConnection conn) {
+        try {
+            return new JSONObject(loadString(conn));
+        } catch (JSONException e) {
+            System.out.println("json error");
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static String loadString(HttpURLConnection conn) {
+        StringBuilder result = new StringBuilder();
+        try {
+            InputStreamReader in = new InputStreamReader(
+                    new BufferedInputStream(conn.getInputStream()));
             int read;
             char[] buff = new char[1024];
             while ((read = in.read(buff)) != -1) {
-                jsonResults.append(buff, 0, read);
+                result.append(buff, 0, read);
             }
+            return result.toString();
         } catch (IOException e) {
-            Log.e(TAG, "io exception " + e.getMessage());
-            Log.e(TAG, "no internet???", e);
+            System.out.println("io error");
             e.printStackTrace();
-            return null;
         } finally {
             if (conn != null) {
                 conn.disconnect();
             }
         }
-        return jsonResults.toString();
+        return "";
     }
 }
