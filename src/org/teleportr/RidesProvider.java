@@ -169,6 +169,9 @@ public class RidesProvider extends ContentProvider {
                 olderThan = 10 * 60 * 1000; // 10min
             }
             return db.queryJobs(System.currentTimeMillis() - olderThan);
+        case PUBLISH:
+            return db.getReadableDatabase().query("rides", null,
+                    "dirty=1", null, null, null, "_id DESC");
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
                     "geohash IS NULL", null, null, null, null);

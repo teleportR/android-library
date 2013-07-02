@@ -166,6 +166,8 @@ public class Ride implements Parcelable {
         if (!cv.containsKey("mode")) {
             mode(Mode.CAR);
         }
+        if (cv.containsKey("type") && cv.getAsInteger("type").equals(OFFER))
+            cv.put("dirty", 1);
         Uri ride;
         cv.put("parent_id", 0);
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");

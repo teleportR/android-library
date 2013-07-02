@@ -246,12 +246,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         // dummy connector publishing hard in the background..
         ContentValues values = new ContentValues();
         values.put("dirty", 0); // in sync now
+        jobs.moveToFirst();
+        long id = jobs.getLong(0);
         getMockContentResolver().update(Uri.parse(
-                "content://org.teleportr.test/rides/"), values, null, null);
+                "content://org.teleportr.test/rides/"+id), values, null, null);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("nothing to publish anymore", 0, jobs.getCount());
 
-        myRide.seats(2);
+        myRide.seats(2).store(ctx);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("one ride to update", 1, jobs.getCount());
     }
