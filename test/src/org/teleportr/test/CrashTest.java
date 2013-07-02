@@ -367,6 +367,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
         assertEquals(1, myRide.getVias().size());
+        assertEquals(3, myRide.getPlaces().size());
         assertEquals(bar.id, myRide.getVias().get(0).id);
         assertEquals(42, myRide.getPrice());
         assertEquals(100, myRide.getDep());

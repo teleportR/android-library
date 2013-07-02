@@ -306,6 +306,18 @@ public class Ride implements Parcelable {
         return vias;
     }
 
+    public List<Place> getPlaces() {
+        ArrayList<Place> places = new ArrayList<Place>();
+        if (subrides != null) {
+            for (int i = 0; i < subrides.size(); i++) {
+                places.add(new Place(subrides.get(i)
+                        .getAsInteger("from_id"), ctx));
+            }
+            places.add(getTo());
+        }
+        return places;
+    }
+
     public int getFromId() {
             return cv.getAsInteger("from_id");
     }
