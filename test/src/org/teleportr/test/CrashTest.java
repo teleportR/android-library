@@ -235,6 +235,27 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("latest_dep", 9000, jobs.getLong(4)); // continue..
     }
 
+    public void testPublishJobs() {
+        Cursor jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("there be no rides to publish", 0, jobs.getCount());
+
+        Ride myRide = new Ride().type(Ride.OFFER).from(bar).to(park).seats(3);
+        myRide.store(ctx);
+        jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("now there be a ride to publish", 1, jobs.getCount());
+        // dummy connector publishing hard in the background..
+        ContentValues values = new ContentValues();
+        values.put("dirty", 0); // in sync now
+        getMockContentResolver().update(Uri.parse(
+                "content://org.teleportr.test/rides/"), values, null, null);
+        jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("nothing to publish anymore", 0, jobs.getCount());
+
+        myRide.seats(2);
+        jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("one ride to update", 1, jobs.getCount());
+    }
+
     public void testResolveJobs() {
         Cursor jobs = query("content://org.teleportr.test/jobs/resolve");
         assertEquals("there be one place to resolve", 1, jobs.getCount());
