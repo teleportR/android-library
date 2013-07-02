@@ -246,12 +246,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         // dummy connector publishing hard in the background..
         ContentValues values = new ContentValues();
         values.put("dirty", 0); // in sync now
+        jobs.moveToFirst();
+        long id = jobs.getLong(0);
         getMockContentResolver().update(Uri.parse(
-                "content://org.teleportr.test/rides/"), values, null, null);
+                "content://org.teleportr.test/rides/"+id), values, null, null);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("nothing to publish anymore", 0, jobs.getCount());
 
-        myRide.seats(2);
+        myRide.seats(2).store(ctx);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("one ride to update", 1, jobs.getCount());
     }
@@ -268,7 +270,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         jobs = query("content://org.teleportr.test/jobs/resolve");
         assertEquals("now no places to resolve any more", 0, jobs.getCount());
     }
-    
+
     public void testRideMatches() {
         dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
         new Connector(ctx) {
@@ -367,6 +369,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
         assertEquals(1, myRide.getVias().size());
+        assertEquals(3, myRide.getPlaces().size());
         assertEquals(bar.id, myRide.getVias().get(0).id);
         assertEquals(42, myRide.getPrice());
         assertEquals(100, myRide.getDep());
@@ -411,9 +414,15 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new Connector(ctx) {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().from(home).to(bar).dep(1000)); // ms
-                store(new Ride().from(home).to(bar).dep(2000));
-                store(new Ride().from(home).to(bar).dep(3000));
+                store(new Ride().type(Ride.OFFER).ref("a")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(1000));
+                store(new Ride().type(Ride.OFFER).ref("b")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(2000));
+                store(new Ride().type(Ride.OFFER).ref("b")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(3000));
                 return 0;
             }
         }.search(home.id, bar.id, 0, 0); // execute
@@ -423,8 +432,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         getMockContentResolver().delete(
                 Uri.parse(uri + "?older_than=2000"), null, null);
-        Cursor left = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("two rides departing after time 2", 2, left.getCount());
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("two rides departing after time 2", 2, rides.getCount());
 
         getMockContentResolver().delete(Uri.parse(uri), null, null);
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);

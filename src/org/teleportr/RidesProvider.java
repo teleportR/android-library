@@ -169,6 +169,9 @@ public class RidesProvider extends ContentProvider {
                 olderThan = 10 * 60 * 1000; // 10min
             }
             return db.queryJobs(System.currentTimeMillis() - olderThan);
+        case PUBLISH:
+            return db.getReadableDatabase().query("rides", null,
+                    "dirty=1", null, null, null, "_id DESC");
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
                     "geohash IS NULL", null, null, null, null);
@@ -194,8 +197,19 @@ public class RidesProvider extends ContentProvider {
     @Override
     public int delete(Uri uri, String where, String[] args) {
         getContext().getContentResolver().notifyChange(uri, null);
-        return db.getWritableDatabase().delete("rides",
-                "parent_id=?", new String[] { uri.getLastPathSegment() });
+        switch (route.match(uri)) {
+        case RIDE:
+            return db.getWritableDatabase().delete("rides",
+                    "parent_id=?", new String[] { uri.getLastPathSegment() });
+        case RIDES:
+            String param = uri.getQueryParameter("older_than");
+            if (param != null)
+                return db.getWritableDatabase().delete("rides",
+                        "dep<?", new String[] { param });
+            else
+                return db.getWritableDatabase().delete("rides", null, null);
+        }
+        return -1;
     }
 
     private static final int RIDE = 0;

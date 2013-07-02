@@ -166,6 +166,8 @@ public class Ride implements Parcelable {
         if (!cv.containsKey("mode")) {
             mode(Mode.CAR);
         }
+        if (cv.containsKey("type") && cv.getAsInteger("type").equals(OFFER))
+            cv.put("dirty", 1);
         Uri ride;
         cv.put("parent_id", 0);
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
@@ -304,6 +306,18 @@ public class Ride implements Parcelable {
             }
         }
         return vias;
+    }
+
+    public List<Place> getPlaces() {
+        ArrayList<Place> places = new ArrayList<Place>();
+        if (subrides != null) {
+            for (int i = 0; i < subrides.size(); i++) {
+                places.add(new Place(subrides.get(i)
+                        .getAsInteger("from_id"), ctx));
+            }
+            places.add(getTo());
+        }
+        return places;
     }
 
     public int getFromId() {
