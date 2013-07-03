@@ -74,13 +74,8 @@ public class Place {
     }
 
     public Place geohash(String geohash) {
-        cv.put("geohash", geohash);
-        try {
-            GeoHash gh = GeoHash.fromGeohashString(geohash);
-//            cv.put("lat", (int) (Math.round(gh.getPoint().getLatitude() * 1E6)));
-//            cv.put("lng",(int) (Math.round(gh.getPoint().getLongitude() * 1E6)));
-        } catch (NullPointerException e) {
-            System.out.println("not a geohash: " + geohash);
+        if (geohash != null) {
+            cv.put("geohash", geohash);
         }
         return this;
     }
@@ -89,8 +84,6 @@ public class Place {
         cv.put("geohash",
                 GeoHash.withBitPrecision(((double) lat) / 1E6,
                         ((double) lng) / 1E6, 55).toBase32());
-//        cv.put("lat", lat);
-//        cv.put("lng", lng);
         return this;
     }
 
