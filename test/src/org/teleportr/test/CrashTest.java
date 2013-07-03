@@ -126,7 +126,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSortedAsFrom() {
-        dummyConnector.search(cafe.id, bar.id, 0, 0); // execute
+        dummyConnector.search(cafe, bar, null, null); // execute
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
         // should be ordered by how often a place was used as 'from' in a search
@@ -272,7 +272,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testRideMatches() {
-        dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
+        dummyConnector.search(cafe, bar, null, null); // execute connector
         new Connector(ctx) {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
@@ -292,9 +292,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
+                flush(home.id, bar.id, 0);
                 return 0;
             }
-        }.search(home.id, bar.id, 0, 0); // execute  connector
+        }.search(home, bar, null, null); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
@@ -315,7 +316,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSubRideMatches() {
-        dummyConnector.search(cafe.id, bar.id, 0, 0); // execute connector
+        dummyConnector.search(cafe, bar, null, null); // execute connector
         Connector connector = new Connector(ctx) {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
@@ -328,11 +329,12 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
                         .to(store(new Place().name("Cafe Schön"))));
+                flush(park.id, bar.id, 0);
                 return 0;
             }
         };
-        connector.search(park.id, bar.id, 0, 0); // execute connector
-        connector.search(park.id, bar.id, 0, 0);
+        connector.search(park, bar, null, null); // execute connector
+        connector.search(park, bar, null, null);
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + bar.id);
@@ -423,9 +425,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride().type(Ride.OFFER).ref("b")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
+                flush(home.id, bar.id, 0);
                 return 0;
             }
-        }.search(home.id, bar.id, 0, 0); // execute
+        }.search(home, bar, null, null); // execute
         String uri = "content://org.teleportr.test/rides/";
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be three ride matches", 3, rides.getCount());

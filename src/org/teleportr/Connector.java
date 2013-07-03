@@ -35,9 +35,12 @@ public abstract class Connector {
     private HashMap<String, Integer> placeIdx;
     private ArrayList<ContentValues> placesBatch;
     private ArrayList<ContentValues> ridesBatch;
+    private Uri search_jobs_uri;
     Context ctx;
 
     public Connector(Context ctx) {
+        String uri = "content://" + ctx.getPackageName();
+        search_jobs_uri = Uri.parse(uri + "/jobs/search");
         placeIdx = new HashMap<String, Integer>();
         placesBatch = new ArrayList<ContentValues>();
         ridesBatch = new ArrayList<ContentValues>();
@@ -86,27 +89,21 @@ public abstract class Connector {
             ridesBatch.addAll(ride.subrides);
     }
 
-    public void search(int from, int to, long dep, long arr) {
-        Log.d(TAG, "Begin executing Connector");
-        long latest_dep = search(
-                new Place(from, ctx), new Place(to, ctx),
-                new Date(dep), null);
+    public void flush(int from, int to, long latest_dep) {
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
                 Uri.parse("content://" + ctx.getPackageName() +
                         "/rides?from_id=" + from + "&to_id=" + to),
                 placesBatch.toArray(new ContentValues[placesBatch.size()]));
-        ContentValues done = new ContentValues();
-        done.put("from_id", from);
-        done.put("to_id", to);
-        System.out.println("store latest dep " + latest_dep);
-        done.put("latest_dep", latest_dep);
-        done.put("last_refresh", System.currentTimeMillis());
-        ctx.getContentResolver().insert(Uri.parse(
-                "content://" + ctx.getPackageName() + "/jobs/search"), done);
         placesBatch.clear();
         ridesBatch.clear();
         placeIdx.clear();
+        ContentValues done = new ContentValues();
+        done.put("from_id", from);
+        done.put("to_id", to);
+        done.put("latest_dep", latest_dep);
+        done.put("last_refresh", System.currentTimeMillis());
+        ctx.getContentResolver().insert(search_jobs_uri, done);
     }
 
     public void set(String key, String value) {

@@ -1,6 +1,9 @@
 package org.teleportr;
 
+import java.util.Date;
+
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -21,6 +24,8 @@ public class ConnectorService extends Service
     protected static final String TAG = "ConnectorService";
     public static final String RESOLVE = "geocode";
     public static final String SEARCH = "search";
+    public static final short START = 1;
+    public static final short PAUSE = 2;
     private Connector fahrgemeinschaft;
     private Connector gplaces;
     private Handler manager;
@@ -106,6 +111,9 @@ public class ConnectorService extends Service
 
     Runnable search = new Runnable() {
 
+        private Place from;
+        private Place to;
+        private Date dep;
 
         @Override
         public void run() {
@@ -113,27 +121,31 @@ public class ConnectorService extends Service
             Cursor jobs = getContentResolver()
                     .query(search_jobs_uri, null, null, null, null);
             if (jobs.getCount() != 0) {
-                notifyUI(SEARCH, BackgroundListener.START);
                 Log.d(TAG, jobs.getCount() + " jobs to do");
                 jobs.moveToFirst();
-                long dep = jobs.getLong(4);
-                if (dep == 0) dep = jobs.getLong(2);
-                if (dep < jobs.getLong(3)) {
-                    System.out.println("last_dep: " + dep);
-                }
-                fahrgemeinschaft.search(jobs.getInt(0), jobs.getInt(1), dep, 0);
+                from = new Place(jobs.getInt(0), ConnectorService.this);
+                to = new Place(jobs.getInt(1), ConnectorService.this);
+                if (jobs.getLong(4) != 0)
+                    dep = new Date(jobs.getLong(4));
+                else
+                    dep = new Date(jobs.getLong(2));
+                notifyUI("Searching from "+from.getName()+" to "+to.getName(), START);
+                long latest_dep = fahrgemeinschaft.search(from, to, dep, null);
+                fahrgemeinschaft.flush(from.id, to.id, latest_dep);
+                
                 Log.d(TAG, " done searching.");
                 jobs.close();
                 manager.post(search);
             } else {
                 Log.d(TAG, "Nothing to search.");
-                notifyUI(SEARCH, BackgroundListener.PAUSE);
+                notifyUI("Done.", PAUSE);
             }
         }
+
     };
 
-    private void notifyUI(String what, short how) {
-        if (gui != null) gui.on(what, how);
+    private void notifyUI(String msg, short what) {
+        if (gui != null) gui.on(msg, what);
     }
 
     private BackgroundListener gui;
@@ -143,9 +155,7 @@ public class ConnectorService extends Service
     }
 
     public interface BackgroundListener {
-        public static final short START = 1;
-        public static final short PAUSE = 2;
-        public void on(String what, short how);
+        public void on(String msg, short what);
     }
 
     @Override
