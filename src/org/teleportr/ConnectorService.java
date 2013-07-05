@@ -5,6 +5,7 @@ import java.util.Date;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.database.Cursor;
@@ -23,14 +24,13 @@ public class ConnectorService extends Service
     protected static final String TAG = "ConnectorService";
     public static final String RESOLVE = "geocode";
     public static final String SEARCH = "search";
-    public static final short START = 1;
-    public static final short PAUSE = 2;
     private Connector fahrgemeinschaft;
     private Connector gplaces;
     private Handler worker;
     private boolean verbose;
     private Uri resolve_jobs_uri;
     private Uri search_jobs_uri;
+    private Handler main;
 
     @Override
     public void onCreate() {
@@ -54,6 +54,7 @@ public class ConnectorService extends Service
                 .getDefaultSharedPreferences(this);
         verbose = prefs.getBoolean("verbose", false);
         prefs.registerOnSharedPreferenceChangeListener(this);
+        main = new Handler();
         super.onCreate();
     }
 
@@ -133,14 +134,13 @@ public class ConnectorService extends Service
                 else
                     dep = new Date(jobs.getLong(2));
                 jobs.close();
-                notifyUI("searching from " + from.getName()
-                        + " to " + to.getName() + "for " + dep, START);
+                notifyGUI(from, to, dep);
                 long latest_dep = fahrgemeinschaft.search(from, to, dep, null);
                 fahrgemeinschaft.flush(from.id, to.id, latest_dep);
                 worker.post(search);
             } else {
                 log("nothing to search.");
-                notifyUI("Done.", PAUSE);
+                notifyGUI(null, null, null);
             }
         }
 
@@ -152,28 +152,54 @@ public class ConnectorService extends Service
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
-    private void notifyUI(String msg, short what) {
-        if (gui != null) gui.on(msg, what);
+    private Place current_from;
+    private Place current_to;
+    private Date current_dep;
+
+    protected void notifyGUI(Place from, Place to, Date dep) {
+        current_from = from;
+        current_to = to;
+        current_dep = dep;
+        main.post(notifyGUI);
+    }
+
+    Runnable notifyGUI = new Runnable() {
+        
+        @Override
+        public void run() {
+            if (gui != null) {
+                gui.onBackgroundSearch(current_from, current_to, current_dep);
+            }
+        }
+    };
+
+    public void register(BackgroundListener activity) {
+        gui = activity;
+        main.post(notifyGUI);
+        notifyGUI(current_from, current_to, current_dep);
     }
 
     private BackgroundListener gui;
 
-    public void register(BackgroundListener activity) {
-        gui = activity;
+    public interface BackgroundListener {
+        public void onBackgroundSearch(Place from, Place to, Date dep);
     }
 
-    public interface BackgroundListener {
-        public void on(String msg, short what);
-    }
+
 
     @Override
     public IBinder onBind(Intent intent) {
         return new Bind();
     }
-
     public class Bind extends Binder {
         public ConnectorService getService() {
             return ConnectorService.this;
         }
+    }
+
+    @Override
+    public void unbindService(ServiceConnection conn) {
+        super.unbindService(conn);
+        gui = null;
     }
 }
