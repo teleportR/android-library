@@ -84,7 +84,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 .dep(new Date(7000)).arr(new Date(9000))
                 .store(ctx);
 
-        dummyConnector = new Connector(ctx) { // dummy search results
+        dummyConnector = new Connector() { // dummy search results
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER)
@@ -95,7 +95,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .to(store(new Place().name("Somewhere..."))));
                 return 0;
             }
-        };
+        }.setContext(ctx);
     }
 
     // helper
@@ -273,7 +273,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
     public void testRideMatches() {
         dummyConnector.search(cafe, bar, null, null); // execute connector
-        new Connector(ctx) {
+        new Connector() {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().from(1).to(2).dep(500));
@@ -295,7 +295,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 flush(home.id, bar.id, 0);
                 return 0;
             }
-        }.search(home, bar, null, null); // execute  connector
+        }.setContext(ctx).search(home, bar, null, null); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
@@ -317,7 +317,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
     public void testSubRideMatches() {
         dummyConnector.search(cafe, bar, null, null); // execute connector
-        Connector connector = new Connector(ctx) {
+        Connector connector = new Connector() {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER).ref("a").dep(new Date(2000))
@@ -332,7 +332,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 flush(park.id, bar.id, 0);
                 return 0;
             }
-        };
+        }.setContext(ctx);
         connector.search(park, bar, null, null); // execute connector
         connector.search(park, bar, null, null);
         
@@ -413,7 +413,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testClearCache() {
-        new Connector(ctx) {
+        new Connector() {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER).ref("a")
@@ -428,7 +428,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 flush(home.id, bar.id, 0);
                 return 0;
             }
-        }.search(home, bar, null, null); // execute
+        }.setContext(ctx).search(home, bar, null, null); // execute
         String uri = "content://org.teleportr.test/rides/";
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be three ride matches", 3, rides.getCount());

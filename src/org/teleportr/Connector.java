@@ -44,10 +44,11 @@ public abstract class Connector {
         ridesBatch = new ArrayList<ContentValues>();
     }
 
-    public void setContext(Context ctx) {
+    public Connector setContext(Context ctx) {
         String uri = "content://" + ctx.getPackageName();
         search_jobs_uri = Uri.parse(uri + "/jobs/search");
         this.ctx = ctx;
+        return this;
     }
 
     protected String getAuth() {

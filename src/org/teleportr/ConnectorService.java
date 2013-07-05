@@ -130,14 +130,15 @@ public class ConnectorService extends Service
                 jobs.moveToFirst();
                 from = new Place(jobs.getInt(0), ConnectorService.this);
                 to = new Place(jobs.getInt(1), ConnectorService.this);
-                if (jobs.getLong(4) == 0 // first search - no latest_dep yet
-                        || jobs.getLong(4) >= jobs.getLong(3)) // or refresh
+                long latest_dep = jobs.getLong(4);
+                if (latest_dep == 0 // first search - no latest_dep yet
+                        || latest_dep >= jobs.getLong(3)) // or refresh
                     dep = new Date(jobs.getLong(2)); // then take search dep
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
                 jobs.close();
                 notifyGUI(from, to, dep);
-                long latest_dep = fahrgemeinschaft.search(from, to, dep, null);
+                latest_dep = fahrgemeinschaft.search(from, to, dep, null);
                 fahrgemeinschaft.flush(from.id, to.id, latest_dep);
                 worker.post(search);
             } else {
