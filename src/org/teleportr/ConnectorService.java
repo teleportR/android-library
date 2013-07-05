@@ -57,6 +57,14 @@ public class ConnectorService extends Service
         prefs.registerOnSharedPreferenceChangeListener(this);
         main = new Handler();
         super.onCreate();
+        long older_than = System.currentTimeMillis() -
+                prefs.getLong("cleanup_interval", 21 * 24 * 3600000); // 3 weeks
+        if (prefs.getLong("last_cleanup", 0) < older_than) {
+            getContentResolver().delete(Uri.parse(
+                    "content://de.fahrgemeinschaft/rides?older_than="
+                            + older_than), null, null);
+            prefs.edit().putLong("last_cleanup", System.currentTimeMillis());
+        }
     }
 
     @Override

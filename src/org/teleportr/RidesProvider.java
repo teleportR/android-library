@@ -202,14 +202,16 @@ public class RidesProvider extends ContentProvider {
             return db.getWritableDatabase().delete("rides",
                     "parent_id=?", new String[] { uri.getLastPathSegment() });
         case RIDES:
-            Log.d(TAG, "clear ride cache");
             db.getWritableDatabase().delete("jobs", null, null);
             String param = uri.getQueryParameter("older_than");
-            if (param != null)
+            Log.d(TAG, "clear ride cache older than " + param);
+            if (param != null) {
                 return db.getWritableDatabase().delete("rides",
-                        OFFERS + " AND dep<?",new String[] { param });
-            else
+                        OFFERS + " AND dep<?", new String[] { param });
+            } else {
+                db.getWritableDatabase().delete("route_matches", null, null);
                 return db.getWritableDatabase().delete("rides", OFFERS, null);
+            }
         }
         return -1;
     }
