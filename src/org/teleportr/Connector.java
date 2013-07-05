@@ -1,7 +1,6 @@
 package org.teleportr;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
@@ -9,7 +8,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.teleportr.Ride.Mode;
 
@@ -24,11 +22,11 @@ public abstract class Connector {
 
     private static final String TAG = "Connector";
 
-    public abstract long search(Place from, Place to, Date dep, Date arr);
+    public abstract long search(Place from, Place to, Date dep, Date arr) throws Exception;
 
     public int publish(Ride offer) throws Exception { return 0; }
 
-    public void resolvePlace(Place place, Context ctx) {}
+    public void resolvePlace(Place place, Context ctx) throws Exception {}
 
     public String authenticate() throws Exception { return null; }
 
@@ -120,35 +118,20 @@ public abstract class Connector {
                 .getDefaultSharedPreferences(ctx).getAll().get(key));
     }
 
-    public static JSONObject loadJson(HttpURLConnection conn) {
-        try {
-            return new JSONObject(loadString(conn));
-        } catch (JSONException e) {
-            System.out.println("json error");
-            e.printStackTrace();
-            return null;
-        }
+    public static JSONObject loadJson(HttpURLConnection conn) throws Exception {
+        return new JSONObject(loadString(conn));
     }
 
-    public static String loadString(HttpURLConnection conn) {
+    public static String loadString(HttpURLConnection conn) throws Exception {
         StringBuilder result = new StringBuilder();
-        try {
-            InputStreamReader in = new InputStreamReader(
-                    new BufferedInputStream(conn.getInputStream()));
-            int read;
-            char[] buff = new char[1024];
-            while ((read = in.read(buff)) != -1) {
-                result.append(buff, 0, read);
-            }
-            return result.toString();
-        } catch (IOException e) {
-            System.out.println("io error");
-            e.printStackTrace();
-        } finally {
-            if (conn != null) {
-                conn.disconnect();
-            }
+        InputStreamReader in = new InputStreamReader(
+                new BufferedInputStream(conn.getInputStream()));
+        int read;
+        char[] buff = new char[1024];
+        while ((read = in.read(buff)) != -1) {
+            result.append(buff, 0, read);
         }
-        return "";
+        conn.disconnect();
+        return result.toString();
     }
 }

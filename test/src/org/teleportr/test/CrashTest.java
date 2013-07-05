@@ -125,7 +125,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("2", new Place().name("Home").store(ctx).getLastPathSegment());
     }
 
-    public void testSortedAsFrom() {
+    public void testSortedAsFrom() throws Exception {
         dummyConnector.search(cafe, bar, null, null); // execute
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
@@ -271,7 +271,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("now no places to resolve any more", 0, jobs.getCount());
     }
 
-    public void testRideMatches() {
+    public void testRideMatches() throws Exception {
         dummyConnector.search(cafe, bar, null, null); // execute connector
         new Connector() {
             @Override
@@ -315,7 +315,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("seats", 3, rides.getLong(COLUMNS.SEATS));
     }
 
-    public void testSubRideMatches() {
+    public void testSubRideMatches() throws Exception {
         dummyConnector.search(cafe, bar, null, null); // execute connector
         Connector connector = new Connector() {
             @Override
@@ -412,7 +412,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("some comment", myRide.getDetails());
     }
 
-    public void testClearCache() {
+    public void testClearCache() throws Exception {
         new Connector() {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {

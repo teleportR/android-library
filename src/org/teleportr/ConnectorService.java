@@ -75,6 +75,7 @@ public class ConnectorService extends Service
         if (action.equals(RESOLVE)) {
             worker.postAtFrontOfQueue(resolve);
         } else if (action.equals(SEARCH)) {
+            retry_attempt = 0;
             worker.postAtFrontOfQueue(search);
         }
         return START_REDELIVER_INTENT;
@@ -111,22 +112,28 @@ public class ConnectorService extends Service
                     .query(resolve_jobs_uri, null, null, null, null);
             if (c.getCount() != 0) {
                 c.moveToFirst();
-                log("resolving place " + c.getString(2));
                 Place p = new Place((int) c.getLong(0), ConnectorService.this);
-                gplaces.resolvePlace(p, ConnectorService.this);
+                log("resolving " + p.getName());
+                try {
+                    gplaces.resolvePlace(p, ConnectorService.this);
+                    log("resolved " + p.getName() + ": " + p.getLat());
+                } catch (Exception e) {
+                    log("resolve error: " + e);
+                }
                 c.close();
-                log(" done resolving " + p.getName() + ": " + p.getLat());
             } else {
                 log("No places to resolve");
             }
         }
     };
 
+    int retry_attempt = 0;
+
     Runnable search = new Runnable() {
 
-        private Place from;
-        private Place to;
-        private Date dep;
+        Place from;
+        Place to;
+        Date dep;
 
         @Override
         public void run() {
@@ -146,15 +153,27 @@ public class ConnectorService extends Service
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
                 jobs.close();
                 notifyGUI(from, to, dep);
-                latest_dep = fahrgemeinschaft.search(from, to, dep, null);
-                fahrgemeinschaft.flush(from.id, to.id, latest_dep);
-                worker.post(search);
+                try {
+                    latest_dep = fahrgemeinschaft.search(from, to, dep, null);
+                    fahrgemeinschaft.flush(from.id, to.id, latest_dep);
+                    retry_attempt = 0;
+                    worker.post(search);
+                } catch (Exception e) {
+                    log("search error: " + e);
+                    if (retry_attempt < 3) {
+                        worker.postDelayed(resolve, retry_attempt * 2000);
+                        worker.postDelayed(search, retry_attempt * 2000);
+                        retry_attempt++;
+                    } else {
+                        log("giving up");
+                        notifyGUI(null, null, null);
+                    }
+                }
             } else {
                 log("nothing to search.");
                 notifyGUI(null, null, null);
             }
         }
-
     };
 
     private void log(String msg) {
