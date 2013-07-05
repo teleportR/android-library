@@ -3,7 +3,6 @@ package org.teleportr;
 import java.util.Date;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -40,10 +39,12 @@ public class ConnectorService extends Service
         try {
             fahrgemeinschaft = (Connector) Class.forName(
                     "de.fahrgemeinschaft.FahrgemeinschaftConnector")
-                    .getConstructor(Context.class).newInstance(this);
+                    .newInstance();
+            fahrgemeinschaft.setContext(this);
             gplaces = (Connector) Class.forName(
                     "de.fahrgemeinschaft.GPlaces")
                     .newInstance();
+            gplaces.setContext(this);
         } catch (Exception e) {
             e.printStackTrace();
         }

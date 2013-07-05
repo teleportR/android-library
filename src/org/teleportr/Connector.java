@@ -38,12 +38,15 @@ public abstract class Connector {
     private Uri search_jobs_uri;
     Context ctx;
 
-    public Connector(Context ctx) {
-        String uri = "content://" + ctx.getPackageName();
-        search_jobs_uri = Uri.parse(uri + "/jobs/search");
+    public Connector() {
         placeIdx = new HashMap<String, Integer>();
         placesBatch = new ArrayList<ContentValues>();
         ridesBatch = new ArrayList<ContentValues>();
+    }
+
+    public void setContext(Context ctx) {
+        String uri = "content://" + ctx.getPackageName();
+        search_jobs_uri = Uri.parse(uri + "/jobs/search");
         this.ctx = ctx;
     }
 
