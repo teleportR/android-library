@@ -441,5 +441,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         getMockContentResolver().delete(Uri.parse(uri), null, null);
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be all rides deleted", 0, rides.getCount());
+        rides = query("content://org.teleportr.test/jobs/search");
+//        assertEquals("there be no more search jobs to do", 0, rides.getCount());
     }
 }
