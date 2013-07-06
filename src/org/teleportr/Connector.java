@@ -91,6 +91,10 @@ public abstract class Connector {
             ridesBatch.addAll(ride.subrides);
     }
 
+    public int getNumberOfRidesFound() {
+        return ridesBatch.size();
+    }
+
     public void flush(int from, int to, long latest_dep) {
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
