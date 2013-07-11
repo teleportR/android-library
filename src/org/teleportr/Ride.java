@@ -217,11 +217,12 @@ public class Ride implements Parcelable {
     
 
     public Ride(Context ctx) {
+        this();
         this.ctx = ctx;
     }
     
     public Ride(Uri uri) {
-        cv = new ContentValues();
+        this();
         type(Ride.SEARCH);
         from(Integer.parseInt(uri.getQueryParameter("from_id")));
         to(Integer.parseInt(uri.getQueryParameter("to_id")));
@@ -322,11 +323,15 @@ public class Ride implements Parcelable {
     }
 
     public int getFromId() {
+        if (cv.containsKey("from_id"))
             return cv.getAsInteger("from_id");
+        else return 0;
     }
 
     public int getToId() {
-        return cv.getAsInteger("to_id");
+        if (cv.containsKey("from_id"))
+            return cv.getAsInteger("to_id");
+        else return 0;
     }
 
     public long getDep() {
@@ -342,11 +347,15 @@ public class Ride implements Parcelable {
     }
 
     public Mode getMode() {
-        return Mode.valueOf(cv.getAsString("mode"));
+        if (cv.containsKey("mode"))
+            return Mode.valueOf(cv.getAsString("mode"));
+        else return Mode.CAR;
     }
 
     public String getWho() {
-        return cv.getAsString("who");
+        if (cv.containsKey("who"))
+            return cv.getAsString("who");
+        else return "";
     }
     
     public String getDetails() {
@@ -354,11 +363,15 @@ public class Ride implements Parcelable {
     }
     
     public int getPrice() {
-        return cv.getAsInteger("price");
+        if (cv.containsKey("price"))
+            return cv.getAsInteger("price");
+        else return 0;
     }
     
     public int getSeats() {
-        return cv.getAsInteger("seats");
+        if (cv.containsKey("seats"))
+            return cv.getAsInteger("seats");
+        else return 0;
     }
 
 
