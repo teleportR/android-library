@@ -2,6 +2,8 @@ package org.teleportr.test;
 
 import java.util.Date;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.teleportr.Connector;
 import org.teleportr.Place;
 import org.teleportr.Ride;
@@ -282,7 +284,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .from(store(new Place().name("Home")))
                     .to(store(new Place().name("Whiskybar")))
                     .dep(new Date(1000)));
-                store(new Ride().who("Anyone").details("fu").price(42).seats(3)
+                store(new Ride().who("Anyone").price(42).seats(3)
                     .type(Ride.OFFER)
                     .from(store(new Place(52.439716, 13.448982))) // home
                     .to(store(new Place().address("Hafenstr. 125")))
@@ -309,8 +311,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("departure", 3000, rides.getLong(COLUMNS.DEPARTURE));
         assertEquals("who", "Anyone", rides.getString(COLUMNS.WHO));
         assertNotSame("details", "fu", rides.getString(COLUMNS.DETAILS)); // BEWARE!
-        Ride convenience = new Ride(rides, ctx);
-        assertNotSame("details", "fu", convenience.getDetails());
         assertEquals("price", 42, rides.getLong(COLUMNS.PRICE));
         assertEquals("seats", 3, rides.getLong(COLUMNS.SEATS));
     }
@@ -362,19 +362,16 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     public void testRideEdit() {
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
-                .price(42).details("foo bar")
-                .dep(100).marked().store(ctx); // 'm' is some unique user id
-        Cursor cursor = query(uri.toString());
-        cursor.moveToFirst();
-        Ride myRide = new Ride(cursor, ctx); // query ride
-        assertEquals("foo bar", myRide.getDetails());
+                .price(42).dep(1000).marked()
+                .store(ctx);
+        Ride myRide = new Ride(uri, ctx); // query ride
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
         assertEquals(1, myRide.getVias().size());
         assertEquals(3, myRide.getPlaces().size());
         assertEquals(bar.id, myRide.getVias().get(0).id);
         assertEquals(42, myRide.getPrice());
-        assertEquals(100, myRide.getDep());
+        assertEquals(1000, myRide.getDep());
         
         assertEquals("two subrides as objects", 2, myRide.getSubrides().size());
         assertEquals("Home", myRide.getSubrides().get(0).getFrom().getName());
@@ -394,22 +391,22 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("with two subrides", 3, subrides.getCount());
     }
 
-    public void testRideProperties() {
+    public void testRideDetails() throws JSONException {
         Uri uri = new Ride().from(bar).to(park).set("foo", "bar").store(ctx);
-        Cursor cursor = query(uri.toString());
-        cursor.moveToFirst();
-        Ride myRide = new Ride(cursor, ctx); // query ride
+        Ride myRide = new Ride(uri, ctx); // query ride
         assertEquals("bar", myRide.get("foo"));
-        myRide.set("foo", "baz").store(ctx);
-        myRide.set("fooo", "baaz").store(ctx);
-        myRide.details("some comment").store(ctx);
-        cursor = query(uri.toString());
-        cursor.moveToFirst();
-        System.out.println(cursor.getString(COLUMNS.DETAILS));
-        myRide = new Ride(cursor, ctx); // query ride
+        assertEquals("bar", myRide.getDetails().getString("foo"));
+        myRide.set("foo", "baz");
+        myRide.set("fooo", "baaz");
+        myRide.getDetails().put("another", "way");
+        uri = myRide.store(ctx);
+        myRide = new Ride(uri, ctx); // query ride
         assertEquals("baz", myRide.get("foo"));
-        assertEquals("baaz", myRide.get("fooo"));
-        assertEquals("some comment", myRide.getDetails());
+        assertEquals("baaz", myRide.getDetails().getString("fooo"));
+        Cursor c = query(uri.toString());
+        c.moveToFirst();
+        JSONObject details = Ride.getDetails(c);
+        assertEquals("way", details.getString("another"));
     }
 
     public void testClearCache() throws Exception {
