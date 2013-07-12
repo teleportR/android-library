@@ -407,6 +407,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         c.moveToFirst();
         JSONObject details = Ride.getDetails(c);
         assertEquals("way", details.getString("another"));
+        assertEquals("way", Ride.getDetails(c, "another"));
     }
 
     public void testClearCache() throws Exception {

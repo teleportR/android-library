@@ -83,9 +83,10 @@ public abstract class Connector {
     public void store(Ride ride) {
         if (!ride.cv.containsKey("ref"))
             ride.ref(UUID.randomUUID().toString());
-        if (!ride.cv.containsKey("mode")) {
+        if (!ride.cv.containsKey("mode"))
             ride.mode(Mode.CAR);
-        }
+        if (ride.details != null)
+            ride.cv.put("details", ride.details.toString());
         ridesBatch.add(ride.cv);
         if (ride.subrides != null)
             ridesBatch.addAll(ride.subrides);

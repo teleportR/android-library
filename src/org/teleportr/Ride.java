@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import android.content.ContentUris;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -25,20 +27,17 @@ public class Ride implements Parcelable {
     Context ctx;
     ContentValues cv;
     ArrayList<ContentValues> subrides;
+    JSONObject details;
 
     public Ride() {
         cv = new ContentValues();
     }
 
     public Ride set(String key, String value) {
-        String existing = get(key);
-        if (existing == null || existing.equals("")) {
-            cv.put("details",
-                    cv.getAsString("details") + ";" + key + "=" + value);
-        } else {
-            cv.put("details",
-                    cv.getAsString("details").replace(
-                            key + "=" + existing, key + "=" +value));
+        try {
+            getDetails().put(key, value);
+        } catch (JSONException e) {
+            e.printStackTrace();
         }
         return this;
     }
@@ -132,11 +131,6 @@ public class Ride implements Parcelable {
         return this;
     }
 
-    public Ride details(String details) {
-        set("details", details);
-        return this;
-    }
-
     public Ride type(int type) {
         cv.put("type", type);
         return this;
@@ -168,17 +162,13 @@ public class Ride implements Parcelable {
         }
         if (cv.containsKey("type") && cv.getAsInteger("type").equals(OFFER))
             cv.put("dirty", 1);
+        if (details != null)
+            cv.put("details", details.toString());
         Uri ride;
         cv.put("parent_id", 0);
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
-        if (!cv.containsKey("_id")) {
-            ride = ctx.getContentResolver().insert(uri, cv);
-//            cv.put("_id", Integer.valueOf(ride.getLastPathSegment()));
-        } else {
-            ride = ContentUris.withAppendedId(uri, cv.getAsInteger("_id"));
-            ctx.getContentResolver().update(ride, cv, null, null);
-            ctx.getContentResolver().delete(ride, null, null); // rm subrides
-        }
+        ride = ctx.getContentResolver().insert(uri, cv);
+        cv.put("_id", Integer.valueOf(ride.getLastPathSegment()));
         if (subrides != null) {
             for (ContentValues v : subrides) {
                 v.put("parent_id", cv.getAsInteger("_id"));
@@ -214,27 +204,25 @@ public class Ride implements Parcelable {
         public static final short REF = 20;
     }
 
-    
 
     public Ride(Context ctx) {
         this();
         this.ctx = ctx;
     }
-    
-    public Ride(Uri uri) {
+
+    public Ride(Uri uri, Context ctx) {
         this();
-        type(Ride.SEARCH);
-        from(Integer.parseInt(uri.getQueryParameter("from_id")));
-        to(Integer.parseInt(uri.getQueryParameter("to_id")));
-        if (uri.getQueryParameter("dep") != null)
-            dep(Long.parseLong(uri.getQueryParameter("dep")));
-        if (uri.getQueryParameter("arr") != null)
-            arr(Long.parseLong(uri.getQueryParameter("arr")));
+        Cursor c = ctx.getContentResolver().query(uri, null, null, null, null);
+        c.moveToFirst();
+        load(c, ctx);
     }
-    
 
     public Ride(Cursor cursor, Context ctx) {
-        cv = new ContentValues();
+        this();
+        load(cursor, ctx);
+    }
+
+    private void load(Cursor cursor, Context ctx) {
         cv.put("_id", cursor.getLong(COLUMNS.ID));
         type(cursor.getInt(COLUMNS.TYPE));
         from(cursor.getInt(COLUMNS.FROM_ID));
@@ -243,7 +231,11 @@ public class Ride implements Parcelable {
         arr(cursor.getLong(COLUMNS.ARRIVAL));
         mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
         who(cursor.getString(COLUMNS.WHO));
-        cv.put("details", cursor.getString(COLUMNS.DETAILS));
+        try {
+            details = new JSONObject(cursor.getString(COLUMNS.DETAILS));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
         price(cursor.getInt(COLUMNS.PRICE));
         seats(cursor.getInt(COLUMNS.SEATS));
         ref(cursor.getString(COLUMNS.REF));
@@ -259,22 +251,14 @@ public class Ride implements Parcelable {
     }
 
     public String get(String key) {
-        if (cv.containsKey("details")) {
-            return get(key, cv.getAsString("details"));
+        try {
+            return getDetails().getString(key);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
         }
-        return null;
     }
 
-    public static String get(String key, String kvp) {
-        String[] props = kvp.split(";");
-        for (int i = 0; i < props.length; i++) {
-            String[] split = props[i].split("=");
-            if (split[0].equals(key) && split.length > 1)
-                return split[1];
-        }
-        return null;
-    }
-    
     public List<Ride> getSubrides() {
         ArrayList<Ride> subs = new ArrayList<Ride>();
         for (ContentValues v : subrides) {
@@ -357,11 +341,7 @@ public class Ride implements Parcelable {
             return cv.getAsString("who");
         else return "";
     }
-    
-    public String getDetails() {
-        return get("details");
-    }
-    
+
     public int getPrice() {
         if (cv.containsKey("price"))
             return cv.getAsInteger("price");
@@ -372,6 +352,30 @@ public class Ride implements Parcelable {
         if (cv.containsKey("seats"))
             return cv.getAsInteger("seats");
         else return 0;
+    }
+
+    public JSONObject getDetails() {
+        if (details == null)
+            details = new JSONObject();
+        return details;
+    }
+
+    public static JSONObject getDetails(Cursor cursor) {
+        try {
+            return new JSONObject(cursor.getString(COLUMNS.DETAILS));
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static String getDetails(Cursor cursor, String key) {
+        try {
+            return getDetails(cursor).getString(key);
+        } catch (JSONException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 

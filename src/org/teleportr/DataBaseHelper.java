@@ -298,7 +298,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 new String[] { String.valueOf(older_than_last_refresh) });
     }
     
-    static final String SELECT_RIDES = "SELECT rides._id, rides.type,"
+    static final String SELECT_RIDES_COLUMNS = "rides._id, rides.type,"
                 + " \"from\"._id, \"from\".name, \"from\".address,"
                 + " \"to\"._id, \"to\".name, \"to\".address,"
                 + " rides.dep, rides.arr,"
@@ -307,6 +307,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides.dirty, rides.parent_id, rides.ref FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id";
+
+    static final String SELECT_RIDES = "SELECT " + SELECT_RIDES_COLUMNS;
 
     public Cursor queryRide(String id) {
         return getReadableDatabase().rawQuery(SELECT_RIDES
@@ -337,8 +339,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     public Cursor queryMyRides() {
-        return getReadableDatabase().rawQuery(SELECT_RIDES
+        return getReadableDatabase().rawQuery(
+                "SELECT max(rides._id), " + SELECT_RIDES_COLUMNS
                 + " WHERE type = " + Ride.OFFER
-                + " AND marked = 1 AND parent_id = 0;", null);
+                + " AND marked = 1 AND parent_id = 0"
+                + " GROUP BY ref;", null);
     }
 }

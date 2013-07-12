@@ -176,6 +176,7 @@ public class ConnectorService extends Service
             }
         }
     };
+    private Runnable notify;
 
     private void log(String msg) {
         Log.d(TAG, msg);
@@ -184,18 +185,19 @@ public class ConnectorService extends Service
     }
 
     protected void onSearch(final Ride query) {
-        main.post(new Runnable() {
+        notify = new Runnable() {
             
             @Override
             public void run() {
                 if (gui != null) {
                     gui.onBackgroundSearch(query);
-                } else {
-                    Log.d(TAG, "Try again");
-                    main.post(this);
                 }
             }
-        });
+        };
+        if (gui != null) {
+            main.post(notify);
+            notify = null;
+        }
     }
 
     protected void onSuccess(final Ride query, final int numberOfRidesFound) {
@@ -225,6 +227,8 @@ public class ConnectorService extends Service
 
     public void register(BackgroundListener activity) {
         gui = activity;
+        if (notify != null)
+            main.post(notify);
     }
 
     private BackgroundListener gui;
