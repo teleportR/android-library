@@ -288,7 +288,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " FROM (SELECT * from rides ORDER BY _id DESC LIMIT 1) AS rides"
             + " LEFT JOIN jobs ON"
                 + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
-            + " WHERE type=" + Ride.SEARCH
+            + " WHERE rides.type=" + Ride.SEARCH
                 + " AND (latest_dep < arr"
                     + " OR (last_refresh IS null OR last_refresh < ?))"
             + " ORDER BY rides._id DESC;";

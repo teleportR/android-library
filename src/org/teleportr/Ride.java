@@ -173,7 +173,7 @@ public class Ride implements Parcelable {
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
         if (!cv.containsKey("_id")) {
             ride = ctx.getContentResolver().insert(uri, cv);
-            cv.put("_id", Integer.valueOf(ride.getLastPathSegment()));
+//            cv.put("_id", Integer.valueOf(ride.getLastPathSegment()));
         } else {
             ride = ContentUris.withAppendedId(uri, cv.getAsInteger("_id"));
             ctx.getContentResolver().update(ride, cv, null, null);
