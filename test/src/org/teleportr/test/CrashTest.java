@@ -198,7 +198,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     public void testSearchJobs() {
         String uri = "content://org.teleportr.test/jobs/search";
         Cursor jobs = query(uri);
-        assertEquals("there be seven jobs to search", 7, jobs.getCount());
+        assertEquals("there be only the last search", 1, jobs.getCount());
         jobs.moveToFirst();
         assertEquals("last search first", bar.id, jobs.getLong(0));
         assertEquals("last search first", home.id, jobs.getLong(1));
@@ -213,24 +213,24 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         values.put("last_refresh", System.currentTimeMillis());
         getMockContentResolver().insert(Uri.parse(uri), values);
         jobs = query(uri);
-        assertEquals("still seven jobs to search", 7, jobs.getCount());
+        assertEquals("still one job to search further arr", 1, jobs.getCount());
 
         values.put("latest_dep", 9000); // not smaller than arr
         values.put("last_refresh", System.currentTimeMillis() - 10 * 60 * 1001);
         getMockContentResolver().insert(Uri.parse(uri), values);
         jobs = query(uri);
-        assertEquals("still seven jobs to search", 7, jobs.getCount());
+        assertEquals("still one job to refresh", 1, jobs.getCount());
         
         values.put("last_refresh", System.currentTimeMillis());
         getMockContentResolver().insert(Uri.parse(uri), values);
         jobs = query(uri);
-        assertEquals("now one job less to search", 6, jobs.getCount());
+        assertEquals("now no more jobs to doh", 0, jobs.getCount());
 
         new Ride().type(Ride.SEARCH).from(bar).to(home)
             .dep(new Date(7000)).arr(new Date(9500))
             .store(ctx); // same ride arrive later
         jobs = query(uri);
-        assertEquals("again seven jobs to search", 7, jobs.getCount());
+        assertEquals("there be one new job to search", 1, jobs.getCount());
         jobs.moveToFirst();
         assertEquals("latest_dep", 9000, jobs.getLong(4)); // continue..
     }
