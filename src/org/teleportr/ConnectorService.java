@@ -152,10 +152,11 @@ public class ConnectorService extends Service
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
                 jobs.close();
-                onSearch(from, to, dep);
+                Ride query = new Ride().dep(dep).from(from).to(to);
+                onSearch(query);
                 try {
                     latest_dep = fahrgemeinschaft.search(from, to, dep, null);
-                    onSuccess(fahrgemeinschaft.getNumberOfRidesFound());
+                    onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
                     fahrgemeinschaft.flush(from.id, to.id, latest_dep);
                     retry_attempt = 0;
                     worker.post(search);
@@ -167,7 +168,7 @@ public class ConnectorService extends Service
                         retry_attempt++;
                     } else {
                         log("giving up");
-                        onFail(e.getMessage());
+                        onFail(query, e.getMessage());
                     }
                 }
             } else {
@@ -182,37 +183,37 @@ public class ConnectorService extends Service
             Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
-    protected void onSearch(final Place from, final Place to, final Date dep) {
+    protected void onSearch(final Ride query) {
         main.post(new Runnable() {
             
             @Override
             public void run() {
                 if (gui != null) {
-                    gui.onBackgroundSearch(from, to, dep);
+                    gui.onBackgroundSearch(query);
                 }
             }
         });
     }
 
-    protected void onSuccess(final int numberOfRidesFound) {
+    protected void onSuccess(final Ride query, final int numberOfRidesFound) {
         main.post(new Runnable() {
             
             @Override
             public void run() {
                 if (gui != null) {
-                    gui.onBackgroundSuccess(numberOfRidesFound);
+                    gui.onBackgroundSuccess(query, numberOfRidesFound);
                 }
             }
         });
     }
 
-    protected void onFail(final String reason) {
+    protected void onFail(final Ride query, final String reason) {
         main.post(new Runnable() {
             
             @Override
             public void run() {
                 if (gui != null) {
-                    gui.onBackgroundFail(reason);
+                    gui.onBackgroundFail(query, reason);
                 }
             }
         });
@@ -226,9 +227,9 @@ public class ConnectorService extends Service
     private BackgroundListener gui;
 
     public interface BackgroundListener {
-        public void onBackgroundSearch(Place from, Place to, Date dep);
-        public void onBackgroundSuccess(int numberOfRidesFound);
-        public void onBackgroundFail(String reason);
+        public void onBackgroundSearch(Ride query);
+        public void onBackgroundSuccess(Ride query, int numberOfRidesFound);
+        public void onBackgroundFail(Ride query, String reason);
     }
 
 
