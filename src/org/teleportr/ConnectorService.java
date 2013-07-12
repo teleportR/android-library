@@ -190,6 +190,9 @@ public class ConnectorService extends Service
             public void run() {
                 if (gui != null) {
                     gui.onBackgroundSearch(query);
+                } else {
+                    Log.d(TAG, "Try again");
+                    main.post(this);
                 }
             }
         });
