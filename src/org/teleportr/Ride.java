@@ -210,15 +210,19 @@ public class Ride implements Parcelable {
         this.ctx = ctx;
     }
 
+    public void setContext(Context ctx) {
+        this.ctx = ctx;
+    }
+
     public Ride(Uri uri, Context ctx) {
-        this();
+        this(ctx);
         Cursor c = ctx.getContentResolver().query(uri, null, null, null, null);
         c.moveToFirst();
         load(c, ctx);
     }
 
     public Ride(Cursor cursor, Context ctx) {
-        this();
+        this(ctx);
         load(cursor, ctx);
     }
 
@@ -273,14 +277,14 @@ public class Ride implements Parcelable {
         if (getFromId() != 0)
             return new Place(getFromId(), ctx);
         else
-            return new Place().name("from");
+            return null;
     }
 
     public Place getTo() {
         if (getToId() != 0)
             return new Place(getToId(), ctx);
         else
-            return new Place().name("to");
+            return null;
     }
 
     public List<Place> getVias() {
@@ -390,8 +394,10 @@ public class Ride implements Parcelable {
     @Override
     public void writeToParcel(Parcel out, int flags) {
 //        out.writeTypedList(subrides);
+        if (details != null) {
+            cv.put("details", details.toString());
+        }
         out.writeParcelable(cv, 0);
-        Log.d("Ride", "store " + cv.getAsString("from_id"));
     }
 
     public static final Parcelable.Creator<Ride> CREATOR
@@ -403,6 +409,13 @@ public class Ride implements Parcelable {
 //                ride.subrides = new ArrayList<ContentValues>();
 //                in.readTypedList(ride.subrides, ContentValues.CREATOR);
                 ride.cv = in.readParcelable(getClass().getClassLoader());
+                try {
+                    if (ride.cv.containsKey("details"))
+                        ride.details = new JSONObject(
+                                ride.cv.getAsString("details"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
                 Log.d("Ride", "read " + ride.cv.getAsString("from_id"));
                 return ride;
             }

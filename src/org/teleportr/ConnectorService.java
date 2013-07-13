@@ -1,6 +1,8 @@
 package org.teleportr;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import android.app.Service;
 import android.content.Intent;
@@ -141,7 +143,6 @@ public class ConnectorService extends Service
             Cursor jobs = getContentResolver()
                     .query(search_jobs_uri, null, null, null, null);
             if (jobs.getCount() != 0) {
-                log(jobs.getCount() + " jobs to do:");
                 jobs.moveToFirst();
                 from = new Place(jobs.getInt(0), ConnectorService.this);
                 to = new Place(jobs.getInt(1), ConnectorService.this);
@@ -152,6 +153,9 @@ public class ConnectorService extends Service
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
                 jobs.close();
+                log("searching for "
+                        + new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
+                        .format(dep));
                 Ride query = new Ride().dep(dep).from(from).to(to);
                 onSearch(query);
                 try {
@@ -254,6 +258,7 @@ public class ConnectorService extends Service
     @Override
     public void unbindService(ServiceConnection conn) {
         super.unbindService(conn);
+        log("unbinding");
         gui = null;
     }
 }

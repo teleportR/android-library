@@ -285,7 +285,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
     static final String SELECT_JOBS = "SELECT"
                 + " rides.from_id, rides.to_id, dep, arr,"
                 + " latest_dep, last_refresh"
-            + " FROM (SELECT * from rides ORDER BY _id DESC LIMIT 1) AS rides"
+            + " FROM (SELECT * from rides"
+                + " WHERE rides.type=" + Ride.SEARCH
+                + " ORDER BY _id DESC LIMIT 1) AS rides"
             + " LEFT JOIN jobs ON"
                 + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
             + " WHERE rides.type=" + Ride.SEARCH

@@ -72,7 +72,7 @@ public class RidesProvider extends ContentProvider {
             e.printStackTrace();
         } finally {
             db.getWritableDatabase().endTransaction();
-            getContext().getContentResolver().notifyChange(uri, null);
+//            getContext().getContentResolver().notifyChange(uri, null);
         }
         return ContentUris.withAppendedId(uri, id);
     }
