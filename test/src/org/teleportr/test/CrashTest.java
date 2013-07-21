@@ -89,10 +89,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector = new Connector() { // dummy search results
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().type(Ride.OFFER)
+                store(new Ride().type(Ride.OFFER).who("anyone")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Slackline"))));
-                store(new Ride().type(Ride.OFFER)
+                store(new Ride().type(Ride.OFFER).who("someone")
                         .from(store(new Place().address("Hipperstr. 42")))
                         .to(store(new Place().address("Wiesn"))));
                 flush(from.id, to.id, 0);
@@ -281,7 +281,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().from(1).to(2).dep(500));
                 store(new Ride() // dummy search results
-                    .type(Ride.OFFER)
+                    .type(Ride.OFFER).who("Sepp")
                     .from(store(new Place().name("Home")))
                     .to(store(new Place().name("Whiskybar")))
                     .dep(new Date(1000)));
@@ -290,7 +290,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .from(store(new Place(52.439716, 13.448982))) // home
                     .to(store(new Place().address("Hafenstr. 125")))
                     .dep(new Date(3000)));
-                store(new Ride()
+                store(new Ride().who("Riksha 5")
                     .type(Ride.OFFER).price(42)
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) // döner
@@ -321,15 +321,17 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Connector connector = new Connector() {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().type(Ride.OFFER).ref("a").dep(new Date(2000))
+                store(new Ride().type(Ride.OFFER).ref("a").who("S7")
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
-                        .to(store(new Place().name("Home"))));
-                store(new Ride().type(Ride.OFFER).ref("b").dep(new Date(1000))
+                        .to(store(new Place().name("Home")))
+                        .dep(new Date(2000)));
+                store(new Ride().type(Ride.OFFER).ref("b").who("U5")
                         .from(store(new Place().name("Home")))
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
-                        .to(store(new Place().name("Cafe Schön"))));
+                        .to(store(new Place().name("Cafe Schön")))
+                        .dep(new Date(1000)));
                 flush(park.id, bar.id, 0);
                 return 0;
             }
@@ -420,13 +422,13 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new Connector() {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
-                store(new Ride().type(Ride.OFFER).ref("a")
+                store(new Ride().type(Ride.OFFER).ref("a").who("S7")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(1000));
-                store(new Ride().type(Ride.OFFER).ref("b")
+                store(new Ride().type(Ride.OFFER).ref("b").who("M10")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(2000));
-                store(new Ride().type(Ride.OFFER).ref("b")
+                store(new Ride().type(Ride.OFFER).ref("b").who("Sepp")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
                 flush(home.id, bar.id, 0);
