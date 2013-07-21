@@ -324,6 +324,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " AND match.sub_from_id=?"
                 + " AND match.sub_to_id =?"
                 + " AND rides.dep > ?"
+                + " AND rides.who <> ''"
             + " ORDER BY rides.dep, rides._id;";
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
