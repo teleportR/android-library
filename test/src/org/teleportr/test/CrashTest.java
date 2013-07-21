@@ -90,11 +90,12 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             @Override
             public long search(Place from, Place to, Date dep, Date arr) {
                 store(new Ride().type(Ride.OFFER)
-                        .from(store(new Place().name("Moustafa")))
-                        .to(store(new Place().name("Cafe Schön"))));
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Slackline"))));
                 store(new Ride().type(Ride.OFFER)
-                        .from(store(new Place().name("Cafe Schön")))
-                        .to(store(new Place().name("Somewhere..."))));
+                        .from(store(new Place().address("Hipperstr. 42")))
+                        .to(store(new Place().address("Wiesn"))));
+                flush(from.id, to.id, 0);
                 return 0;
             }
         }.setContext(ctx);
@@ -359,7 +360,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
     }
 
-    public void testRideEdit() {
+    public void testRideEdit() throws Exception {
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
                 .price(42).dep(1000).marked()
@@ -372,12 +373,13 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals(bar.id, myRide.getVias().get(0).id);
         assertEquals(42, myRide.getPrice());
         assertEquals(1000, myRide.getDep());
-        
+
         assertEquals("two subrides as objects", 2, myRide.getSubrides().size());
         assertEquals("Home", myRide.getSubrides().get(0).getFrom().getName());
         assertEquals(home.id, myRide.getSubrides().get(0).getFrom().id);
         assertEquals(bar.id, myRide.getSubrides().get(1).getFrom().id);
         assertEquals(park.id, myRide.getSubrides().get(1).getTo().id);
+
         
         // edit and update Ride
         myRide.removeVias();
@@ -389,6 +391,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with two subrides", 3, subrides.getCount());
+        dummyConnector.search(home, park, null, null); // execute connector
+        Cursor search_results = query("content://org.teleportr.test/rides"
+                            + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("not show up in search", 2, search_results.getCount());
     }
 
     public void testRideDetails() throws JSONException {
