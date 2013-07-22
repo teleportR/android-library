@@ -300,17 +300,19 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 new String[] { String.valueOf(older_than_last_refresh) });
     }
     
-    static final String SELECT_RIDES_COLUMNS = "rides._id, rides.type,"
+    static final String SELECT_RIDES_COLUMNS = "SELECT rides._id, rides.type,"
                 + " \"from\"._id, \"from\".name, \"from\".address,"
                 + " \"to\"._id, \"to\".name, \"to\".address,"
                 + " rides.dep, rides.arr,"
                 + " rides.mode, rides.operator, rides.who, rides.details,"
                 + " rides.distance, rides.price, rides.seats, rides.marked,"
-                + " rides.dirty, rides.parent_id, rides.ref FROM 'rides'"
+                + " rides.dirty, rides.parent_id, rides.ref";
+
+    static final String JOIN = " FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
             + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id";
 
-    static final String SELECT_RIDES = "SELECT " + SELECT_RIDES_COLUMNS;
+    static final String SELECT_RIDES = SELECT_RIDES_COLUMNS + JOIN;
 
     public Cursor queryRide(String id) {
         return getReadableDatabase().rawQuery(SELECT_RIDES
@@ -343,7 +345,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryMyRides() {
         return getReadableDatabase().rawQuery(
-                "SELECT max(rides._id), " + SELECT_RIDES_COLUMNS
+                SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
                 + " WHERE type = " + Ride.OFFER
                 + " AND marked = 1 AND parent_id = 0"
                 + " GROUP BY ref;", null);
