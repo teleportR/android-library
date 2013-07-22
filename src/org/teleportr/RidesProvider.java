@@ -16,6 +16,7 @@ public class RidesProvider extends ContentProvider {
     static final String TAG = "RideProvider";
     private DataBaseHelper db;
     private UriMatcher route;
+    private Uri myrides;
     private Uri jobs;
 
     @Override
@@ -41,6 +42,7 @@ public class RidesProvider extends ContentProvider {
         route.addURI(authority, "rides/#", RIDE);
         route.addURI(authority, "rides", RIDES);
         jobs = Uri.parse("content://" + authority + "/jobs/search");
+        myrides = Uri.parse("content://" + authority + "/myrides");
     }
 
     @Override
@@ -67,12 +69,12 @@ public class RidesProvider extends ContentProvider {
                 break;
             }
             db.getWritableDatabase().setTransactionSuccessful();
+            getContext().getContentResolver().notifyChange(myrides, null);
         } catch (Exception e) {
             Log.e(TAG, "error during insert: " + e);
             e.printStackTrace();
         } finally {
             db.getWritableDatabase().endTransaction();
-//            getContext().getContentResolver().notifyChange(uri, null);
         }
         return ContentUris.withAppendedId(uri, id);
     }
@@ -145,12 +147,12 @@ public class RidesProvider extends ContentProvider {
                 return db.autocompleteTo(from_id, q);
             }
         case RIDES:
-            Cursor results = db.queryRides(
+            Cursor rslt = db.queryRides(
                     uri.getQueryParameter("from_id"),
                     uri.getQueryParameter("to_id"),
                     uri.getQueryParameter("dep"));
-            results.setNotificationUri(getContext().getContentResolver(), uri);
-            return results;
+            rslt.setNotificationUri(getContext().getContentResolver(), uri);
+            return rslt;
         case SUBRIDES:
             return db.querySubRides(uri.getPathSegments().get(1));
         case RIDE:
@@ -159,7 +161,9 @@ public class RidesProvider extends ContentProvider {
             return db.getReadableDatabase().query("rides", null,
                     "type=" + Ride.SEARCH, null, null, null, "_id DESC");
         case MYRIDES:
-            return db.queryMyRides();
+            rslt = db.queryMyRides();
+            rslt.setNotificationUri(getContext().getContentResolver(), myrides);
+            return rslt;
         case SEARCH:
             long olderThan;
             try {
