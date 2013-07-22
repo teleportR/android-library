@@ -75,10 +75,13 @@ public class Ride implements Parcelable {
             sub.put("from_id", cv.getAsLong("from_id"));
             sub.put("to_id", via_id);
             subrides.add(sub);
-        } else
+        } else {
             subrides.get(subrides.size()-1).put("to_id", via_id);
+        }
         ContentValues sub = new ContentValues();
         sub.put("from_id", via_id);
+        if (getToId() != 0)
+            sub.put("to_id", getToId());
         subrides.add(sub);
         return this;
     }
@@ -317,7 +320,7 @@ public class Ride implements Parcelable {
     }
 
     public int getToId() {
-        if (cv.containsKey("from_id"))
+        if (cv.containsKey("to_id"))
             return cv.getAsInteger("to_id");
         else return 0;
     }

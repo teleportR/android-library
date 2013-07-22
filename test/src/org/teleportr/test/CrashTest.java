@@ -328,9 +328,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .dep(new Date(2000)));
                 store(new Ride().type(Ride.OFFER).ref("b").who("U5")
                         .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
-                        .to(store(new Place().name("Cafe Schön")))
                         .dep(new Date(1000)));
                 flush(park.id, bar.id, 0);
                 return 0;
