@@ -98,6 +98,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 flush(from.id, to.id, 0);
                 return 0;
             }
+
+            @Override
+            public String publish(Ride offer) throws Exception {
+                return null;
+            }
         }.setContext(ctx);
     }
 
@@ -298,6 +303,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 flush(home.id, bar.id, 0);
                 return 0;
             }
+
+            @Override
+            public String publish(Ride offer) throws Exception {
+                return null;
+            }
         }.setContext(ctx).search(home, bar, null, null); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
@@ -334,6 +344,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .dep(new Date(1000)));
                 flush(park.id, bar.id, 0);
                 return 0;
+            }
+
+            @Override
+            public String publish(Ride offer) throws Exception {
+                return null;
             }
         }.setContext(ctx);
         connector.search(park, bar, null, null); // execute connector
@@ -433,6 +448,12 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
                 flush(home.id, bar.id, 0);
                 return 0;
+            }
+
+            @Override
+            public String publish(Ride offer) throws Exception {
+                // TODO Auto-generated method stub
+                return null;
             }
         }.setContext(ctx).search(home, bar, null, null); // execute
         String uri = "content://org.teleportr.test/rides/";

@@ -299,7 +299,12 @@ class DataBaseHelper extends SQLiteOpenHelper {
         return getReadableDatabase().rawQuery(SELECT_JOBS,
                 new String[] { String.valueOf(older_than_last_refresh) });
     }
-    
+
+    public Cursor queryPublishJobs() {
+        return getReadableDatabase().rawQuery(
+                SELECT_RIDES + " WHERE dirty = 1 AND parent_id = 0", null);
+    }
+
     static final String SELECT_RIDES_COLUMNS = "SELECT rides._id, rides.type,"
                 + " \"from\"._id, \"from\".name, \"from\".address,"
                 + " \"to\"._id, \"to\".name, \"to\".address,"

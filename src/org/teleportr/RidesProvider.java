@@ -174,8 +174,7 @@ public class RidesProvider extends ContentProvider {
             }
             return db.queryJobs(System.currentTimeMillis() - olderThan);
         case PUBLISH:
-            return db.getReadableDatabase().query("rides", null,
-                    "dirty=1", null, null, null, "_id DESC");
+            return db.queryPublishJobs();
         case RESOLVE:
             return db.getReadableDatabase().query("places", null,
                     "geohash IS NULL", null, null, null, null);
@@ -186,16 +185,19 @@ public class RidesProvider extends ContentProvider {
     @Override
     public int update(Uri uri, ContentValues values, String sel, String[] args) {
         getContext().getContentResolver().notifyChange(uri, null);
+        int id = -1;
         switch (route.match(uri)) {
         case PLACE:
-            return db.getWritableDatabase().update("places", values,
+            id =  db.getWritableDatabase().update("places", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
+            break;
         case RIDE:
-            getContext().getContentResolver().notifyChange(jobs, null);
-            return db.getWritableDatabase().update("rides", values,
+            id =  db.getWritableDatabase().update("rides", values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
+            getContext().getContentResolver().notifyChange(jobs, null);
+            getContext().getContentResolver().notifyChange(myrides, null);
         }
-        return 0;
+        return id;
     }
 
     @Override

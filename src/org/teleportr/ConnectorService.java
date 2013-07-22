@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.Locale;
 
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -25,12 +26,15 @@ public class ConnectorService extends Service
     protected static final String TAG = "ConnectorService";
     public static final String RESOLVE = "geocode";
     public static final String SEARCH = "search";
+    public static final String PUBLISH = "publish";
     private Connector fahrgemeinschaft;
     private Connector gplaces;
     private Handler worker;
     private boolean verbose;
     private Uri resolve_jobs_uri;
+    private Uri publish_jobs_uri;
     private Uri search_jobs_uri;
+    private Uri rides_uri;
     private Handler main;
 
     @Override
@@ -51,8 +55,10 @@ public class ConnectorService extends Service
             e.printStackTrace();
         }
         String uri = "content://" + ConnectorService.this.getPackageName();
+        rides_uri = Uri.parse(uri + "/rides");
         search_jobs_uri = Uri.parse(uri + "/jobs/search");
         resolve_jobs_uri = Uri.parse(uri + "/jobs/resolve");
+        publish_jobs_uri = Uri.parse(uri + "/jobs/publish");
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(this);
         verbose = prefs.getBoolean("verbose", false);
@@ -76,6 +82,8 @@ public class ConnectorService extends Service
             return START_STICKY;
         if (action.equals(RESOLVE)) {
             worker.postAtFrontOfQueue(resolve);
+        } else if (action.equals(PUBLISH)) {
+                worker.postAtFrontOfQueue(publish);
         } else if (action.equals(SEARCH)) {
             retry_attempt = 0;
             worker.postAtFrontOfQueue(search);
@@ -85,7 +93,7 @@ public class ConnectorService extends Service
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-        if (key.equals("username") || key.equals("password")) {
+        if (key.equals("EMail") || key.equals("password")) {
             worker.postAtFrontOfQueue(auth);
         } else if (key.equals("verbose")) {
             verbose = prefs.getBoolean("verbose", false);
@@ -101,6 +109,34 @@ public class ConnectorService extends Service
                 log(fahrgemeinschaft.getAuth());
             } catch (Exception e) {
                 e.printStackTrace();
+            }
+        }
+    };
+
+    Runnable publish = new Runnable() {
+
+        @Override
+        public void run() {
+            Cursor c = getContentResolver()
+                    .query(publish_jobs_uri, null, null, null, null);
+            if (c.getCount() != 0) {
+                c.moveToFirst();
+                Ride offer = new Ride(c, ConnectorService.this);
+                log("publishing " + offer.getFrom().getName() + " --> ...");
+                try {
+                    log(fahrgemeinschaft.getAuth());
+                    String ref = fahrgemeinschaft.publish(offer);
+                    ContentValues values = new ContentValues();
+                    values.put("dirty", 0); // in sync now
+                    values.put("ref", ref);
+                    getContentResolver().update(rides_uri.buildUpon()
+                            .appendPath(String.valueOf(c.getString(0))).build(),
+                            values, null, null);
+                    Toast.makeText(ConnectorService.this,
+                            "upload success", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     };

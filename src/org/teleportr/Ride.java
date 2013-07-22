@@ -237,7 +237,12 @@ public class Ride implements Parcelable {
         dep(cursor.getLong(COLUMNS.DEPARTURE));
         arr(cursor.getLong(COLUMNS.ARRIVAL));
         mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
-        who(cursor.getString(COLUMNS.WHO));
+        String val = cursor.getString(COLUMNS.WHO);
+        if (val != null && !val.equals(""))
+            who(val);
+        val = cursor.getString(COLUMNS.REF);
+        if (val != null && !val.equals(""))
+            ref(val);
         try {
             details = new JSONObject(cursor.getString(COLUMNS.DETAILS));
         } catch (JSONException e) {
@@ -245,7 +250,6 @@ public class Ride implements Parcelable {
         }
         price(cursor.getInt(COLUMNS.PRICE));
         seats(cursor.getInt(COLUMNS.SEATS));
-        ref(cursor.getString(COLUMNS.REF));
         Cursor s = ctx.getContentResolver().query(
                 Uri.parse("content://" + ctx.getPackageName() + "/rides/"
                         + cursor.getInt(0) + "/rides/"), null, null, null, null);
@@ -303,11 +307,14 @@ public class Ride implements Parcelable {
 
     public List<Place> getPlaces() {
         ArrayList<Place> places = new ArrayList<Place>();
-        if (subrides != null) {
+        if (subrides != null && subrides.size() > 0) {
             for (int i = 0; i < subrides.size(); i++) {
                 places.add(new Place(subrides.get(i)
                         .getAsInteger("from_id"), ctx));
             }
+            places.add(getTo());
+        } else {
+            places.add(getFrom());
             places.add(getTo());
         }
         return places;
