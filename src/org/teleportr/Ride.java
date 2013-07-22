@@ -354,11 +354,17 @@ public class Ride implements Parcelable {
             return cv.getAsInteger("price");
         else return 0;
     }
-    
+
     public int getSeats() {
         if (cv.containsKey("seats"))
             return cv.getAsInteger("seats");
         else return 0;
+    }
+
+    public String getRef() {
+        if (cv.containsKey("ref"))
+            return cv.getAsString("ref");
+        else return null;
     }
 
     public JSONObject getDetails() {
