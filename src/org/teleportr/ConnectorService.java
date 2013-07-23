@@ -134,8 +134,12 @@ public class ConnectorService extends Service
                             values, null, null);
                     Toast.makeText(ConnectorService.this,
                             "upload success", Toast.LENGTH_SHORT).show();
+                    log("publish success");
                 } catch (Exception e) {
                     e.printStackTrace();
+                    log("publish ERROR");
+                } finally {
+                    c.close();
                 }
             }
         }
@@ -157,8 +161,9 @@ public class ConnectorService extends Service
                     log("resolved " + p.getName() + ": " + p.getLat());
                 } catch (Exception e) {
                     log("resolve error: " + e);
+                } finally {
+                    c.close();
                 }
-                c.close();
             } else {
                 log("No places to resolve");
             }

@@ -167,8 +167,9 @@ public class RidesProvider extends ContentProvider {
         case SEARCH:
             long olderThan;
             try {
-                olderThan = PreferenceManager.getDefaultSharedPreferences(
-                        getContext()).getLong("refresh", 0);
+                olderThan = Long.parseLong(PreferenceManager
+                        .getDefaultSharedPreferences(
+                        getContext()).getString("refresh", ""));
             } catch (Exception e) {
                 olderThan = 10 * 60 * 1000; // 10min
             }
