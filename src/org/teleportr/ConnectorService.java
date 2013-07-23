@@ -1,7 +1,9 @@
 package org.teleportr;
 
+import java.io.FileNotFoundException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 
 import android.app.Service;
@@ -32,6 +34,7 @@ public class ConnectorService extends Service
     private Handler worker;
     private boolean verbose;
     private Uri resolve_jobs_uri;
+    HashMap<Long, Integer> retries;
     private Uri publish_jobs_uri;
     private Uri search_jobs_uri;
     private Uri rides_uri;
@@ -56,6 +59,7 @@ public class ConnectorService extends Service
         }
         String uri = "content://" + ConnectorService.this.getPackageName();
         rides_uri = Uri.parse(uri + "/rides");
+        retries = new HashMap<Long, Integer>();
         search_jobs_uri = Uri.parse(uri + "/jobs/search");
         resolve_jobs_uri = Uri.parse(uri + "/jobs/resolve");
         publish_jobs_uri = Uri.parse(uri + "/jobs/publish");
@@ -85,7 +89,6 @@ public class ConnectorService extends Service
         } else if (action.equals(PUBLISH)) {
                 worker.postAtFrontOfQueue(publish);
         } else if (action.equals(SEARCH)) {
-            retry_attempt = 0;
             worker.postAtFrontOfQueue(search);
         }
         return START_REDELIVER_INTENT;
@@ -104,11 +107,17 @@ public class ConnectorService extends Service
 
         @Override
         public void run() {
-            log("authenticating");
+            log("get auth");
             try {
-                log(fahrgemeinschaft.getAuth());
+                Log.d(TAG, "auth failed");
+                fahrgemeinschaft.getAuth();
+                Toast.makeText(ConnectorService.this, "logged in :-)",
+                        Toast.LENGTH_SHORT).show();
+                worker.post(publish);
             } catch (Exception e) {
-                e.printStackTrace();
+                Toast.makeText(ConnectorService.this, "auth failed!",
+                        Toast.LENGTH_SHORT).show();
+                Log.d(TAG, "auth failed");
             }
         }
     };
@@ -122,9 +131,9 @@ public class ConnectorService extends Service
             if (c.getCount() != 0) {
                 c.moveToFirst();
                 Ride offer = new Ride(c, ConnectorService.this);
-                log("publishing " + offer.getFrom().getName() + " --> ...");
+                int attempt = getRetry(c.getLong(0));
+                log("publishing " + offer.getFrom().getName() + " #" + attempt);
                 try {
-                    log(fahrgemeinschaft.getAuth());
                     String ref = fahrgemeinschaft.publish(offer);
                     ContentValues values = new ContentValues();
                     values.put("dirty", 0); // in sync now
@@ -133,16 +142,29 @@ public class ConnectorService extends Service
                             .appendPath(String.valueOf(c.getString(0))).build(),
                             values, null, null);
                     Toast.makeText(ConnectorService.this,
-                            "upload success", Toast.LENGTH_SHORT).show();
-                    log("publish success");
+                            "upload success", Toast.LENGTH_LONG).show();
+                    log("+ published " + ref);
+                } catch (FileNotFoundException e) {
+                    Toast.makeText(ConnectorService.this, "auth failed!",
+                            Toast.LENGTH_LONG).show();
+                    Log.d(TAG, "auth failed");
                 } catch (Exception e) {
                     e.printStackTrace();
                     log("publish ERROR");
+                    if (attempt < 3) {
+                        worker.postDelayed(resolve, attempt * 2000);
+                        worker.postDelayed(search, attempt * 2000);
+                        incRetry(c.getLong(0));
+                        log("retry in " + attempt * 2 + "sec");
+                    } else {
+                        log("giving up publish after " + attempt + "retries");
+                    }
                 } finally {
                     c.close();
                 }
             }
         }
+
     };
 
     Runnable resolve = new Runnable() {
@@ -159,6 +181,7 @@ public class ConnectorService extends Service
                 try {
                     gplaces.resolvePlace(p, ConnectorService.this);
                     log("resolved " + p.getName() + ": " + p.getLat());
+                    worker.post(publish);
                 } catch (Exception e) {
                     log("resolve error: " + e);
                 } finally {
@@ -193,10 +216,10 @@ public class ConnectorService extends Service
                     dep = new Date(jobs.getLong(2)); // then take search dep
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
-                jobs.close();
+                int attempt = getRetry(jobs.getLong(0));
                 log("searching for "
                         + new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
-                        .format(dep));
+                            .format(dep) + " #" + attempt);
                 Ride query = new Ride().dep(dep).from(from).to(to);
                 onSearch(query);
                 try {
@@ -207,20 +230,34 @@ public class ConnectorService extends Service
                     worker.post(search);
                 } catch (Exception e) {
                     log("search error: " + e);
-                    if (retry_attempt < 3) {
-                        worker.postDelayed(resolve, retry_attempt * 2000);
-                        worker.postDelayed(search, retry_attempt * 2000);
-                        retry_attempt++;
+                    if (attempt < 3) {
+                        worker.postDelayed(resolve, attempt * 2000);
+                        worker.postDelayed(search, attempt * 2000);
+                        incRetry(jobs.getLong(0));
+                        log("retry in " + attempt * 2 + "sec");
                     } else {
-                        log("giving up");
+                        log("giving up after " + attempt + "retries");
                         onFail(query, e.getMessage());
                     }
+                } finally {
+                    jobs.close();
                 }
             } else {
                 log("no more to search.");
             }
         }
     };
+
+    public Integer getRetry(long id) {
+        if (!retries.containsKey(id))
+            retries.put(id, 0);
+        return retries.get(id);
+    }
+
+    public void incRetry(long id) {
+        retries.put(id, getRetry(id) + 1);
+    }
+
     private Runnable notify;
 
     private void log(String msg) {

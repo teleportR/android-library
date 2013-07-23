@@ -159,22 +159,24 @@ public class Ride implements Parcelable {
         return this;
     }
 
+    public Ride dirty() {
+        cv.put("dirty", 1);
+        return this;
+    }
+
     public Uri store(Context ctx) {
-        if (!cv.containsKey("mode")) {
+        if (!cv.containsKey("mode"))
             mode(Mode.CAR);
-        }
-        if (cv.containsKey("type") && cv.getAsInteger("type").equals(OFFER))
-            cv.put("dirty", 1);
         if (details != null)
             cv.put("details", details.toString());
         Uri ride;
         cv.put("parent_id", 0);
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
         ride = ctx.getContentResolver().insert(uri, cv);
-        cv.put("_id", Integer.valueOf(ride.getLastPathSegment()));
+        Integer parent_id = Integer.valueOf(ride.getLastPathSegment());
         if (subrides != null) {
             for (ContentValues v : subrides) {
-                v.put("parent_id", cv.getAsInteger("_id"));
+                v.put("parent_id", parent_id);
                 ctx.getContentResolver().insert(uri, v);
             }
         }
@@ -236,7 +238,8 @@ public class Ride implements Parcelable {
         to(cursor.getInt(COLUMNS.TO_ID));
         dep(cursor.getLong(COLUMNS.DEPARTURE));
         arr(cursor.getLong(COLUMNS.ARRIVAL));
-        mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
+        price(cursor.getInt(COLUMNS.PRICE));
+        seats(cursor.getInt(COLUMNS.SEATS));
         String val = cursor.getString(COLUMNS.WHO);
         if (val != null && !val.equals(""))
             who(val);
@@ -245,11 +248,9 @@ public class Ride implements Parcelable {
             ref(val);
         try {
             details = new JSONObject(cursor.getString(COLUMNS.DETAILS));
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        price(cursor.getInt(COLUMNS.PRICE));
-        seats(cursor.getInt(COLUMNS.SEATS));
+            mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
+        } catch (Exception e) {}
+        if (cursor.getShort(COLUMNS.MARKED) == 1) marked();
         Cursor s = ctx.getContentResolver().query(
                 Uri.parse("content://" + ctx.getPackageName() + "/rides/"
                         + cursor.getInt(0) + "/rides/"), null, null, null, null);
@@ -258,6 +259,7 @@ public class Ride implements Parcelable {
             s.moveToPosition(i);
             subrides.add(new Ride(s, ctx).cv);
         }
+        s.close();
         this.ctx = ctx;
     }
 
@@ -265,7 +267,6 @@ public class Ride implements Parcelable {
         try {
             return getDetails().getString(key);
         } catch (JSONException e) {
-            e.printStackTrace();
             return null;
         }
     }
@@ -372,6 +373,10 @@ public class Ride implements Parcelable {
         if (cv.containsKey("ref"))
             return cv.getAsString("ref");
         else return null;
+    }
+
+    public boolean isMarked() {
+        return cv.containsKey("marked") && cv.getAsShort("marked") == 1;
     }
 
     public JSONObject getDetails() {

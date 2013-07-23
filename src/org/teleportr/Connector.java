@@ -49,20 +49,14 @@ public abstract class Connector {
         return this;
     }
 
-    protected String getAuth() {
+    protected String getAuth() throws Exception {
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(ctx);
-        String auth = prefs.getString("auth", null);
-        if (auth == null) {
-            try {
-                auth = authenticate();
-                prefs.edit().putString("auth", auth);
-                return auth;
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        if (!prefs.contains("auth")) {
+            Log.d(TAG, "authenticating");
+            prefs.edit().putString("auth", authenticate()).commit();
         }
-        return "";
+        return prefs.getString("auth", null);
     }
 
     public Place store(Place place) {

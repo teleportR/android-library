@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 9;
+    private static final int VERSION = 11;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -43,8 +43,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " mode text, operator text, who text, details text,"
                 + " marked integer, dirty integer, parent_id integer, ref text"
                 + "); ");
-        db.execSQL("CREATE UNIQUE INDEX rides_idx"
-                + " ON rides ('type', 'from_id', 'to_id', 'dep', 'ref', 'parent_id');");
+        db.execSQL("CREATE UNIQUE INDEX rides_idx ON rides"
+                + " ('type', 'ref', 'who', 'dep', from_id, to_id, parent_id);");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer,"
@@ -159,20 +159,20 @@ class DataBaseHelper extends SQLiteOpenHelper {
         insertRide.bindLong(14, parent);
         insertRide.bindLong(2, from);
         insertRide.bindLong(3, to);
+        bind(cv, 12, "marked", 0);
+        bind(cv, 13, "dirty", 0);
+        bind(cv, 15, "ref", "");
 
         if (parent == 0) {
             bind(cv, 1, "type", 0);
             bind(cv, 4, "dep", 0);
             bind(cv, 5, "arr", 0);
             bind(cv, 6, "mode", "");
-            bind(cv, 7, "operator", "");
             bind(cv, 8, "who", "");
+            bind(cv, 7, "operator", "");
             bind(cv, 9, "details", "");
             bind(cv, 10, "price", 0);
             bind(cv, 11, "seats", 0);
-            bind(cv, 12, "marked", 0);
-            bind(cv, 13, "dirty", 0);
-            bind(cv, 15, "ref", "");
         }
         long id = insertRide.executeInsert();
         Log.d(RidesProvider.TAG, "+ stored ride " + id
@@ -183,15 +183,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private void bind(ContentValues cv, int index, String key, String defVal) {
         if (cv.containsKey(key))
             insertRide.bindString(index, cv.getAsString(key));
-        else if (defVal != null)
-            insertRide.bindString(index, defVal);
+        else insertRide.bindString(index, defVal);
     }
 
     private void bind(ContentValues cv, int index, String key, long defVal) {
         if (cv.containsKey(key))
             insertRide.bindLong(index, cv.getAsLong(key));
-        else if (defVal != 0)
-            insertRide.bindLong(index, defVal);
+        else insertRide.bindLong(index, defVal);
     }
 
     static final String INSERT_MATCH = "INSERT OR IGNORE INTO route_matches"
@@ -336,7 +334,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
         return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
-                new String[] { from_id, to_id, (dep != null)? dep : "0" });
+                new String[] { from_id, to_id, (dep != null)? dep : "-1" });
     }
 
     static final String SELECT_SUB_RIDES = SELECT_RIDES
@@ -351,8 +349,14 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public Cursor queryMyRides() {
         return getReadableDatabase().rawQuery(
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
-                + " WHERE type = " + Ride.OFFER
-                + " AND marked = 1 AND parent_id = 0"
-                + " GROUP BY ref;", null);
+                + " WHERE marked=1 GROUP BY rides.ref;", null);
     }
+//    public Cursor queryMyRides() {
+//        return getReadableDatabase().rawQuery(SELECT_RIDES
+//                + " INNER JOIN (SELECT ref, max(rides._id) AS idm"
+//                    + " FROM rides WHERE parent_id=0 GROUP BY ref) AS refs"
+//                    + " ON rides.ref=refs.ref AND rides._id=refs.idm"
+//                + " WHERE rides.type = " + Ride.OFFER
+//                + " AND rides.marked = 1 AND rides.parent_id = 0;", null);
+//    }
 }
