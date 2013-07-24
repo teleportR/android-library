@@ -126,14 +126,15 @@ public class ConnectorService extends Service
 
         @Override
         public void run() {
+            int attempt = 0;
             Cursor c = getContentResolver()
                     .query(publish_jobs_uri, null, null, null, null);
-            if (c.getCount() != 0) {
-                c.moveToFirst();
-                Ride offer = new Ride(c, ConnectorService.this);
-                int attempt = getRetry(c.getLong(0));
-                log("publishing " + offer.getFrom().getName() + " #" + attempt);
-                try {
+            try {
+                if (c.getCount() != 0) {
+                    c.moveToFirst();
+                    Ride offer = new Ride(c, ConnectorService.this);
+                    attempt = getRetry(c.getLong(0));
+                    log("publishing " + offer.getFrom().getName() + " #" + attempt);
                     String ref = fahrgemeinschaft.publish(offer);
                     ContentValues values = new ContentValues();
                     values.put("dirty", 0); // in sync now
@@ -143,28 +144,30 @@ public class ConnectorService extends Service
                             values, null, null);
                     Toast.makeText(ConnectorService.this,
                             "upload success", Toast.LENGTH_LONG).show();
-                    log("+ published " + ref);
-                } catch (FileNotFoundException e) {
-                    Toast.makeText(ConnectorService.this, "auth failed!",
-                            Toast.LENGTH_LONG).show();
-                    Log.d(TAG, "auth failed");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    log("publish ERROR");
-                    if (attempt < 3) {
-                        worker.postDelayed(resolve, attempt * 2000);
-                        worker.postDelayed(search, attempt * 2000);
-                        incRetry(c.getLong(0));
-                        log("retry in " + attempt * 2 + "sec");
-                    } else {
-                        log("giving up publish after " + attempt + "retries");
-                    }
-                } finally {
-                    c.close();
+                    log("published " + ref);
+                } else log("nothing to publish");
+                fahrgemeinschaft.search(null, null, null, null);
+                fahrgemeinschaft.flush(1, 2, System.currentTimeMillis());
+                log("myrides updated");
+            } catch (FileNotFoundException e) {
+                Toast.makeText(ConnectorService.this, "auth failed!",
+                        Toast.LENGTH_LONG).show();
+                Log.d(TAG, "auth failed");
+            } catch (Exception e) {
+                e.printStackTrace();
+                log("publish ERROR");
+                if (attempt < 3) {
+                    worker.postDelayed(resolve, attempt * 2000);
+                    worker.postDelayed(search, attempt * 2000);
+                    incRetry(c.getLong(0));
+                    log("retry in " + attempt * 2 + "sec");
+                } else {
+                    log("giving up publish after " + attempt + "retries");
                 }
+            } finally {
+                c.close();
             }
         }
-
     };
 
     Runnable resolve = new Runnable() {
