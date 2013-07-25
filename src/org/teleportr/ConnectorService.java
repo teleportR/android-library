@@ -126,7 +126,8 @@ public class ConnectorService extends Service
 
         @Override
         public void run() {
-            int attempt = 0;
+            int attempt = getRetry(0);
+            if (attempt >= 3) retries.put(0l, 0);
             Cursor c = getContentResolver()
                     .query(publish_jobs_uri, null, null, null, null);
             try {
@@ -134,6 +135,7 @@ public class ConnectorService extends Service
                     c.moveToFirst();
                     Ride offer = new Ride(c, ConnectorService.this);
                     attempt = getRetry(c.getLong(0));
+                    if (attempt >= 3) retries.put(c.getLong(0), 0);
                     log("publishing " + offer.getFrom().getName() + " #" + attempt);
                     String ref = fahrgemeinschaft.publish(offer);
                     ContentValues values = new ContentValues();
@@ -154,15 +156,14 @@ public class ConnectorService extends Service
                         Toast.LENGTH_LONG).show();
                 Log.d(TAG, "auth failed");
             } catch (Exception e) {
-                e.printStackTrace();
-                log("publish ERROR");
                 if (attempt < 3) {
-                    worker.postDelayed(resolve, attempt * 2000);
-                    worker.postDelayed(search, attempt * 2000);
-                    incRetry(c.getLong(0));
-                    log("retry in " + attempt * 2 + "sec");
+                    long wait = (long) (Math.pow(2, attempt+1));
+                    worker.postDelayed(publish, wait * 1000);
+                    incRetry(c.getCount() > 0? c.getLong(0) : 0);
+                    log(e.getClass().getName()
+                            + ". Retry in " + wait + " sec..");
                 } else {
-                    log("giving up publish after " + attempt + "retries");
+                    log("Giving up after " + attempt + " retry attempts");
                 }
             } finally {
                 c.close();
@@ -220,6 +221,7 @@ public class ConnectorService extends Service
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
                 int attempt = getRetry(jobs.getLong(0));
+                if (attempt <= 3) retries.put(jobs.getLong(0), 0);
                 log("searching for "
                         + new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
                             .format(dep) + " #" + attempt);
@@ -229,17 +231,17 @@ public class ConnectorService extends Service
                     latest_dep = fahrgemeinschaft.search(from, to, dep, null);
                     onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
                     fahrgemeinschaft.flush(from.id, to.id, latest_dep);
-                    retry_attempt = 0;
                     worker.post(search);
                 } catch (Exception e) {
-                    log("search error: " + e);
                     if (attempt < 3) {
-                        worker.postDelayed(resolve, attempt * 2000);
-                        worker.postDelayed(search, attempt * 2000);
+                        long wait = (long) (Math.pow(2, attempt+1));
+                        worker.postDelayed(resolve, wait * 1000);
+                        worker.postDelayed(search, wait * 1000);
                         incRetry(jobs.getLong(0));
-                        log("retry in " + attempt * 2 + "sec");
+                        log(e.getClass().getName()
+                                + ". Retry in " + wait + " sec..");
                     } else {
-                        log("giving up after " + attempt + "retries");
+                        log("Giving up after " + attempt + "retry attempts");
                         onFail(query, e.getMessage());
                     }
                 } finally {
