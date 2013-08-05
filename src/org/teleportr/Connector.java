@@ -26,6 +26,8 @@ public abstract class Connector {
 
     public abstract String publish(Ride offer) throws Exception;
 
+    public abstract String delete(Ride offer) throws Exception;
+
     public void resolvePlace(Place place, Context ctx) throws Exception {}
 
     public String authenticate() throws Exception { return null; }

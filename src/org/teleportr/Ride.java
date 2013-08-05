@@ -183,6 +183,10 @@ public class Ride implements Parcelable {
         return ride;
     }
 
+    public void delete(Context ctx) {
+        cv.put("dirty", 2);
+        store(ctx);
+    }
 
 
     public static final class COLUMNS {

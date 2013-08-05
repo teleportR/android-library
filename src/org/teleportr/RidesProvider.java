@@ -39,6 +39,7 @@ public class RidesProvider extends ContentProvider {
         route.addURI(authority, "myrides", MYRIDES);
         route.addURI(authority, "places/#", PLACE);
         route.addURI(authority, "places", PLACES);
+        route.addURI(authority, "rides/*", RIDEF);
         route.addURI(authority, "rides/#", RIDE);
         route.addURI(authority, "rides", RIDES);
         jobs = Uri.parse("content://" + authority + "/jobs/search");
@@ -197,6 +198,13 @@ public class RidesProvider extends ContentProvider {
                     "_id=?", new String[] { uri.getLastPathSegment() });
             getContext().getContentResolver().notifyChange(jobs, null);
             getContext().getContentResolver().notifyChange(myrides, null);
+            break;
+        case RIDEF:
+            id =  db.getWritableDatabase().update("rides", values,
+                    "ref=?", new String[] { uri.getLastPathSegment() });
+            getContext().getContentResolver().notifyChange(jobs, null);
+            getContext().getContentResolver().notifyChange(myrides, null);
+            break;
         }
         return id;
     }
@@ -225,13 +233,14 @@ public class RidesProvider extends ContentProvider {
     private static final String OFFERS = "type=" + Ride.OFFER;
 
     private static final int RIDE = 0;
-    private static final int RIDES = 1;
-    private static final int PLACE = 2;
-    private static final int PLACES = 3;
-    private static final int SEARCH = 4;
-    private static final int RESOLVE = 5;
-    private static final int PUBLISH = 6;
-    private static final int MYRIDES = 7;
-    private static final int HISTORY = 8;
-    private static final int SUBRIDES = 9;
+    private static final int RIDEF = 1;
+    private static final int RIDES = 2;
+    private static final int PLACE = 3;
+    private static final int PLACES = 4;
+    private static final int SEARCH = 5;
+    private static final int RESOLVE = 6;
+    private static final int PUBLISH = 7;
+    private static final int MYRIDES = 8;
+    private static final int HISTORY = 9;
+    private static final int SUBRIDES = 10;
 }

@@ -300,7 +300,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryPublishJobs() {
         return getReadableDatabase().rawQuery(
-                SELECT_RIDES + " WHERE dirty = 1 AND parent_id = 0", null);
+                SELECT_RIDES + " WHERE dirty > 0 AND parent_id = 0", null);
     }
 
     static final String SELECT_RIDES_COLUMNS = "SELECT rides._id, rides.type,"
@@ -349,14 +349,6 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public Cursor queryMyRides() {
         return getReadableDatabase().rawQuery(
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
-                + " WHERE marked=1 GROUP BY rides.ref;", null);
+                + " WHERE marked=1 AND dirty <> -1 GROUP BY rides.ref;", null);
     }
-//    public Cursor queryMyRides() {
-//        return getReadableDatabase().rawQuery(SELECT_RIDES
-//                + " INNER JOIN (SELECT ref, max(rides._id) AS idm"
-//                    + " FROM rides WHERE parent_id=0 GROUP BY ref) AS refs"
-//                    + " ON rides.ref=refs.ref AND rides._id=refs.idm"
-//                + " WHERE rides.type = " + Ride.OFFER
-//                + " AND rides.marked = 1 AND rides.parent_id = 0;", null);
-//    }
 }

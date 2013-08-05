@@ -103,6 +103,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             public String publish(Ride offer) throws Exception {
                 return null;
             }
+            @Override
+            public String delete(Ride offer) throws Exception {
+                return null;
+            }
         }.setContext(ctx);
     }
 
@@ -308,6 +312,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
             public String publish(Ride offer) throws Exception {
                 return null;
             }
+            @Override
+            public String delete(Ride offer) throws Exception {
+                return null;
+            }
         }.setContext(ctx).search(home, bar, null, null); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
@@ -348,6 +356,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
             @Override
             public String publish(Ride offer) throws Exception {
+                return null;
+            }
+            @Override
+            public String delete(Ride offer) throws Exception {
                 return null;
             }
         }.setContext(ctx);
@@ -456,7 +468,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
             @Override
             public String publish(Ride offer) throws Exception {
-                // TODO Auto-generated method stub
+                return null;
+            }
+            @Override
+            public String delete(Ride offer) throws Exception {
                 return null;
             }
         }.setContext(ctx).search(home, bar, null, null); // execute

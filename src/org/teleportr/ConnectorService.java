@@ -6,6 +6,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 
+import org.teleportr.Ride.COLUMNS;
+
 import android.app.Service;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -109,7 +111,9 @@ public class ConnectorService extends Service
         public void run() {
             log("get auth");
             try {
-                Log.d(TAG, "auth failed");
+                PreferenceManager
+                    .getDefaultSharedPreferences(ConnectorService.this)
+                        .edit().remove("auth").commit();
                 fahrgemeinschaft.getAuth();
                 Toast.makeText(ConnectorService.this, "logged in :-)",
                         Toast.LENGTH_SHORT).show();
@@ -136,25 +140,46 @@ public class ConnectorService extends Service
                     Ride offer = new Ride(c, ConnectorService.this);
                     attempt = getRetry(c.getLong(0));
                     if (attempt >= 3) retries.put(c.getLong(0), 0);
-                    log("publishing " + offer.getFrom().getName() + " #" + attempt);
-                    String ref = fahrgemeinschaft.publish(offer);
                     ContentValues values = new ContentValues();
-                    values.put("dirty", 0); // in sync now
-                    values.put("ref", ref);
-                    getContentResolver().update(rides_uri.buildUpon()
-                            .appendPath(String.valueOf(c.getString(0))).build(),
-                            values, null, null);
+                    String ref = null;
+                    System.out.println(c.getInt(COLUMNS.DIRTY));
+                    if (c.getInt(COLUMNS.DIRTY) == 1) {
+                        log("publishing " + offer.getFrom().getName() + " #" + attempt);
+                        ref = fahrgemeinschaft.publish(offer);
+                        values.put("dirty", 0); // in sync now
+                        values.put("ref", ref);
+                        getContentResolver().update(rides_uri.buildUpon()
+                                .appendPath(String.valueOf(c.getString(0)))
+                                .build(), values, null, null);
+                        log("published " + ref);
+                    } else if (c.getInt(COLUMNS.DIRTY) == 2) {
+                        log("deleting " + offer.getFrom().getName() + " #" + attempt);
+                        if (fahrgemeinschaft.delete(offer) != null) {
+                            values.put("dirty", -1); // successfully deleted
+                            ref = c.getString(COLUMNS.REF);
+                            getContentResolver().update(rides_uri
+                                    .buildUpon().appendPath(ref)
+                                    .build(), values, null, null);
+                            log("deleted " + ref);
+                        }
+                    }
                     Toast.makeText(ConnectorService.this,
                             "upload success", Toast.LENGTH_LONG).show();
-                    log("published " + ref);
                 } else log("nothing to publish");
                 fahrgemeinschaft.search(null, null, null, null);
                 fahrgemeinschaft.flush(1, 2, System.currentTimeMillis());
                 log("myrides updated");
             } catch (FileNotFoundException e) {
+                log(e.getMessage());
+                e.printStackTrace();
                 Toast.makeText(ConnectorService.this, "auth failed!",
                         Toast.LENGTH_LONG).show();
                 Log.d(TAG, "auth failed");
+                if (attempt == 0) {
+                    worker.post(auth);
+                    worker.post(publish);
+                }
+                incRetry(c.getCount() > 0? c.getLong(0) : 0);
             } catch (Exception e) {
                 if (attempt < 3) {
                     long wait = (long) (Math.pow(2, attempt+1));
