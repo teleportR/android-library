@@ -332,6 +332,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertNotSame("details", "fu", rides.getString(COLUMNS.DETAILS)); // BEWARE!
         assertEquals("price", 42, rides.getLong(COLUMNS.PRICE));
         assertEquals("seats", 3, rides.getLong(COLUMNS.SEATS));
+        assertEquals(1, rides.getInt(COLUMNS.ACTIVE));
     }
 
     public void testSubRideMatches() throws Exception {
@@ -394,7 +395,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
                 .price(42).dep(1000).marked()
-                .ref("foo bar").store(ctx);
+                .ref("foo bar").deactivate()
+                .store(ctx);
         System.out.println(uri);
         Ride myRide = new Ride(uri, ctx); // query ride
         assertEquals(home.id, myRide.getFromId());
@@ -406,6 +408,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals(42, myRide.getPrice());
         assertEquals(1000, myRide.getDep());
         assertEquals(true, myRide.isMarked());
+        assertEquals(false, myRide.isActive());
 
         assertEquals("two subrides as objects", 2, myRide.getSubrides().size());
         assertEquals("Home", myRide.getSubrides().get(0).getFrom().getName());
@@ -415,12 +418,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         // edit and update Ride
         myRide.removeVias();
-        myRide.dep(200).from(home).via(cafe).via(döner).to(park).store(ctx);
+        myRide.dep(200).from(home).via(cafe).via(döner).to(park).activate()
+                .store(ctx);
 
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
         assertEquals(200, my_rides.getLong(COLUMNS.DEPARTURE));
+        assertEquals(true, myRide.isActive());
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());

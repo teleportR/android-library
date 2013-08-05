@@ -81,6 +81,8 @@ public abstract class Connector {
             ride.ref(UUID.randomUUID().toString());
         if (!ride.cv.containsKey("mode"))
             ride.mode(Mode.CAR);
+        if (!ride.cv.containsKey("active"))
+            ride.activate();
         if (ride.details != null)
             ride.cv.put("details", ride.details.toString());
         ridesBatch.add(ride.cv);

@@ -164,11 +164,22 @@ public class Ride implements Parcelable {
         return this;
     }
 
+    public Ride activate() {
+        cv.put("active", 1);
+        return this;
+    }
+
+    public Ride deactivate() {
+        cv.put("active", 0);
+        return this;
+    }
+
+
+
     public Uri store(Context ctx) {
-        if (!cv.containsKey("mode"))
-            mode(Mode.CAR);
-        if (details != null)
-            cv.put("details", details.toString());
+        if (!cv.containsKey("mode")) mode(Mode.CAR);
+        if (!cv.containsKey("active")) activate();
+        if (details != null) cv.put("details", details.toString());
         Uri ride;
         cv.put("parent_id", 0);
         Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
@@ -209,8 +220,9 @@ public class Ride implements Parcelable {
         public static final short SEATS = 16;
         public static final short MARKED = 17;
         public static final short DIRTY = 18;
-        public static final short PARENT_ID = 19;
-        public static final short REF = 20;
+        public static final short ACTIVE = 19;
+        public static final short PARENT_ID = 20;
+        public static final short REF = 21;
     }
 
 
@@ -244,6 +256,8 @@ public class Ride implements Parcelable {
         arr(cursor.getLong(COLUMNS.ARRIVAL));
         price(cursor.getInt(COLUMNS.PRICE));
         seats(cursor.getInt(COLUMNS.SEATS));
+        if (cursor.getShort(COLUMNS.MARKED) == 1) marked();
+        if (cursor.getShort(COLUMNS.ACTIVE) == 1) activate();
         String val = cursor.getString(COLUMNS.WHO);
         if (val != null && !val.equals(""))
             who(val);
@@ -254,7 +268,6 @@ public class Ride implements Parcelable {
             details = new JSONObject(cursor.getString(COLUMNS.DETAILS));
             mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
         } catch (Exception e) {}
-        if (cursor.getShort(COLUMNS.MARKED) == 1) marked();
         Cursor s = ctx.getContentResolver().query(
                 Uri.parse("content://" + ctx.getPackageName() + "/rides/"
                         + cursor.getInt(0) + "/rides/"), null, null, null, null);
@@ -381,6 +394,10 @@ public class Ride implements Parcelable {
 
     public boolean isMarked() {
         return cv.containsKey("marked") && cv.getAsShort("marked") == 1;
+    }
+
+    public boolean isActive() {
+        return cv.containsKey("active") && cv.getAsShort("active") == 1;
     }
 
     public JSONObject getDetails() {

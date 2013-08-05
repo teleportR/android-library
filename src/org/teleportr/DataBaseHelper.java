@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 12;
+    private static final int VERSION = 13;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -41,8 +41,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " 'dep' integer, 'arr' integer,"
                 + " distance integer, price integer, seats integer,"
                 + " mode text, operator text, who text, details text,"
-                + " marked integer, dirty integer, parent_id integer, ref text"
-                + "); ");
+                + " marked integer, dirty integer, active integer,"
+                + " parent_id integer, ref text);");
         db.execSQL("CREATE UNIQUE INDEX rides_idx ON rides"
                 + " ('type', 'ref', 'who', 'dep', from_id, to_id, parent_id);");
         db.execSQL("create table jobs ("
@@ -147,8 +147,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides"
             + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
-            + "  'who', 'details', 'price', 'seats', 'marked', 'dirty', 'parent_id', 'ref')"
-            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+            + "'who', 'details', 'price', 'seats', 'marked', 'dirty', 'active',"
+            + "'parent_id', 'ref')"
+            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     public long insertRide(long parent, int from, int to, ContentValues cv) {
 
@@ -156,12 +157,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
             Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
             return 0;
         }
-        insertRide.bindLong(14, parent);
+        insertRide.bindLong(15, parent);
         insertRide.bindLong(2, from);
         insertRide.bindLong(3, to);
         bind(cv, 12, "marked", 0);
         bind(cv, 13, "dirty", 0);
-        bind(cv, 15, "ref", "");
+        bind(cv, 14, "active", 0);
+        bind(cv, 16, "ref", "");
 
         if (parent == 0) {
             bind(cv, 1, "type", 0);
@@ -309,7 +311,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides.dep, rides.arr,"
                 + " rides.mode, rides.operator, rides.who, rides.details,"
                 + " rides.distance, rides.price, rides.seats, rides.marked,"
-                + " rides.dirty, rides.parent_id, rides.ref";
+                + " rides.dirty, rides.active, rides.parent_id, rides.ref";
 
     static final String JOIN = " FROM 'rides'"
             + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
