@@ -27,6 +27,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     private Place park;
     private Context ctx;
     private Connector dummyConnector;
+    private Date today;
 
     public CrashTest() {
         super(RidesProvider.class, "org.teleportr.test");
@@ -46,7 +47,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-
+        today = new Date();
         getProvider().setAuthority("org.teleportr.test");
 
         // dummy places
@@ -89,10 +90,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector = new MockConnector(ctx) { // dummy search results
             @Override
             public void mockResults() {
-                store(new Ride().type(Ride.OFFER).who("anyone").dep(1000)
-                        .from(store(new Place().name("Home")))
+                store(new Ride().type(Ride.OFFER).who("anyone").ref("a")
+                        .from(store(new Place().name("Home"))).dep(1000)
                         .to(store(new Place().name("Slackline"))));
-                store(new Ride().type(Ride.OFFER).who("someone")
+                store(new Ride().type(Ride.OFFER).who("someone").ref("b")
                         .from(store(new Place().address("Hipperstr. 42")))
                         .to(store(new Place().address("Wiesn"))));
             }
@@ -127,7 +128,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSortedAsFrom() throws Exception {
-        dummyConnector.search(cafe, bar, null, null); // execute
+        dummyConnector.search(cafe, bar, today, null); // execute
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
         // should be ordered by how often a place was used as 'from' in a search
@@ -273,7 +274,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testRideMatches() throws Exception {
-        dummyConnector.search(home, bar, null, null); // execute connector
+        dummyConnector.search(home, bar, today, null); // execute connector
         new MockConnector(ctx) {
             @Override
             public void mockResults() {
@@ -294,7 +295,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
             }
-        }.search(home, bar, null, null); // execute  connector
+        }.search(home, bar, today, null); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
@@ -314,7 +315,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSubRideMatches() throws Exception {
-        dummyConnector.search(cafe, bar, null, null); // execute connector
+        dummyConnector.search(cafe, bar, today, null); // execute connector
         Connector connector = new MockConnector(ctx) {
             @Override
             public void mockResults() {
@@ -331,8 +332,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .dep(new Date(1000)));
             }
         };
-        connector.search(park, bar, null, null); // execute connector
-        connector.search(park, bar, null, null); // refresh results
+        connector.search(park, bar, today, null); // execute connector
+        connector.search(park, bar, today, null); // refresh results
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + bar.id);
@@ -396,7 +397,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());
-        dummyConnector.search(home, park, null, null); // execute connector
+        dummyConnector.search(home, park, today, null); // execute connector
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("not show up in search", 2, search_results.getCount());
@@ -435,7 +436,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
             }
-        }.search(home, bar, null, null); // execute
+        }.search(home, bar, today, null); // execute
         String uri = "content://org.teleportr.test/rides/";
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be three ride matches", 3, rides.getCount());

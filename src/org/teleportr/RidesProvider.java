@@ -111,6 +111,13 @@ public class RidesProvider extends ContentProvider {
                         }
                     }
                 }
+                System.out.println("latest departure: " + latest_dep);
+                ContentValues done = new ContentValues();
+                done.put("from_id", s_from);
+                done.put("to_id", s_to);
+                done.put("latest_dep", latest_dep);
+                done.put("last_refresh", refresh_time);
+                insert(jobs, done);
             }
             db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {

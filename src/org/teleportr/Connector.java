@@ -103,12 +103,6 @@ public abstract class Connector {
         placesBatch.clear();
         ridesBatch.clear();
         placeIdx.clear();
-        ContentValues done = new ContentValues();
-        done.put("from_id", from);
-        done.put("to_id", to);
-        done.put("latest_dep", latest_dep);
-        done.put("last_refresh", System.currentTimeMillis());
-        ctx.getContentResolver().insert(search_jobs_uri, done);
     }
 
     public void set(String key, String value) {

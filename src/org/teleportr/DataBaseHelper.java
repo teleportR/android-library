@@ -151,7 +151,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + "'parent_id', 'ref')"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
-    public long insertRide(long parent, int from, int to, ContentValues cv) {
+    public int insertRide(int parent, int from, int to, ContentValues cv) {
 
         if (from == to) {
             Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
@@ -179,7 +179,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
         long id = insertRide.executeInsert();
         Log.d(RidesProvider.TAG, "+ stored ride " + id
                 + ": parent=" + parent + "   from=" + from + " to=" + to);
-        return id;
+        return (int) id;
     }
 
     private void bind(ContentValues cv, int index, String key, String defVal) {
