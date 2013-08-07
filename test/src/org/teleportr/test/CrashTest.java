@@ -86,28 +86,17 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 .dep(new Date(7000)).arr(new Date(9000))
                 .store(ctx);
 
-        dummyConnector = new Connector() { // dummy search results
+        dummyConnector = new MockConnector(ctx) { // dummy search results
             @Override
-            public long search(Place from, Place to, Date dep, Date arr) {
+            public void mockResults() {
                 store(new Ride().type(Ride.OFFER).who("anyone").dep(1000)
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Slackline"))));
                 store(new Ride().type(Ride.OFFER).who("someone")
                         .from(store(new Place().address("Hipperstr. 42")))
                         .to(store(new Place().address("Wiesn"))));
-                flush(from.id, to.id, 0);
-                return 0;
             }
-
-            @Override
-            public String publish(Ride offer) throws Exception {
-                return null;
-            }
-            @Override
-            public String delete(Ride offer) throws Exception {
-                return null;
-            }
-        }.setContext(ctx);
+        };
     }
 
     // helper
@@ -285,9 +274,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
     public void testRideMatches() throws Exception {
         dummyConnector.search(home, bar, null, null); // execute connector
-        new Connector() {
+        new MockConnector(ctx) {
             @Override
-            public long search(Place from, Place to, Date dep, Date arr) {
+            public void mockResults() {
                 store(new Ride().from(1).to(2).dep(500));
                 store(new Ride() // dummy search results
                     .type(Ride.OFFER).who("Sepp")
@@ -304,19 +293,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
-                flush(home.id, bar.id, 0);
-                return 0;
             }
-
-            @Override
-            public String publish(Ride offer) throws Exception {
-                return null;
-            }
-            @Override
-            public String delete(Ride offer) throws Exception {
-                return null;
-            }
-        }.setContext(ctx).search(home, bar, null, null); // execute  connector
+        }.search(home, bar, null, null); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
@@ -337,9 +315,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
     public void testSubRideMatches() throws Exception {
         dummyConnector.search(cafe, bar, null, null); // execute connector
-        Connector connector = new Connector() {
+        Connector connector = new MockConnector(ctx) {
             @Override
-            public long search(Place from, Place to, Date dep, Date arr) {
+            public void mockResults() {
                 store(new Ride().type(Ride.OFFER).ref("a").who("S7")
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
@@ -351,19 +329,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
                         .dep(new Date(1000)));
-                flush(park.id, bar.id, 0);
-                return 0;
             }
-
-            @Override
-            public String publish(Ride offer) throws Exception {
-                return null;
-            }
-            @Override
-            public String delete(Ride offer) throws Exception {
-                return null;
-            }
-        }.setContext(ctx);
+        };
         connector.search(park, bar, null, null); // execute connector
         connector.search(park, bar, null, null); // refresh results
         
@@ -455,9 +422,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testClearCache() throws Exception {
-        new Connector() {
+        new MockConnector(ctx) {
             @Override
-            public long search(Place from, Place to, Date dep, Date arr) {
+            public void mockResults() {
                 store(new Ride().type(Ride.OFFER).ref("a").who("S7")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(1000));
@@ -467,19 +434,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride().type(Ride.OFFER).ref("b").who("Sepp")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
-                flush(home.id, bar.id, 0);
-                return 0;
             }
-
-            @Override
-            public String publish(Ride offer) throws Exception {
-                return null;
-            }
-            @Override
-            public String delete(Ride offer) throws Exception {
-                return null;
-            }
-        }.setContext(ctx).search(home, bar, null, null); // execute
+        }.search(home, bar, null, null); // execute
         String uri = "content://org.teleportr.test/rides/";
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be three ride matches", 3, rides.getCount());
