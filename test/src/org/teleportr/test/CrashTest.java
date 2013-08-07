@@ -452,4 +452,22 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         rides = query("content://org.teleportr.test/jobs/search");
 //        assertEquals("there be no more search jobs to do", 0, rides.getCount());
     }
+
+    public void testCleanUp() throws Exception { // rides deleted on the server
+        dummyConnector.search(home, park, today, null);
+        String uri = "content://org.teleportr.test/rides/";
+        Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("there be two ride matches", 2, rides.getCount());
+
+        new MockConnector(ctx) { // one ride has been deleted on the server
+            @Override
+            public void mockResults() { // the other ride is found again
+                store(new Ride().type(Ride.OFFER).who("anyone").ref("a")
+                        .from(store(new Place().name("Home"))).dep(1000)
+                        .to(store(new Place().name("Slackline"))));
+            }
+        }.search(home, park, today, null);
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("ride is locally deleted too", 1, rides.getCount());
+    }
 }
