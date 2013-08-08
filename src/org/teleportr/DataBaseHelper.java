@@ -44,7 +44,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " marked integer, dirty integer, active integer,"
                 + " parent_id integer, ref text);");
         db.execSQL("CREATE UNIQUE INDEX rides_idx ON rides"
-                + " ('type', 'ref', 'who', 'dep', from_id, to_id, parent_id);");
+                + " ('type', 'ref', 'dep', from_id, to_id, seats, parent_id);");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer,"
@@ -324,15 +324,14 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " WHERE rides._id=?", new String[] { id });
     }
 
-    static final String SELECT_RIDE_MATCHES = SELECT_RIDES
+    static final String SELECT_RIDE_MATCHES =
+SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
             + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
-                + " AND match.sub_from_id=?"
-                + " AND match.sub_to_id =?"
-                + " AND rides.dep > ?"
-                + " AND rides.who <> ''"
-            + " ORDER BY rides.dep, rides._id;";
+                + " AND match.sub_from_id=? AND match.sub_to_id =?"
+                + " AND rides.dep > ? AND rides.who <> ''"
+            + " GROUP BY rides.ref ORDER BY rides.dep, rides._id;";
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
         return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
@@ -340,8 +339,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     static final String SELECT_SUB_RIDES = SELECT_RIDES
-            + " WHERE parent_id=?"
-            + " ORDER BY rides.dep;";
+            + " WHERE parent_id=? ORDER BY rides.dep;";
     
     public Cursor querySubRides(String parent_id) {
         return getReadableDatabase().rawQuery(SELECT_SUB_RIDES,

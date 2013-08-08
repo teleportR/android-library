@@ -364,7 +364,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 .from(home).via(bar).to(park)
                 .price(42).dep(1000).marked()
                 .ref("foo bar").deactivate()
-                .store(ctx);
+                .who("someone").store(ctx);
         System.out.println(uri);
         Ride myRide = new Ride(uri, ctx); // query ride
         assertEquals(home.id, myRide.getFromId());
@@ -400,7 +400,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         dummyConnector.search(home, park, today, null); // execute connector
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
-        assertEquals("not show up in search", 2, search_results.getCount());
+        assertEquals("in search only once", 3, search_results.getCount());
     }
 
     public void testRideDetails() throws JSONException {
@@ -432,7 +432,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride().type(Ride.OFFER).ref("b").who("M10")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(2000));
-                store(new Ride().type(Ride.OFFER).ref("b").who("Sepp")
+                store(new Ride().type(Ride.OFFER).ref("c").who("Sepp")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
             }

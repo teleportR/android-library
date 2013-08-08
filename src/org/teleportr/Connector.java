@@ -35,7 +35,6 @@ public abstract class Connector {
     private HashMap<String, Integer> placeIdx;
     private ArrayList<ContentValues> placesBatch;
     private ArrayList<ContentValues> ridesBatch;
-    private Uri search_jobs_uri;
     Context ctx;
 
     public Connector() {
@@ -45,8 +44,6 @@ public abstract class Connector {
     }
 
     public Connector setContext(Context ctx) {
-        String uri = "content://" + ctx.getPackageName();
-        search_jobs_uri = Uri.parse(uri + "/jobs/search");
         this.ctx = ctx;
         return this;
     }
