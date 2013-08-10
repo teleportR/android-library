@@ -390,6 +390,12 @@ public class Ride implements Parcelable {
         else return 0;
     }
 
+    public int getId() {
+        if (cv.containsKey("_id"))
+            return cv.getAsInteger("_id");
+        else return 0;
+    }
+
     public String getRef() {
         if (cv.containsKey("ref"))
             return cv.getAsString("ref");
