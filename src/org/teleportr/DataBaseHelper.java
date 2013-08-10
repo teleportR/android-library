@@ -349,6 +349,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public Cursor queryMyRides() {
         return getReadableDatabase().rawQuery(
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
-                + " WHERE marked=1 AND dirty <> -1 GROUP BY rides.ref;", null);
+                + " WHERE marked=1 AND dirty <> -1"
+                + " GROUP BY rides.ref"
+                + " ORDER BY dep DESC;", null);
     }
 }
