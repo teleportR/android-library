@@ -91,13 +91,13 @@ public class RidesProvider extends ContentProvider {
                 }
                 break;
             case RIDES:
+                int parent = 0;
                 int from;
                 int to;
                 int s_from = Integer.parseInt(uri.getQueryParameter("from_id"));
                 int s_to = Integer.parseInt(uri.getQueryParameter("to_id"));
                 ArrayList<Integer> placeIdx = new ArrayList<Integer>();
                 long refresh_time = System.currentTimeMillis();
-                int parent = 0;
                 long latest_dep = 0;
                 for (int i = 0; i < values.length; i++) {
                     if (parent == 0 && !values[i].containsKey("ref")) {
@@ -117,10 +117,12 @@ public class RidesProvider extends ContentProvider {
                         }
                     }
                 }
-                System.out.println("latest departure: " + latest_dep);
                 ContentValues done = new ContentValues();
                 done.put("from_id", s_from);
                 done.put("to_id", s_to);
+                if (latest_dep == 0)
+                    latest_dep = Long.parseLong(
+                            uri.getQueryParameter("dep")) + 24*3600000;
                 done.put("latest_dep", latest_dep);
                 done.put("last_refresh", refresh_time);
                 insert(jobs, done);

@@ -19,7 +19,7 @@ public abstract class MockConnector extends Connector {
     @Override
     public long search(Place from, Place to, Date d, Date a) throws Exception {
         mockResults();
-        flush(from.id, to.id, d.getTime());
+        flush(from.id, to.id);
         return 0;
     }
 

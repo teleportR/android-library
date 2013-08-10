@@ -130,7 +130,7 @@ public class ConnectorService extends Service
 
         @Override
         public void run() {
-            int attempt = getRetry(0);
+            int attempt = getRetryAttempt(0);
             if (attempt >= 3) retries.put(0l, 0);
             Cursor c = getContentResolver()
                     .query(publish_jobs_uri, null, null, null, null);
@@ -138,8 +138,7 @@ public class ConnectorService extends Service
                 if (c.getCount() != 0) {
                     c.moveToFirst();
                     Ride offer = new Ride(c, ConnectorService.this);
-                    attempt = getRetry(c.getLong(0));
-                    if (attempt >= 3) retries.put(c.getLong(0), 0);
+                    attempt = getRetryAttempt(c.getLong(0));
                     ContentValues values = new ContentValues();
                     String ref = null;
                     System.out.println(c.getInt(COLUMNS.DIRTY));
@@ -167,11 +166,10 @@ public class ConnectorService extends Service
                             "upload success", Toast.LENGTH_LONG).show();
                 } else log("nothing to publish");
                 fahrgemeinschaft.search(null, null, null, null);
-                fahrgemeinschaft.flush(1, 2, System.currentTimeMillis());
+                fahrgemeinschaft.flush(-1, -2, 0);
                 log("myrides updated");
             } catch (FileNotFoundException e) {
                 log(e.getMessage());
-                e.printStackTrace();
                 Toast.makeText(ConnectorService.this, "auth failed!",
                         Toast.LENGTH_LONG).show();
                 Log.d(TAG, "auth failed");
@@ -179,12 +177,12 @@ public class ConnectorService extends Service
                     worker.post(auth);
                     worker.post(publish);
                 }
-                incRetry(c.getCount() > 0? c.getLong(0) : 0);
             } catch (Exception e) {
+                log(e.getMessage());
+                e.printStackTrace();
                 if (attempt < 3) {
                     long wait = (long) (Math.pow(2, attempt+1));
                     worker.postDelayed(publish, wait * 1000);
-                    incRetry(c.getCount() > 0? c.getLong(0) : 0);
                     log(e.getClass().getName()
                             + ". Retry in " + wait + " sec..");
                 } else {
@@ -222,7 +220,7 @@ public class ConnectorService extends Service
         }
     };
 
-    int retry_attempt = 0;
+
 
     Runnable search = new Runnable() {
 
@@ -242,27 +240,25 @@ public class ConnectorService extends Service
                 long latest_dep = jobs.getLong(4);
                 if (latest_dep == 0 // first search - no latest_dep yet
                         || latest_dep >= jobs.getLong(3)) // or refresh
-                    dep = new Date(jobs.getLong(2)); // then take search dep
+                    dep = new Date(jobs.getLong(2) - 24*3600000); // search dep
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
-                int attempt = getRetry(jobs.getLong(0));
-                if (attempt <= 3) retries.put(jobs.getLong(0), 0);
+                int attempt = getRetryAttempt(dep.getTime());
+                Ride query = new Ride().dep(dep).from(from).to(to);
                 log("searching for "
                         + new SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
                             .format(dep) + " #" + attempt);
-                Ride query = new Ride().dep(dep).from(from).to(to);
                 onSearch(query);
                 try {
                     latest_dep = fahrgemeinschaft.search(from, to, dep, null);
                     onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
-                    fahrgemeinschaft.flush(from.id, to.id, latest_dep);
+                    fahrgemeinschaft.flush(from.id, to.id, dep.getTime());
                     worker.post(search);
                 } catch (Exception e) {
                     if (attempt < 3) {
                         long wait = (long) (Math.pow(2, attempt+1));
                         worker.postDelayed(resolve, wait * 1000);
                         worker.postDelayed(search, wait * 1000);
-                        incRetry(jobs.getLong(0));
                         log(e.getClass().getName()
                                 + ". Retry in " + wait + " sec..");
                     } else {
@@ -278,14 +274,10 @@ public class ConnectorService extends Service
         }
     };
 
-    public Integer getRetry(long id) {
-        if (!retries.containsKey(id))
-            retries.put(id, 0);
+    public Integer getRetryAttempt(long id) {
+        if (!retries.containsKey(id) || retries.get(id) > 2) retries.put(id, 1);
+        else retries.put(id, retries.get(id) + 1);
         return retries.get(id);
-    }
-
-    public void incRetry(long id) {
-        retries.put(id, getRetry(id) + 1);
     }
 
     private Runnable notify;

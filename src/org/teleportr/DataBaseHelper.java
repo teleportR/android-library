@@ -325,7 +325,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     static final String SELECT_RIDE_MATCHES =
-SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
+                SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
             + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
