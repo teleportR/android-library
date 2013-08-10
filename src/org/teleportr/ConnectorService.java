@@ -141,7 +141,6 @@ public class ConnectorService extends Service
                     attempt = getRetryAttempt(c.getLong(0));
                     ContentValues values = new ContentValues();
                     String ref = null;
-                    System.out.println(c.getInt(COLUMNS.DIRTY));
                     if (c.getInt(COLUMNS.DIRTY) == 1) {
                         log("publishing " + offer.getFrom().getName() + " #" + attempt);
                         ref = fahrgemeinschaft.publish(offer);

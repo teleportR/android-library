@@ -235,6 +235,10 @@ public class Ride implements Parcelable {
         this.ctx = ctx;
     }
 
+    public Ride(int id, Context ctx) {
+        this(Uri.parse("content://"+ctx.getPackageName()+"/rides/" + id), ctx);
+    }
+
     public Ride(Uri uri, Context ctx) {
         this(ctx);
         Cursor c = ctx.getContentResolver().query(uri, null, null, null, null);
