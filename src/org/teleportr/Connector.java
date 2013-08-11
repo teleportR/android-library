@@ -8,11 +8,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.teleportr.Ride.Mode;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.preference.PreferenceManager;
@@ -53,7 +55,21 @@ public abstract class Connector {
                 .getDefaultSharedPreferences(ctx);
         if (!prefs.contains("auth")) {
             Log.d(TAG, "authenticating");
-            prefs.edit().putString("auth", authenticate()).commit();
+            try {
+                String auth = authenticate();
+                if (auth == null) {
+                    ctx.sendBroadcast(new Intent("auth_request"));
+                } else {
+                    prefs.edit().putString("auth", auth).commit();
+                }
+            } catch (JSONException e) {
+                Log.e(TAG, "auth error " + e.getMessage());
+            } finally {
+                if (!prefs.getBoolean("remember_password", false)) {
+                    System.out.println("clear password");
+                    prefs.edit().remove("password").commit();
+                }
+            }
         }
         return prefs.getString("auth", null);
     }

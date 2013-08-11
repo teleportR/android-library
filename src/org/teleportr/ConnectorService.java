@@ -89,7 +89,7 @@ public class ConnectorService extends Service
         if (action.equals(RESOLVE)) {
             worker.postAtFrontOfQueue(resolve);
         } else if (action.equals(PUBLISH)) {
-                worker.postAtFrontOfQueue(publish);
+            worker.postAtFrontOfQueue(publish);
         } else if (action.equals(SEARCH)) {
             worker.postAtFrontOfQueue(search);
         }
@@ -98,7 +98,9 @@ public class ConnectorService extends Service
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-        if (key.equals("EMail") || key.equals("password")) {
+        if (key.equals("EMail") || (key.equals("password")
+                && prefs.getString(key, null) != null)) {
+            log("login changed");
             worker.postAtFrontOfQueue(auth);
         } else if (key.equals("verbose")) {
             verbose = prefs.getBoolean("verbose", false);
@@ -111,16 +113,14 @@ public class ConnectorService extends Service
         public void run() {
             log("get auth");
             try {
-                PreferenceManager
-                    .getDefaultSharedPreferences(ConnectorService.this)
-                        .edit().remove("auth").commit();
-                fahrgemeinschaft.getAuth();
-                Toast.makeText(ConnectorService.this, "logged in :-)",
-                        Toast.LENGTH_SHORT).show();
-                worker.post(publish);
+                if (fahrgemeinschaft.getAuth() != null) {
+                    Toast.makeText(ConnectorService.this, "logged in :-)",
+                            Toast.LENGTH_SHORT).show();
+                    worker.post(publish);
+                }
             } catch (Exception e) {
-                Toast.makeText(ConnectorService.this, "auth failed!",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(ConnectorService.this, "auth failed! "
+                        + e.getMessage(), Toast.LENGTH_SHORT).show();
                 Log.d(TAG, "auth failed");
             }
         }
@@ -130,8 +130,7 @@ public class ConnectorService extends Service
 
         @Override
         public void run() {
-            int attempt = getRetryAttempt(0);
-            if (attempt >= 3) retries.put(0l, 0);
+            int attempt = 0;
             Cursor c = getContentResolver()
                     .query(publish_jobs_uri, null, null, null, null);
             try {
@@ -164,17 +163,18 @@ public class ConnectorService extends Service
                     Toast.makeText(ConnectorService.this,
                             "upload success", Toast.LENGTH_LONG).show();
                 } else log("nothing to publish");
+                attempt = getRetryAttempt(-1);
+                log("load myrides #" + attempt);
                 fahrgemeinschaft.search(null, null, new Date(), null);
                 fahrgemeinschaft.flush(-1, -2, 0);
                 log("myrides updated");
             } catch (FileNotFoundException e) {
                 log(e.getMessage());
-                Toast.makeText(ConnectorService.this, "auth failed!",
+                Toast.makeText(ConnectorService.this, "failed!",
                         Toast.LENGTH_LONG).show();
                 Log.d(TAG, "auth failed");
-                if (attempt == 0) {
+                if (attempt == 1) {
                     worker.post(auth);
-                    worker.post(publish);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -207,7 +207,6 @@ public class ConnectorService extends Service
                 try {
                     gplaces.resolvePlace(p, ConnectorService.this);
                     log("resolved " + p.getName() + ": " + p.getLat());
-                    worker.post(publish);
                 } catch (Exception e) {
                     log("resolve error: " + e);
                 } finally {
@@ -257,7 +256,7 @@ public class ConnectorService extends Service
                     if (attempt < 3) {
                         long wait = (long) (Math.pow(2, attempt+1));
                         worker.postDelayed(resolve, wait * 1000);
-                        worker.postDelayed(search, wait * 1000);
+                        worker.postDelayed(search, wait * 1001);
                         log(e.getClass().getName()
                                 + ". Retry in " + wait + " sec..");
                     } else {
