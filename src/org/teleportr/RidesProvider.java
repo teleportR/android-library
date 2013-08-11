@@ -98,7 +98,6 @@ public class RidesProvider extends ContentProvider {
                 int s_to = Integer.parseInt(uri.getQueryParameter("to_id"));
                 ArrayList<Integer> placeIdx = new ArrayList<Integer>();
                 long refresh = System.currentTimeMillis();
-                long latest_dep = 0;
                 int upserted_cnt = 0;
                 for (int i = 0; i < values.length; i++) {
                     if (parent == 0 && !values[i].containsKey("ref")) {
@@ -106,10 +105,6 @@ public class RidesProvider extends ContentProvider {
                     } else {
                         from = placeIdx.get(values[i].getAsInteger("from_id"));
                         to = placeIdx.get(values[i].getAsInteger("to_id"));
-                        if (values[i].containsKey("dep")) {
-                            long dep = values[i].getAsLong("dep");
-                            if (dep > latest_dep) latest_dep = dep;
-                        }
                         if (values[i].containsKey("ref")) {
                             parent = db.insertRide(0, from, to, values[i]);
                             db.insertMatch(from, to, s_from, s_to);
@@ -124,13 +119,10 @@ public class RidesProvider extends ContentProvider {
                         String.valueOf(s_from), String.valueOf(s_to),
                         uri.getQueryParameter("dep"), String.valueOf(refresh));
                 Log.d(TAG, "deleted " + deleted_cnt + " rides");
-                if (latest_dep == 0)
-                    latest_dep = Long.parseLong(
-                            uri.getQueryParameter("dep")) + 24*3600000;
                 ContentValues done = new ContentValues();
                 done.put("from_id", s_from);
                 done.put("to_id", s_to);
-                done.put("latest_dep", latest_dep);
+                done.put("latest_dep", uri.getQueryParameter("dep"));
                 done.put("last_refresh", refresh);
                 insert(jobs, done);
             }

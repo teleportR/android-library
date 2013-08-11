@@ -358,7 +358,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE match.sub_from_id=? AND match.sub_to_id =? "
-                + "AND rides.type=" + Ride.OFFER + " AND dep > ?"
+                + "AND rides.type=" + Ride.OFFER + " AND dep >= ?"
                 + " AND rides.refresh < ?);";
 
     public int deleteOutdated(String from, String to, String dep, String time) {

@@ -164,7 +164,7 @@ public class ConnectorService extends Service
                     Toast.makeText(ConnectorService.this,
                             "upload success", Toast.LENGTH_LONG).show();
                 } else log("nothing to publish");
-                fahrgemeinschaft.search(null, null, null, null);
+                fahrgemeinschaft.search(null, null, new Date(), null);
                 fahrgemeinschaft.flush(-1, -2, 0);
                 log("myrides updated");
             } catch (FileNotFoundException e) {
@@ -177,8 +177,8 @@ public class ConnectorService extends Service
                     worker.post(publish);
                 }
             } catch (Exception e) {
-                log(e.getMessage());
                 e.printStackTrace();
+                log(e.getMessage());
                 if (attempt < 3) {
                     long wait = (long) (Math.pow(2, attempt+1));
                     worker.postDelayed(publish, wait * 1000);
@@ -239,7 +239,7 @@ public class ConnectorService extends Service
                 long latest_dep = jobs.getLong(4);
                 if (latest_dep == 0 // first search - no latest_dep yet
                         || latest_dep >= jobs.getLong(3)) // or refresh
-                    dep = new Date(jobs.getLong(2) - 24*3600000); // search dep
+                    dep = new Date(jobs.getLong(2)); // search dep
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
                 int attempt = getRetryAttempt(dep.getTime());
@@ -251,7 +251,7 @@ public class ConnectorService extends Service
                 try {
                     latest_dep = fahrgemeinschaft.search(from, to, dep, null);
                     onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
-                    fahrgemeinschaft.flush(from.id, to.id, dep.getTime());
+                    fahrgemeinschaft.flush(from.id, to.id, latest_dep);
                     worker.post(search);
                 } catch (Exception e) {
                     if (attempt < 3) {
