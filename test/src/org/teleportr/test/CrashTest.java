@@ -47,7 +47,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        today = new Date();
+        today = new Date(100);
         getProvider().setAuthority("org.teleportr.test");
 
         // dummy places
@@ -274,7 +274,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testRideMatches() throws Exception {
-        dummyConnector.search(home, bar, today, null); // execute connector
         new MockConnector(ctx) {
             @Override
             public void mockResults() {
@@ -300,7 +299,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
                             + "&dep=999");
-        assertEquals("there be four ride matches", 4, rides.getCount());
+        assertEquals("there be three ride matches", 3, rides.getCount());
         rides.moveToLast(); // sorted by departure date
         assertEquals("Home", rides.getString(COLUMNS.FROM_NAME));
         assertEquals("Hipperstr. 42", rides.getString(COLUMNS.FROM_ADDRESS));
@@ -360,6 +359,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testRideEdit() throws Exception {
+        dummyConnector.search(home, park, today, null); // execute connector
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
                 .price(42).dep(1000).marked()
@@ -397,7 +397,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());
-        dummyConnector.search(home, park, today, null); // execute connector
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("in search only once", 3, search_results.getCount());
@@ -461,13 +460,30 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         new MockConnector(ctx) { // one ride has been deleted on the server
             @Override
-            public void mockResults() { // the other ride is found again
-                store(new Ride().type(Ride.OFFER).who("anyone").ref("a")
-                        .from(store(new Place().name("Home"))).dep(1000)
-                        .to(store(new Place().name("Slackline"))));
+            public void mockResults() { // the first ride is found again
+                store(new Ride().type(Ride.OFFER).who("someone").ref("b")
+                        .from(store(new Place().address("Hipperstr. 42")))
+                        .to(store(new Place().address("Wiesn"))));
             }
         }.search(home, park, today, null);
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("ride is locally deleted too", 1, rides.getCount());
+
+        new MockConnector(ctx) { // myride(s)
+            @Override
+            public void mockResults() {
+                store(new Ride().type(Ride.OFFER).ref("a").marked() //.who("me")
+                        .from(store(new Place().name("Home"))).dep(1000)
+                        .to(store(new Place().name("Slackline"))));
+            }
+        }.search(null, null, today, null); // myrides
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be only one ride", 1, my_rides.getCount());
+        new MockConnector(ctx) { // one ride has been deleted on the server
+            @Override
+            public void mockResults() { } // ride has been deleted remotely
+        }.search(null, null, today, null); // myrides
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("should be deleted locally too", 0, my_rides.getCount());
     }
 }

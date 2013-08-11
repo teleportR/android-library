@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 13;
+    private static final int VERSION = 14;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -42,7 +42,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " distance integer, price integer, seats integer,"
                 + " mode text, operator text, who text, details text,"
                 + " marked integer, dirty integer, active integer,"
-                + " parent_id integer, ref text);");
+                + " parent_id integer, ref text, refresh integer);");
         db.execSQL("CREATE UNIQUE INDEX rides_idx ON rides"
                 + " ('type', 'ref', 'dep', from_id, to_id, seats, parent_id);");
         db.execSQL("create table jobs ("
@@ -145,11 +145,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
 
-    static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides"
-            + " ('type', 'from_id', 'to_id', 'dep', 'arr', 'mode', 'operator',"
-            + "'who', 'details', 'price', 'seats', 'marked', 'dirty', 'active',"
-            + "'parent_id', 'ref')"
-            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+    static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides "
+            + "('type', from_id, to_id, dep, arr, mode, operator, who, details,"
+            + " price, seats, marked, dirty, active, parent_id, ref, refresh)"
+            + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
     public int insertRide(int parent, int from, int to, ContentValues cv) {
 
@@ -157,6 +156,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
             return 0;
         }
+        insertRide.bindLong(17, System.currentTimeMillis());
         insertRide.bindLong(15, parent);
         insertRide.bindLong(2, from);
         insertRide.bindLong(3, to);
@@ -352,5 +352,17 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " WHERE marked=1 AND dirty <> -1"
                 + " GROUP BY rides.ref"
                 + " ORDER BY dep DESC;", null);
+    }
+
+    static final String WHERE_OUTDATED = " _id IN ( SELECT rides._id FROM rides"
+            + " LEFT JOIN 'route_matches' AS match ON "
+                + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
+            + " WHERE match.sub_from_id=? AND match.sub_to_id =? "
+                + "AND rides.type=" + Ride.OFFER + " AND dep > ?"
+                + " AND rides.refresh < ?);";
+
+    public int deleteOutdated(String from, String to, String dep, String time) {
+            return getReadableDatabase().delete("rides", WHERE_OUTDATED,
+                    new String[] {from, to, dep, time});
     }
 }

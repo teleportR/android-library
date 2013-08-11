@@ -97,8 +97,9 @@ public class RidesProvider extends ContentProvider {
                 int s_from = Integer.parseInt(uri.getQueryParameter("from_id"));
                 int s_to = Integer.parseInt(uri.getQueryParameter("to_id"));
                 ArrayList<Integer> placeIdx = new ArrayList<Integer>();
-                long refresh_time = System.currentTimeMillis();
+                long refresh = System.currentTimeMillis();
                 long latest_dep = 0;
+                int upserted_cnt = 0;
                 for (int i = 0; i < values.length; i++) {
                     if (parent == 0 && !values[i].containsKey("ref")) {
                         placeIdx.add(db.insertPlace(values[i]));
@@ -112,19 +113,25 @@ public class RidesProvider extends ContentProvider {
                         if (values[i].containsKey("ref")) {
                             parent = db.insertRide(0, from, to, values[i]);
                             db.insertMatch(from, to, s_from, s_to);
+                            upserted_cnt++;
                         } else {
                             db.insertRide(parent, from, to, values[i]);
                         }
                     }
                 }
-                ContentValues done = new ContentValues();
-                done.put("from_id", s_from);
-                done.put("to_id", s_to);
+                Log.d(TAG, "upserted " + upserted_cnt + " rides");
+                int deleted_cnt = db.deleteOutdated(
+                        String.valueOf(s_from), String.valueOf(s_to),
+                        uri.getQueryParameter("dep"), String.valueOf(refresh));
+                Log.d(TAG, "deleted " + deleted_cnt + " rides");
                 if (latest_dep == 0)
                     latest_dep = Long.parseLong(
                             uri.getQueryParameter("dep")) + 24*3600000;
+                ContentValues done = new ContentValues();
+                done.put("from_id", s_from);
+                done.put("to_id", s_to);
                 done.put("latest_dep", latest_dep);
-                done.put("last_refresh", refresh_time);
+                done.put("last_refresh", refresh);
                 insert(jobs, done);
             }
             db.getWritableDatabase().setTransactionSuccessful();
