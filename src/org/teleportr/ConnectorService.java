@@ -31,6 +31,7 @@ public class ConnectorService extends Service
     public static final String RESOLVE = "geocode";
     public static final String SEARCH = "search";
     public static final String PUBLISH = "publish";
+    public static final String AUTH = "auth";
     private Connector fahrgemeinschaft;
     private Connector gplaces;
     private Handler worker;
@@ -88,21 +89,19 @@ public class ConnectorService extends Service
             return START_STICKY;
         if (action.equals(RESOLVE)) {
             worker.postAtFrontOfQueue(resolve);
-        } else if (action.equals(PUBLISH)) {
-            worker.postAtFrontOfQueue(publish);
         } else if (action.equals(SEARCH)) {
             worker.postAtFrontOfQueue(search);
+        } else if (action.equals(PUBLISH)) {
+            worker.postAtFrontOfQueue(publish);
+        } else if (action.equals(AUTH)) {
+            worker.postAtFrontOfQueue(auth);
         }
         return START_REDELIVER_INTENT;
     }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-        if (key.equals("EMail") || (key.equals("password")
-                && prefs.getString(key, null) != null)) {
-            log("login changed");
-            worker.postAtFrontOfQueue(auth);
-        } else if (key.equals("verbose")) {
+        if (key.equals("verbose")) {
             verbose = prefs.getBoolean("verbose", false);
         }
     }
