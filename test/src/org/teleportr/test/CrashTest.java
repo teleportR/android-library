@@ -490,8 +490,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new MockConnector(ctx) { // one ride has been deleted on the server
             @Override
             public void mockResults() { } // ride has been deleted remotely
-        }.search(null, null, today, null); // myrides
+        }.search(null, null, null, null); // myrides
         my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("should be deleted locally too", 0, my_rides.getCount());
+        assertEquals("myride was locally deleted too", 0, my_rides.getCount());
     }
 }

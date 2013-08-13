@@ -115,14 +115,16 @@ public class RidesProvider extends ContentProvider {
                     }
                 }
                 Log.d(TAG, "upserted " + upserted_cnt + " rides");
-                int deleted_cnt = db.deleteOutdated(String.valueOf(s_from),
-                        String.valueOf(s_to), uri.getQueryParameter("dep"),
-                        uri.getQueryParameter("arr"), String.valueOf(refresh));
+                String min_dep = uri.getQueryParameter("dep");
+                String max_arr = uri.getQueryParameter("arr");
+                int deleted_cnt = db.deleteOutdated(
+                        String.valueOf(s_from), String.valueOf(s_to),
+                        min_dep, max_arr, String.valueOf(refresh));
                 Log.d(TAG, "deleted " + deleted_cnt + " rides");
                 ContentValues done = new ContentValues();
                 done.put("from_id", s_from);
                 done.put("to_id", s_to);
-                done.put("latest_dep", uri.getQueryParameter("dep"));
+                done.put("latest_dep", max_arr);
                 done.put("last_refresh", refresh);
                 insert(jobs, done);
             }

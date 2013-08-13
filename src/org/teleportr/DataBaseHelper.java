@@ -357,13 +357,15 @@ class DataBaseHelper extends SQLiteOpenHelper {
     static final String WHERE_OUTDATED = " _id IN ( SELECT rides._id FROM rides"
             + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
-            + " WHERE match.sub_from_id=? AND match.sub_to_id =? "
+            + " WHERE rides.type=" + Ride.OFFER
+                + " AND match.sub_from_id = ? AND match.sub_to_id = ? "
                 + " AND dep >= ? AND dep <= ?"
-                + " AND rides.type=" + Ride.OFFER + " AND rides.refresh < ?);";
+                + " AND rides.refresh < ?";
 
-    public int deleteOutdated(String from, String to,
-                    String dep, String arr, String time) {
-            return getReadableDatabase().delete("rides", WHERE_OUTDATED,
+    public int deleteOutdated(
+            String from, String to, String dep, String arr, String time) {
+            return getReadableDatabase().delete("rides", WHERE_OUTDATED
+                    + (from.equals("-1")? " AND marked = 1);" : ");"),
                     new String[] {from, to, dep, arr, time});
     }
 }

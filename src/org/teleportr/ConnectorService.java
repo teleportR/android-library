@@ -165,7 +165,7 @@ public class ConnectorService extends Service
                 attempt = getRetryAttempt(-1);
                 log("load myrides #" + attempt);
                 fahrgemeinschaft.search(null, null, new Date(), null);
-                fahrgemeinschaft.flush(-1, -2, 0, 0);
+                fahrgemeinschaft.flush(-1, -2, 0, Long.MAX_VALUE); // clean all
                 log("myrides updated");
             } catch (FileNotFoundException e) {
                 log(e.getMessage());
