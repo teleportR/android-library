@@ -475,16 +475,18 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("ride is locally deleted too", 2, rides.getCount());
         // third ride should not be cleared since it departs after tomorrow
 
-        new MockConnector(ctx) { // myride(s)
+        new MockConnector(ctx) { // clean up myride(s)
             @Override
             public void mockResults() {
                 store(new Ride().type(Ride.OFFER).ref("a").marked() //.who("me")
                         .from(store(new Place().name("Home"))).dep(1000)
                         .to(store(new Place().name("Slackline"))));
             }
-        }.search(null, null, null, null); // myrides
+        }.search(null, null, null, null); // null means myrides
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("search results were not cleared", 2, rides.getCount());
         new MockConnector(ctx) { // one ride has been deleted on the server
             @Override
             public void mockResults() { } // ride has been deleted remotely

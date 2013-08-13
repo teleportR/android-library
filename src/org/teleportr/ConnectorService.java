@@ -234,9 +234,9 @@ public class ConnectorService extends Service
                 jobs.moveToFirst();
                 from = new Place(jobs.getInt(0), ConnectorService.this);
                 to = new Place(jobs.getInt(1), ConnectorService.this);
-                long latest_dep = jobs.getLong(4);
-                if (latest_dep == 0 // first search - no latest_dep yet
-                        || latest_dep >= jobs.getLong(3)) // or refresh
+                long arr = jobs.getLong(4);
+                if (arr == 0 // first search - no latest_dep yet
+                        || arr >= jobs.getLong(3)) // or refresh
                     dep = new Date(jobs.getLong(2)); // search dep
                 else
                     dep = new Date(jobs.getLong(4)); // continue from latest_dep
@@ -247,9 +247,9 @@ public class ConnectorService extends Service
                             .format(dep) + " #" + attempt);
                 onSearch(query);
                 try {
-                    latest_dep = fahrgemeinschaft.search(from, to, dep, null);
+                    arr = fahrgemeinschaft.search(from, to, dep, null);
+                    fahrgemeinschaft.flush(from.id, to.id, dep.getTime(), arr);
                     onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
-                    fahrgemeinschaft.flush(from.id, to.id, latest_dep, 0);
                     worker.post(search);
                 } catch (Exception e) {
                     if (attempt < 3) {
