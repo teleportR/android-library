@@ -165,7 +165,7 @@ public class ConnectorService extends Service
                 attempt = getRetryAttempt(-1);
                 log("load myrides #" + attempt);
                 fahrgemeinschaft.search(null, null, new Date(), null);
-                fahrgemeinschaft.flush(-1, -2, 0);
+                fahrgemeinschaft.flush(-1, -2, 0, 0);
                 log("myrides updated");
             } catch (FileNotFoundException e) {
                 log(e.getMessage());
@@ -249,7 +249,7 @@ public class ConnectorService extends Service
                 try {
                     latest_dep = fahrgemeinschaft.search(from, to, dep, null);
                     onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
-                    fahrgemeinschaft.flush(from.id, to.id, latest_dep);
+                    fahrgemeinschaft.flush(from.id, to.id, latest_dep, 0);
                     worker.post(search);
                 } catch (Exception e) {
                     if (attempt < 3) {

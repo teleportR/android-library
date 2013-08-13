@@ -107,11 +107,12 @@ public abstract class Connector {
         return ridesBatch.size();
     }
 
-    public void flush(int from, int to, long dep) {
+    public void flush(int from, int to, long dep, long arr) {
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
                 Uri.parse("content://" + ctx.getPackageName() + "/rides?"
-                        + "from_id=" + from + "&to_id=" + to + "&dep=" + dep),
+                        + "from_id=" + from + "&to_id=" + to
+                        + "&dep=" + dep + "&arr=" + arr),
                 placesBatch.toArray(new ContentValues[placesBatch.size()]));
         placesBatch.clear();
         ridesBatch.clear();
