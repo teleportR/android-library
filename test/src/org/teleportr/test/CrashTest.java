@@ -391,13 +391,12 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         // edit and update Ride
         myRide.removeVias();
-        myRide.dep(200).from(home).via(cafe).via(döner).to(park).activate()
-                .store(ctx);
+        myRide.from(home).via(cafe).via(döner).to(park).activate().store(ctx);
 
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
-        assertEquals(200, my_rides.getLong(COLUMNS.DEPARTURE));
+        assertEquals(1000, my_rides.getLong(COLUMNS.DEPARTURE));
         assertEquals(true, myRide.isActive());
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");

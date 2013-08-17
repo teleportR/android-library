@@ -31,7 +31,6 @@ public class ConnectorService extends Service
     public static final String RESOLVE = "geocode";
     public static final String SEARCH = "search";
     public static final String PUBLISH = "publish";
-    public static final String AUTH = "auth";
     private Connector fahrgemeinschaft;
     private Connector gplaces;
     private Handler worker;
@@ -42,6 +41,7 @@ public class ConnectorService extends Service
     private Uri search_jobs_uri;
     private Uri rides_uri;
     private Handler main;
+    protected boolean authenticating;
 
     @Override
     public void onCreate() {
@@ -93,8 +93,6 @@ public class ConnectorService extends Service
             worker.postAtFrontOfQueue(search);
         } else if (action.equals(PUBLISH)) {
             worker.postAtFrontOfQueue(publish);
-        } else if (action.equals(AUTH)) {
-            worker.postAtFrontOfQueue(auth);
         }
         return START_REDELIVER_INTENT;
     }
@@ -106,24 +104,7 @@ public class ConnectorService extends Service
         }
     }
 
-    Runnable auth = new Runnable() {
 
-        @Override
-        public void run() {
-            log("get auth");
-            try {
-                if (fahrgemeinschaft.getAuth() != null) {
-                    Toast.makeText(ConnectorService.this, "logged in :-)",
-                            Toast.LENGTH_SHORT).show();
-                    worker.post(publish);
-                }
-            } catch (Exception e) {
-                Toast.makeText(ConnectorService.this, "auth failed! "
-                        + e.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.d(TAG, "auth failed");
-            }
-        }
-    };
 
     Runnable publish = new Runnable() {
 
@@ -168,15 +149,20 @@ public class ConnectorService extends Service
                 fahrgemeinschaft.flush(-1, -2, 0, Long.MAX_VALUE); // clean all
                 log("myrides updated");
             } catch (FileNotFoundException e) {
-                log(e.getMessage());
-                Toast.makeText(ConnectorService.this, "failed!",
-                        Toast.LENGTH_LONG).show();
-                Log.d(TAG, "auth failed");
-                if (attempt == 1) {
-                    worker.post(auth);
+                log("auth failed.");
+                if (PreferenceManager
+                        .getDefaultSharedPreferences(ConnectorService.this)
+                        .getBoolean("remember_password", false)) {
+                    log("logging in..");
+                    authenticate(PreferenceManager
+                            .getDefaultSharedPreferences(ConnectorService.this)
+                            .getString("password", ""));
+                } else {
+                    sendBroadcast(new Intent("auth"));
+                    Toast.makeText(ConnectorService.this, "please login",
+                            Toast.LENGTH_LONG).show();
                 }
             } catch (Exception e) {
-                e.printStackTrace();
                 log(e.getMessage());
                 if (attempt < 3) {
                     long wait = (long) (Math.pow(2, attempt+1));
@@ -248,8 +234,8 @@ public class ConnectorService extends Service
                 onSearch(query);
                 try {
                     arr = fahrgemeinschaft.search(from, to, dep, null);
-                    fahrgemeinschaft.flush(from.id, to.id, dep.getTime(), arr);
                     onSuccess(query, fahrgemeinschaft.getNumberOfRidesFound());
+                    fahrgemeinschaft.flush(from.id, to.id, dep.getTime(), arr);
                     worker.post(search);
                 } catch (Exception e) {
                     if (attempt < 3) {
@@ -290,12 +276,12 @@ public class ConnectorService extends Service
             
             @Override
             public void run() {
-                if (gui != null) {
-                    gui.onBackgroundSearch(query);
+                if (searchCallback != null) {
+                    searchCallback.onBackgroundSearch(query);
                 }
             }
         };
-        if (gui != null) {
+        if (searchCallback != null) {
             main.post(notify);
             notify = null;
         }
@@ -306,8 +292,8 @@ public class ConnectorService extends Service
             
             @Override
             public void run() {
-                if (gui != null) {
-                    gui.onBackgroundSuccess(query, numberOfRidesFound);
+                if (searchCallback != null) {
+                    searchCallback.onBackgroundSuccess(query, numberOfRidesFound);
                 }
             }
         });
@@ -318,26 +304,110 @@ public class ConnectorService extends Service
             
             @Override
             public void run() {
-                if (gui != null) {
-                    gui.onBackgroundFail(query, reason);
+                if (searchCallback != null) {
+                    searchCallback.onBackgroundFail(query, reason);
                 }
             }
         });
     }
 
 
-    public void register(BackgroundListener activity) {
-        gui = activity;
+    public void searchCallback(SearchListener activity) {
+        searchCallback = activity;
         if (notify != null)
             main.post(notify);
     }
 
-    private BackgroundListener gui;
+    private SearchListener searchCallback;
 
-    public interface BackgroundListener {
+    public interface SearchListener {
         public void onBackgroundSearch(Ride query);
         public void onBackgroundSuccess(Ride query, int numberOfRidesFound);
         public void onBackgroundFail(Ride query, String reason);
+    }
+
+
+
+    public void authenticate(final String credential) {
+        worker.postAtFrontOfQueue(new Runnable() {
+
+            @Override
+            public void run() {
+                log("get auth");
+                try {
+                    authenticating = true;
+                    main.post(new Runnable() {
+                        
+                        @Override
+                        public void run() {
+                            authCallback.onAuth();
+                        }
+                    });
+                    PreferenceManager.getDefaultSharedPreferences(
+                            ConnectorService.this).edit().putString("auth", 
+                                    fahrgemeinschaft.authenticate(credential))
+                                    .commit();
+                    log("auth success");
+                    main.post(new Runnable() {
+                        
+                        @Override
+                        public void run() {
+                            if (authCallback != null)
+                                authCallback.onAuthSuccess();
+                        }
+                    });
+                    worker.post(publish);
+                } catch (AuthException e) {
+                    log("auth failed");
+                    main.post(new Runnable() {
+                        
+                        @Override
+                        public void run() {
+                            if (authCallback != null)
+                                authCallback.onAuthFail(
+                                        "wrong login or password");
+                        }
+                    });
+                } catch (FileNotFoundException e) {
+                    log("auth failed");
+                    main.post(new Runnable() {
+                        
+                        @Override
+                        public void run() {
+                            if (authCallback != null)
+                                authCallback.onAuthFail(
+                                        "wrong username or password");
+                        }
+                    });
+                } catch (final Exception e) {
+                    log("auth failed");
+                    main.post(new Runnable() {
+                        
+                        @Override
+                        public void run() {
+                            if (authCallback != null)
+                                authCallback.onAuthFail(e.getMessage());
+                        }
+                    });
+                } finally {
+                    authenticating = false;
+                }
+            }
+        });
+    }
+
+    private AuthListener authCallback;
+
+    public void authCallback(AuthListener callback) {
+        authCallback = callback;
+        if (authenticating)
+            authCallback.onAuth();
+    }
+
+    public interface AuthListener {
+        public void onAuth();
+        public void onAuthSuccess();
+        public void onAuthFail(String reason);
     }
 
 
@@ -356,6 +426,7 @@ public class ConnectorService extends Service
     public void unbindService(ServiceConnection conn) {
         super.unbindService(conn);
         log("unbinding");
-        gui = null;
+        authCallback = null;
+        searchCallback = null;
     }
 }

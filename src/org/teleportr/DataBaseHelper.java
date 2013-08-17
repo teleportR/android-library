@@ -331,7 +331,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
                 + " AND match.sub_from_id=? AND match.sub_to_id =?"
                 + " AND rides.dep > ? AND rides.who <> ''"
-            + " GROUP BY rides.ref ORDER BY rides.dep, rides._id;";
+            + " GROUP BY rides.ref, rides.dep ORDER BY rides.dep, rides._id;";
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
         return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
@@ -340,7 +340,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_SUB_RIDES = SELECT_RIDES
             + " WHERE parent_id=? ORDER BY rides.dep;";
-    
+
     public Cursor querySubRides(String parent_id) {
         return getReadableDatabase().rawQuery(SELECT_SUB_RIDES,
                 new String[] { parent_id });
