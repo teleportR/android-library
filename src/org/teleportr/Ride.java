@@ -13,16 +13,32 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.util.Log;
 
 public class Ride implements Parcelable {
 
+    public static final String _ID = "_id";
+    public static final String TYPE = "type";
+    public static final String FROM_ID = "from_id";
+    public static final String TO_ID = "to_id";
+    public static final String DEP = "dep";
+    public static final String ARR = "arr";
+    public static final String WHO = "who";
+    public static final String MODE = "mode";
+    public static final String DIRTY = "dirty";
+    public static final String PARENT_ID = "parent_id";
+    public static final String DETAILS = "details";
+    public static final String ACTIVE = "active";
+    public static final String MARKED = "marked";
+    public static final String SEATS = "seats";
+    public static final String PRICE = "price";
+    public static final String REF = "ref";
+    public static final String EMPTY = "";
     public static final int SEARCH = 42;
     public static final int OFFER = 47;
 
     public static enum Mode {
         CAR, TRAIN
-    };
+    }
 
     Context ctx;
     ContentValues cv;
@@ -51,7 +67,7 @@ public class Ride implements Parcelable {
     }
 
     public Ride from(int from_id) {
-        cv.put("from_id", from_id);
+        cv.put(FROM_ID, from_id);
         return this;
     }
 
@@ -72,16 +88,16 @@ public class Ride implements Parcelable {
         if (subrides == null) {
             subrides = new ArrayList<ContentValues>();
             ContentValues sub = new ContentValues();
-            sub.put("from_id", cv.getAsLong("from_id"));
-            sub.put("to_id", via_id);
+            sub.put(FROM_ID, cv.getAsLong(FROM_ID));
+            sub.put(TO_ID, via_id);
             subrides.add(sub);
         } else {
-            subrides.get(subrides.size()-1).put("to_id", via_id);
+            subrides.get(subrides.size()-1).put(TO_ID, via_id);
         }
         ContentValues sub = new ContentValues();
-        sub.put("from_id", via_id);
+        sub.put(FROM_ID, via_id);
         if (getToId() != 0)
-            sub.put("to_id", getToId());
+            sub.put(TO_ID, getToId());
         subrides.add(sub);
         return this;
     }
@@ -96,10 +112,10 @@ public class Ride implements Parcelable {
     }
 
     public Ride to(long to_id) {
-        cv.put("to_id", to_id);
+        cv.put(TO_ID, to_id);
         if (subrides != null && subrides.size() > 0) {
             subrides.get(subrides.size()-1)
-                .put("to_id", to_id);
+                .put(TO_ID, to_id);
         }
         return this;
     }
@@ -110,7 +126,7 @@ public class Ride implements Parcelable {
     }
 
     public Ride dep(long dep) {
-        cv.put("dep", dep);
+        cv.put(DEP, dep);
         return this;
     }
 
@@ -119,85 +135,87 @@ public class Ride implements Parcelable {
     }
 
     public Ride arr(long arr) {
-        cv.put("arr", arr);
+        cv.put(ARR, arr);
         return this;
     }
 
 
     public Ride mode(Mode mode) {
-        cv.put("mode", mode.name());
+        cv.put(MODE, mode.name());
         return this;
     }
 
     public Ride who(String who) {
-        cv.put("who", who);
+        cv.put(WHO, who);
         return this;
     }
 
     public Ride type(int type) {
-        cv.put("type", type);
+        cv.put(TYPE, type);
         return this;
     }
 
     public Ride ref(String ref) {
-        cv.put("ref", ref);
+        cv.put(REF, ref);
         return this;
     }
 
     public Ride price(long price) {
-        cv.put("price", price);
+        cv.put(PRICE, price);
         return this;
     }
 
     public Ride seats(long seats) {
-        cv.put("seats", seats);
+        cv.put(SEATS, seats);
         return this;
     }
 
     public Ride marked() {
-        cv.put("marked", 1);
+        cv.put(MARKED, 1);
         return this;
     }
 
     public Ride dirty() {
-        cv.put("dirty", 1);
+        cv.put(DIRTY, 1);
         return this;
     }
 
     public Ride activate() {
-        cv.put("active", 1);
+        cv.put(ACTIVE, 1);
         return this;
     }
 
     public Ride deactivate() {
-        cv.put("active", 0);
+        cv.put(ACTIVE, 0);
         return this;
     }
 
 
 
     public Uri store(Context ctx) {
-        if (!cv.containsKey("mode")) mode(Mode.CAR);
-        if (!cv.containsKey("active")) activate();
-        if (details != null) cv.put("details", details.toString());
+        if (!cv.containsKey(MODE)) mode(Mode.CAR);
+        if (!cv.containsKey(ACTIVE)) activate();
+        if (details != null) cv.put(DETAILS, details.toString());
         Uri ride;
-        cv.put("parent_id", 0);
-        Uri uri = Uri.parse("content://" + ctx.getPackageName() + "/rides");
-        ride = ctx.getContentResolver().insert(uri, cv);
+        cv.put(PARENT_ID, 0);
+        ride = ctx.getContentResolver().insert(
+                RidesProvider.getRidesUri(ctx), cv);
         Integer parent_id = Integer.valueOf(ride.getLastPathSegment());
         if (subrides != null) {
             for (ContentValues v : subrides) {
-                v.put("parent_id", parent_id);
-                ctx.getContentResolver().insert(uri, v);
+                v.put(PARENT_ID, parent_id);
+                ctx.getContentResolver().insert(
+                        RidesProvider.getRidesUri(ctx), v);
             }
         }
         return ride;
     }
 
     public void delete(Context ctx) {
-        cv.put("dirty", 2);
+        cv.put(DIRTY, 2);
         store(ctx);
     }
+
 
 
     public static final class COLUMNS {
@@ -236,7 +254,7 @@ public class Ride implements Parcelable {
     }
 
     public Ride(int id, Context ctx) {
-        this(Uri.parse("content://"+ctx.getPackageName()+"/rides/" + id), ctx);
+        this(RidesProvider.getRideUri(ctx, id), ctx);
     }
 
     public Ride(Uri uri, Context ctx) {
@@ -252,7 +270,7 @@ public class Ride implements Parcelable {
     }
 
     private void load(Cursor cursor, Context ctx) {
-        cv.put("_id", cursor.getLong(COLUMNS.ID));
+        cv.put(_ID, cursor.getLong(COLUMNS.ID));
         type(cursor.getInt(COLUMNS.TYPE));
         from(cursor.getInt(COLUMNS.FROM_ID));
         to(cursor.getInt(COLUMNS.TO_ID));
@@ -263,24 +281,24 @@ public class Ride implements Parcelable {
         if (cursor.getShort(COLUMNS.MARKED) == 1) marked();
         if (cursor.getShort(COLUMNS.ACTIVE) == 1) activate();
         String val = cursor.getString(COLUMNS.WHO);
-        if (val != null && !val.equals(""))
+        if (val != null && !val.equals(EMPTY))
             who(val);
         val = cursor.getString(COLUMNS.REF);
-        if (val != null && !val.equals(""))
+        if (val != null && !val.equals(EMPTY))
             ref(val);
         try {
             details = new JSONObject(cursor.getString(COLUMNS.DETAILS));
             mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
         } catch (Exception e) {}
-        Cursor s = ctx.getContentResolver().query(
-                Uri.parse("content://" + ctx.getPackageName() + "/rides/"
-                        + cursor.getInt(0) + "/rides/"), null, null, null, null);
+        Cursor sub_cursor = ctx.getContentResolver().query(
+                RidesProvider.getSubRidesUri(ctx, cursor.getInt(0)),
+                        null, null, null, null);
         subrides = new ArrayList<ContentValues>();
-        for (int i = 0; i < s.getCount(); i++) {
-            s.moveToPosition(i);
-            subrides.add(new Ride(s, ctx).cv);
+        for (int i = 0; i < sub_cursor.getCount(); i++) {
+            sub_cursor.moveToPosition(i);
+            subrides.add(new Ride(sub_cursor, ctx).cv);
         }
-        s.close();
+        sub_cursor.close();
         this.ctx = ctx;
     }
 
@@ -321,7 +339,7 @@ public class Ride implements Parcelable {
         if (subrides != null) {
             for (int i = 1; i < subrides.size(); i++) {
                 vias.add(new Place(subrides.get(i)
-                        .getAsInteger("from_id"), ctx));
+                        .getAsInteger(FROM_ID), ctx));
             }
         }
         return vias;
@@ -332,7 +350,7 @@ public class Ride implements Parcelable {
         if (subrides != null && subrides.size() > 0) {
             for (int i = 0; i < subrides.size(); i++) {
                 places.add(new Place(subrides.get(i)
-                        .getAsInteger("from_id"), ctx));
+                        .getAsInteger(FROM_ID), ctx));
             }
             places.add(getTo());
         } else {
@@ -343,71 +361,71 @@ public class Ride implements Parcelable {
     }
 
     public int getFromId() {
-        if (cv.containsKey("from_id"))
-            return cv.getAsInteger("from_id");
+        if (cv.containsKey(FROM_ID))
+            return cv.getAsInteger(FROM_ID);
         else return 0;
     }
 
     public int getToId() {
-        if (cv.containsKey("to_id"))
-            return cv.getAsInteger("to_id");
+        if (cv.containsKey(TO_ID))
+            return cv.getAsInteger(TO_ID);
         else return 0;
     }
 
     public long getDep() {
-        if (cv.containsKey("dep"))
-            return cv.getAsLong("dep");
+        if (cv.containsKey(DEP))
+            return cv.getAsLong(DEP);
         else return System.currentTimeMillis();
     }
 
     public long getArr() {
-        if (cv.containsKey("arr"))
-            return cv.getAsLong("arr");
+        if (cv.containsKey(ARR))
+            return cv.getAsLong(ARR);
         else return System.currentTimeMillis();
     }
 
     public Mode getMode() {
-        if (cv.containsKey("mode"))
-            return Mode.valueOf(cv.getAsString("mode"));
+        if (cv.containsKey(MODE))
+            return Mode.valueOf(cv.getAsString(MODE));
         else return Mode.CAR;
     }
 
     public String getWho() {
-        if (cv.containsKey("who"))
-            return cv.getAsString("who");
-        else return "";
+        if (cv.containsKey(WHO))
+            return cv.getAsString(WHO);
+        else return EMPTY;
     }
 
     public int getPrice() {
-        if (cv.containsKey("price"))
-            return cv.getAsInteger("price");
+        if (cv.containsKey(PRICE))
+            return cv.getAsInteger(PRICE);
         else return 0;
     }
 
     public int getSeats() {
-        if (cv.containsKey("seats"))
-            return cv.getAsInteger("seats");
+        if (cv.containsKey(SEATS))
+            return cv.getAsInteger(SEATS);
         else return 0;
     }
 
     public int getId() {
-        if (cv.containsKey("_id"))
-            return cv.getAsInteger("_id");
+        if (cv.containsKey(_ID))
+            return cv.getAsInteger(_ID);
         else return 0;
     }
 
     public String getRef() {
-        if (cv.containsKey("ref"))
-            return cv.getAsString("ref");
+        if (cv.containsKey(REF))
+            return cv.getAsString(REF);
         else return null;
     }
 
     public boolean isMarked() {
-        return cv.containsKey("marked") && cv.getAsShort("marked") == 1;
+        return cv.containsKey(MARKED) && cv.getAsShort(MARKED) == 1;
     }
 
     public boolean isActive() {
-        return cv.containsKey("active") && cv.getAsShort("active") == 1;
+        return cv.containsKey(ACTIVE) && cv.getAsShort(ACTIVE) == 1;
     }
 
     public JSONObject getDetails() {
@@ -445,9 +463,8 @@ public class Ride implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel out, int flags) {
-//        out.writeTypedList(subrides);
         if (details != null) {
-            cv.put("details", details.toString());
+            cv.put(DETAILS, details.toString());
         }
         out.writeParcelable(cv, 0);
     }
@@ -458,17 +475,14 @@ public class Ride implements Parcelable {
             @Override
             public Ride createFromParcel(Parcel in) {
                 Ride ride = new Ride();
-//                ride.subrides = new ArrayList<ContentValues>();
-//                in.readTypedList(ride.subrides, ContentValues.CREATOR);
                 ride.cv = in.readParcelable(getClass().getClassLoader());
                 try {
-                    if (ride.cv.containsKey("details"))
+                    if (ride.cv.containsKey(DETAILS))
                         ride.details = new JSONObject(
-                                ride.cv.getAsString("details"));
+                                ride.cv.getAsString(DETAILS));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                Log.d("Ride", "read " + ride.cv.getAsString("from_id"));
                 return ride;
             }
 

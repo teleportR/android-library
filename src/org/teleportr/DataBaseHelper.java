@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 14;
+    private static final int VERSION = 15;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -28,8 +28,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + "'_id' integer primary key autoincrement,"
                 + " 'geohash' text unique,"
                 + " 'name' text unique,"
-                + " 'address' text unique,"
-                + " 'lat' integer, 'lng' integer);");
+                + " 'address' text unique);");
         db.execSQL("create table place_keys ("
                 + "'_id' integer primary key autoincrement,"
                 + " 'place_id' integer, 'key' text, 'value' text);");
@@ -83,8 +82,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     static final String INSERT_PLACE = "INSERT OR IGNORE INTO places"
-            + " ('geohash', 'name', 'address', 'lat', 'lng')"
-            + " VALUES (?, ?, ?, ?, ?);";
+            + " ('geohash', 'name', 'address')"
+            + " VALUES (?, ?, ?);";
 
     static final String INSERT_KEY = "INSERT OR IGNORE INTO place_keys"
             + " ('place_id', 'key', 'value')" + " VALUES (?, ?, ?);";

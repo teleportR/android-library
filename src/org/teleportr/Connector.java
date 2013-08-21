@@ -13,13 +13,9 @@ import org.teleportr.Ride.Mode;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.net.Uri;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 public abstract class Connector {
-
-    private static final String TAG = "Connector";
 
     public abstract long search(Place from, Place to, Date dep, Date arr) throws Exception;
 
@@ -60,12 +56,10 @@ public abstract class Connector {
         String id = place.getId();
         if (placeIdx.containsKey(id)) {
             place.id = placeIdx.get(place.getId());
-            Log.d(TAG, "  place " + id + " - already");
         } else {
             place.id = placesBatch.size();
             placeIdx.put(id, place.id);
             placesBatch.add(place.cv);
-            Log.d(TAG, "  place " + id + " - added");
         }
         return place;
     }
@@ -91,9 +85,11 @@ public abstract class Connector {
     public void flush(int from, int to, long dep, long arr) {
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
-                Uri.parse("content://" + ctx.getPackageName() + "/rides?"
-                        + "from_id=" + from + "&to_id=" + to
-                        + "&dep=" + dep + "&arr=" + arr),
+                RidesProvider.getRidesUri(ctx).buildUpon()
+                .appendQueryParameter(Ride.FROM_ID, String.valueOf(from))
+                .appendQueryParameter(Ride.TO_ID, String.valueOf(to))
+                .appendQueryParameter(Ride.DEP, String.valueOf(dep))
+                .appendQueryParameter(Ride.ARR, String.valueOf(arr)).build(),
                 placesBatch.toArray(new ContentValues[placesBatch.size()]));
         placesBatch.clear();
         ridesBatch.clear();

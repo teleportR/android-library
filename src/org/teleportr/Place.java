@@ -9,7 +9,11 @@ import ch.hsr.geohash.GeoHash;
 
 public class Place {
 
-    private static final String TAG = "Place";
+    public static final String GEOHASH = "geohash";
+    public static final String ADDRESS = "address";
+    public static final String NAME = "name";
+    public static final String TAG = "Place";
+    public static final String KEY = "key";
     protected ContentValues cv;
     private Context ctx;
     public int id;
@@ -23,8 +27,7 @@ public class Place {
         this(id);
         this.ctx = ctx;
         Cursor cursor = ctx.getContentResolver().query(
-                Uri.parse("content://" + ctx.getPackageName()
-                        + "/places/"+id), null, null, null, null);
+                RidesProvider.getPlaceUri(ctx, id), null, null, null, null);
         cursor.moveToFirst();
         geohash(cursor.getString(1));
         name(cursor.getString(2));
@@ -33,20 +36,20 @@ public class Place {
     }
 
     public String getName() {
-        return cv.getAsString("name");
+        return cv.getAsString(NAME);
     }
 
     public String getAddress() {
-        return cv.getAsString("address");
+        return cv.getAsString(ADDRESS);
     }
 
     public double getLat() {
-        return GeoHash.fromGeohashString(cv.getAsString("geohash"))
+        return GeoHash.fromGeohashString(cv.getAsString(GEOHASH))
                 .getPoint().getLatitude();
     }
 
     public double getLng() {
-        return GeoHash.fromGeohashString(cv.getAsString("geohash"))
+        return GeoHash.fromGeohashString(cv.getAsString(GEOHASH))
                 .getPoint().getLongitude();
     }
 
@@ -75,13 +78,13 @@ public class Place {
 
     public Place geohash(String geohash) {
         if (geohash != null) {
-            cv.put("geohash", geohash);
+            cv.put(GEOHASH, geohash);
         }
         return this;
     }
 
     public Place latlon(int lat, int lng) {
-        cv.put("geohash",
+        cv.put(GEOHASH,
                 GeoHash.withBitPrecision(((double) lat) / 1E6,
                         ((double) lng) / 1E6, 55).toBase32());
         return this;
@@ -89,16 +92,16 @@ public class Place {
 
     @Override
     public String toString() {
-        return cv.getAsString("geohash");
+        return cv.getAsString(GEOHASH);
     }
 
     public Place name(String name) {
-        cv.put("name", name);
+        cv.put(NAME, name);
         return this;
     }
 
     public Place address(String address) {
-        cv.put("address", address);
+        cv.put(ADDRESS, address);
         return this;
     }
 
@@ -109,50 +112,45 @@ public class Place {
 
     public String getId() {
         if (id != 0) return String.valueOf(id);
-        if (cv.containsKey("geohash"))
-            return "geohash:" + cv.getAsString("geohash");
-        if (cv.containsKey("name"))
-            return "name:" + cv.getAsString("name");
-        if (cv.containsKey("address"))
-            return "address:" + cv.getAsString("address");
+        if (cv.containsKey(GEOHASH))
+            return "geohash:" + cv.getAsString(GEOHASH);
+        if (cv.containsKey(NAME))
+            return "name:" + cv.getAsString(NAME);
+        if (cv.containsKey(ADDRESS))
+            return "address:" + cv.getAsString(ADDRESS);
         Log.d(TAG, "place not identifyable! " + this);
         return null;
     }
 
     public Uri store(Context ctx) {
         if (id == 0) {
-//            toContentValues();
-            Uri uri = ctx.getContentResolver().insert(Uri.parse(
-                    "content://" + ctx.getPackageName() + "/places"), cv);
+            Uri uri = ctx.getContentResolver().insert(
+                    RidesProvider.getPlacesUri(ctx), cv);
             id = Integer.parseInt(uri.getLastPathSegment());
             return uri;
         } else {
             Log.d("Places", "update place " + id + " : " + cv);
             ctx.getContentResolver().update(
-                    Uri.parse("content://"+ctx.getPackageName()+"/places/"+id),
-                    cv, null, null);
+                    RidesProvider.getPlaceUri(ctx, id), cv, null, null);
             return null;
         }
     }
 
     protected ContentValues toContentValues() {
-        if (!cv.containsKey("name"))
-            cv.put("name", "");
-        if (!cv.containsKey("address"))
-            cv.put("address", "");
-        if (!cv.containsKey("geohash"))
-            cv.put("geohash", "");
-        if (!cv.containsKey("lat"))
-            cv.put("lat", 0);
-        if (!cv.containsKey("lng"))
-            cv.put("lng", 0);
+        if (!cv.containsKey(NAME))
+            cv.put(NAME, "");
+        if (!cv.containsKey(ADDRESS))
+            cv.put(ADDRESS, "");
+        if (!cv.containsKey(GEOHASH))
+            cv.put(GEOHASH, "");
         return cv;
     }
 
     public String get(String key) {
         Cursor values = ctx.getContentResolver().query(
-                Uri.parse("content://" + ctx.getPackageName() + "/places/" + id
-                        + "?key=" + key), null, null, null, null);
+                RidesProvider.getPlaceUri(ctx, id).buildUpon()
+                .appendQueryParameter(KEY, key).build(),
+                null, null, null, null);
         String value = null;
         if (values.getCount() != 0) {
             values.moveToFirst();

@@ -27,6 +27,9 @@ import android.widget.Toast;
 public class ConnectorService extends Service
         implements OnSharedPreferenceChangeListener {
 
+    private static final String GPLACES_CONNECTOR = "de.fahrgemeinschaft.GPlaces";
+    private static final String FAHRGEMEINSCHAFT_CONNECTOR = "de.fahrgemeinschaft.FahrgemeinschaftConnector";
+    private static final String WORKER = "worker";
     protected static final String TAG = "ConnectorService";
     public static final String RESOLVE = "geocode";
     public static final String SEARCH = "search";
@@ -35,37 +38,28 @@ public class ConnectorService extends Service
     private Connector gplaces;
     private Handler worker;
     private boolean verbose;
-    private Uri resolve_jobs_uri;
     HashMap<Long, Integer> retries;
-    private Uri publish_jobs_uri;
-    private Uri search_jobs_uri;
-    private Uri rides_uri;
     private Handler main;
     protected boolean authenticating;
 
     @Override
     public void onCreate() {
-        HandlerThread thread = new HandlerThread("worker");
+        HandlerThread thread = new HandlerThread(WORKER);
         thread.start();
         worker = new Handler(thread.getLooper());
         try {
             fahrgemeinschaft = (Connector) Class.forName(
-                    "de.fahrgemeinschaft.FahrgemeinschaftConnector")
+                    FAHRGEMEINSCHAFT_CONNECTOR)
                     .newInstance();
             fahrgemeinschaft.setContext(this);
             gplaces = (Connector) Class.forName(
-                    "de.fahrgemeinschaft.GPlaces")
+                    GPLACES_CONNECTOR)
                     .newInstance();
             gplaces.setContext(this);
         } catch (Exception e) {
             e.printStackTrace();
         }
-        String uri = "content://" + ConnectorService.this.getPackageName();
-        rides_uri = Uri.parse(uri + "/rides");
         retries = new HashMap<Long, Integer>();
-        search_jobs_uri = Uri.parse(uri + "/jobs/search");
-        resolve_jobs_uri = Uri.parse(uri + "/jobs/resolve");
-        publish_jobs_uri = Uri.parse(uri + "/jobs/publish");
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(this);
         verbose = prefs.getBoolean("verbose", false);
@@ -111,8 +105,9 @@ public class ConnectorService extends Service
         @Override
         public void run() {
             int attempt = 0;
-            Cursor c = getContentResolver()
-                    .query(publish_jobs_uri, null, null, null, null);
+            Cursor c = getContentResolver().query(
+                    RidesProvider.getPublishJobsUri(ConnectorService.this),
+                    null, null, null, null);
             try {
                 if (c.getCount() != 0) {
                     c.moveToFirst();
@@ -125,7 +120,8 @@ public class ConnectorService extends Service
                         ref = fahrgemeinschaft.publish(offer);
                         values.put("dirty", 0); // in sync now
                         values.put("ref", ref);
-                        getContentResolver().update(rides_uri.buildUpon()
+                        getContentResolver().update(RidesProvider
+                                .getRidesUri(ConnectorService.this).buildUpon()
                                 .appendPath(String.valueOf(c.getString(0)))
                                 .build(), values, null, null);
                         log("published " + ref);
@@ -134,7 +130,8 @@ public class ConnectorService extends Service
                         if (fahrgemeinschaft.delete(offer) != null) {
                             values.put("dirty", -1); // successfully deleted
                             ref = c.getString(COLUMNS.REF);
-                            getContentResolver().update(rides_uri
+                            getContentResolver().update(RidesProvider
+                                    .getRidesUri(ConnectorService.this)
                                     .buildUpon().appendPath(ref)
                                     .build(), values, null, null);
                             log("deleted " + ref);
@@ -184,7 +181,8 @@ public class ConnectorService extends Service
         public void run() {
             
             Cursor c = getContentResolver()
-                    .query(resolve_jobs_uri, null, null, null, null);
+                    .query(RidesProvider.getResolveJobsUri(
+                            ConnectorService.this), null, null, null, null);
             if (c.getCount() != 0) {
                 c.moveToFirst();
                 Place p = new Place((int) c.getLong(0), ConnectorService.this);
@@ -214,8 +212,9 @@ public class ConnectorService extends Service
         @Override
         public void run() {
 
-            Cursor jobs = getContentResolver()
-                    .query(search_jobs_uri, null, null, null, null);
+            Cursor jobs = getContentResolver().query(
+                    RidesProvider.getSearchJobsUri(ConnectorService.this),
+                    null, null, null, null);
             if (jobs.getCount() != 0) {
                 jobs.moveToFirst();
                 from = new Place(jobs.getInt(0), ConnectorService.this);
