@@ -179,7 +179,7 @@ public class ConnectorService extends Service
         
         @Override
         public void run() {
-            
+
             Cursor c = getContentResolver()
                     .query(RidesProvider.getResolveJobsUri(
                             ConnectorService.this), null, null, null, null);

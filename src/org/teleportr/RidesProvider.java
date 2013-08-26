@@ -332,19 +332,22 @@ public class RidesProvider extends ContentProvider {
 
     public static Uri getSearchJobsUri(Context ctx) {
         if (search_jobs_uri == null)
-            search_jobs_uri = getUri(ctx).buildUpon().appendPath(SEARCH_PATH).build();
+            search_jobs_uri = getUri(ctx).buildUpon()
+                .appendEncodedPath(SEARCH_PATH).build();
         return search_jobs_uri;
     }
 
     public static Uri getResolveJobsUri(Context ctx) {
         if (resolve_jobs_uri == null)
-            resolve_jobs_uri = getUri(ctx).buildUpon().appendPath(RESOLVE_PATH).build();
+            resolve_jobs_uri = getUri(ctx).buildUpon()
+                .appendEncodedPath(RESOLVE_PATH).build();
         return resolve_jobs_uri;
     }
 
     public static Uri getPublishJobsUri(Context ctx) {
         if (publish_jobs_uri == null)
-            publish_jobs_uri = getUri(ctx).buildUpon().appendPath(PUBLISH_PATH).build();
+            publish_jobs_uri = getUri(ctx).buildUpon()
+                .appendEncodedPath(PUBLISH_PATH).build();
         return publish_jobs_uri;
     }
     

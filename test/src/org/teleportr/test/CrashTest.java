@@ -203,7 +203,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSearchJobs() {
-        String uri = "content://org.teleportr.test/jobs/search";
+        String uri = RidesProvider.getSearchJobsUri(ctx).toString();
+        System.out.println(uri);
         Cursor jobs = query(uri);
         assertEquals("there be only the last search", 1, jobs.getCount());
         jobs.moveToFirst();
@@ -243,7 +244,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testPublishJobs() {
-        Cursor jobs = query("content://org.teleportr.test/jobs/publish");
+        Cursor jobs = query(RidesProvider.getPublishJobsUri(ctx).toString());
         assertEquals("there be no rides to publish", 0, jobs.getCount());
 
         Ride myRide = new Ride().from(bar).to(park).dirty().seats(3);
@@ -266,7 +267,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testResolveJobs() {
-        Cursor jobs = query("content://org.teleportr.test/jobs/resolve");
+        Cursor jobs = query(RidesProvider.getResolveJobsUri(ctx).toString());
         assertEquals("there be one place to resolve", 1, jobs.getCount());
         // dummy working hard in background..
         jobs.moveToFirst();
