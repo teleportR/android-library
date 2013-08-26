@@ -298,6 +298,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
+                store(new Ride().from(1).to(2).dep(3000).ref("foo")
+                     .deactivate()); // should not show up in search results
             }
         }.search(home, bar, today, tomorrow); // execute  connector
 
