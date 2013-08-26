@@ -197,6 +197,7 @@ public class ConnectorService extends Service
                 }
             } else {
                 log("No places to resolve");
+                c.close();
             }
         }
     };
@@ -252,6 +253,7 @@ public class ConnectorService extends Service
                 }
             } else {
                 log("no more to search.");
+                jobs.close();
             }
         }
     };
