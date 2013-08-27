@@ -346,15 +346,15 @@ public class ConnectorService extends Service
                             authCallback.onAuth();
                         }
                     });
-                    PreferenceManager.getDefaultSharedPreferences(
-                            ConnectorService.this).edit().putString("auth", 
-                                    fahrgemeinschaft.authenticate(credential))
-                                    .commit();
+                    final String a = fahrgemeinschaft.authenticate(credential);
                     log("auth success");
                     main.post(new Runnable() {
                         
                         @Override
                         public void run() {
+                            PreferenceManager.getDefaultSharedPreferences(
+                                    ConnectorService.this).edit()
+                                        .putString("auth", a).commit();
                             if (authCallback != null)
                                 authCallback.onAuthSuccess();
                         }
