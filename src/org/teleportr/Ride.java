@@ -434,6 +434,14 @@ public class Ride implements Parcelable {
         return details;
     }
 
+    public Uri toUri() {
+        return RidesProvider.getRidesUri(ctx).buildUpon()
+            .appendQueryParameter(Ride.FROM_ID, cv.getAsString(Ride.FROM_ID))
+            .appendQueryParameter(Ride.TO_ID, cv.getAsString(Ride.TO_ID))
+            .appendQueryParameter(Ride.DEP, cv.getAsString(Ride.DEP))
+            .build();
+    }
+
     public static JSONObject getDetails(Cursor cursor) {
         try {
             return new JSONObject(cursor.getString(COLUMNS.DETAILS));
