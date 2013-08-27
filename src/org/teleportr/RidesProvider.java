@@ -92,13 +92,13 @@ public class RidesProvider extends ContentProvider {
                 break;
             }
             db.getWritableDatabase().setTransactionSuccessful();
-            getContext().getContentResolver()
-                    .notifyChange(getMyRidesUri(getContext()), null);
         } catch (Exception e) {
             Log.e(TAG, "error during insert: " + e);
             e.printStackTrace();
         } finally {
             db.getWritableDatabase().endTransaction();
+            getContext().getContentResolver()
+                    .notifyChange(getMyRidesUri(getContext()), null);
         }
         return ContentUris.withAppendedId(uri, id);
     }
@@ -149,7 +149,7 @@ public class RidesProvider extends ContentProvider {
                 done.put(Ride.TO_ID, s_to);
                 done.put(LATEST_DEP, max_arr);
                 done.put(LAST_REFRESH, refresh);
-                insert(getSearchJobsUri(getContext()), done);
+                db.getWritableDatabase().replace(JOBS_PATH, null, done);
             }
             db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
