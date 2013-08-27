@@ -77,7 +77,6 @@ public class RidesProvider extends ContentProvider {
     public Uri insert(Uri uri, ContentValues values) {
         long id = 0;
         try {
-            db.getWritableDatabase().beginTransaction();
             switch (route.match(uri)) {
             case PLACES:
                 id = db.insertPlace(values);
@@ -91,12 +90,10 @@ public class RidesProvider extends ContentProvider {
                 id = db.getWritableDatabase().replace(JOBS_PATH, null, values);
                 break;
             }
-            db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
             Log.e(TAG, "error during insert: " + e);
             e.printStackTrace();
         } finally {
-            db.getWritableDatabase().endTransaction();
             getContext().getContentResolver()
                     .notifyChange(getMyRidesUri(getContext()), null);
         }
@@ -149,7 +146,7 @@ public class RidesProvider extends ContentProvider {
                 done.put(Ride.TO_ID, s_to);
                 done.put(LATEST_DEP, max_arr);
                 done.put(LAST_REFRESH, refresh);
-                db.getWritableDatabase().replace(JOBS_PATH, null, done);
+                insert(getSearchJobsUri(getContext()), done);
             }
             db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
