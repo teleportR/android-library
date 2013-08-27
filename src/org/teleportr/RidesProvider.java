@@ -14,7 +14,7 @@ import android.util.Log;
 
 public class RidesProvider extends ContentProvider {
 
-    private static final String REFRESH = "refresh";
+    public static final String REFRESH = "refresh";
     private static final String PLACE_KEYS = "place_keys";
     private static final String LAST_REFRESH = "last_refresh";
     private static final String LATEST_DEP = "latest_dep";
@@ -263,7 +263,7 @@ public class RidesProvider extends ContentProvider {
             Log.d(TAG, "clear ride cache older than " + param);
             if (param != null) {
                 return db.getWritableDatabase().delete(RIDES_PATH,
-                        OFFERS + " AND dep<?", new String[] { param });
+                        OFFERS + " AND dep < ?", new String[] { param });
             } else {
                 db.getWritableDatabase().delete("route_matches", null, null);
                 return db.getWritableDatabase().delete("rides", OFFERS, null);

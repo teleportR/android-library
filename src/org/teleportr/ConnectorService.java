@@ -72,7 +72,9 @@ public class ConnectorService extends Service
             getContentResolver().delete(Uri.parse(
                     "content://de.fahrgemeinschaft/rides?older_than="
                             + older_than), null, null);
-            prefs.edit().putLong("last_cleanup", System.currentTimeMillis());
+            prefs.edit()
+                    .putLong("last_cleanup", System.currentTimeMillis())
+                    .commit();
         }
     }
 
