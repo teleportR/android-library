@@ -367,4 +367,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     + (from.equals("-1")? " AND marked = 1);" : ");"),
                     new String[] {from, to, dep, arr, time});
     }
+
+    public int invalidateCache() {
+        ContentValues values = new ContentValues();
+        values.putNull("last_refresh");
+        return getWritableDatabase().update("jobs", values, null, null);
+    }
 }

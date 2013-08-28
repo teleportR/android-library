@@ -244,6 +244,10 @@ public class RidesProvider extends ContentProvider {
             getContext().getContentResolver().notifyChange(
                     getMyRidesUri(getContext()), null);
             break;
+        case RIDES:
+            db.getWritableDatabase().delete(JOBS_PATH, null, null);
+            db.invalidateCache();
+            break;
         }
         return id;
     }
@@ -256,14 +260,15 @@ public class RidesProvider extends ContentProvider {
             return db.getWritableDatabase().delete(RIDES_PATH,
                     "parent_id=?", new String[] { uri.getLastPathSegment() });
         case RIDES:
-            db.getWritableDatabase().delete(JOBS_PATH, null, null);
             String param = uri.getQueryParameter("older_than");
             if (param != null) {
                 Log.d(TAG, "clear ride cache older than " + param);
+//              db.getWritableDatabase().delete(JOBS_PATH, null, null);
                 return db.getWritableDatabase().delete(RIDES_PATH,
                         OFFERS + " AND dep < ?", new String[] { param });
             } else {
                 Log.d(TAG, "clear ride cache completely!");
+                db.getWritableDatabase().delete(JOBS_PATH, null, null);
                 db.getWritableDatabase().delete("route_matches", null, null);
                 return db.getWritableDatabase().delete("rides", OFFERS, null);
             }

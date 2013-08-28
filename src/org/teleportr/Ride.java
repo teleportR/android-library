@@ -27,6 +27,7 @@ public class Ride implements Parcelable {
     public static final String DIRTY = "dirty";
     public static final String PARENT_ID = "parent_id";
     public static final String DETAILS = "details";
+    public static final String REFRESH = "refresh";
     public static final String ACTIVE = "active";
     public static final String MARKED = "marked";
     public static final String SEATS = "seats";
