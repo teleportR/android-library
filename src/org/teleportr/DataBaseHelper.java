@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 15;
+    private static final int VERSION = 16;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
