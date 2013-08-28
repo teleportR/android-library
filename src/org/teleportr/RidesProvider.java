@@ -203,14 +203,12 @@ public class RidesProvider extends ContentProvider {
                     getMyRidesUri(getContext()));
             return rslt;
         case SEARCH:
-            long olderThan;
+            long olderThan = 10 * 60 * 1000; // 10min
             try {
                 olderThan = Long.parseLong(PreferenceManager
                         .getDefaultSharedPreferences(
                         getContext()).getString(REFRESH, ""));
-            } catch (Exception e) {
-                olderThan = 10 * 60 * 1000; // 10min
-            }
+            } catch (Exception e) {}
             return db.queryJobs(System.currentTimeMillis() - olderThan);
         case PUBLISH:
             return db.queryPublishJobs();
@@ -260,11 +258,12 @@ public class RidesProvider extends ContentProvider {
         case RIDES:
             db.getWritableDatabase().delete(JOBS_PATH, null, null);
             String param = uri.getQueryParameter("older_than");
-            Log.d(TAG, "clear ride cache older than " + param);
             if (param != null) {
+                Log.d(TAG, "clear ride cache older than " + param);
                 return db.getWritableDatabase().delete(RIDES_PATH,
                         OFFERS + " AND dep < ?", new String[] { param });
             } else {
+                Log.d(TAG, "clear ride cache completely!");
                 db.getWritableDatabase().delete("route_matches", null, null);
                 return db.getWritableDatabase().delete("rides", OFFERS, null);
             }

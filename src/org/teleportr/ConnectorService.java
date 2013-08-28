@@ -142,25 +142,19 @@ public class ConnectorService extends Service
                     Toast.makeText(ConnectorService.this,
                             "upload success", Toast.LENGTH_LONG).show();
                 } else log("nothing to publish");
-                attempt = getRetryAttempt(-1);
-                log("load myrides #" + attempt);
-                fahrgemeinschaft.search(null, null, new Date(), null);
-                fahrgemeinschaft.flush(-1, -2, 0, Long.MAX_VALUE); // clean all
-                log("myrides updated");
             } catch (FileNotFoundException e) {
-                log("auth failed.");
                 if (PreferenceManager
                         .getDefaultSharedPreferences(ConnectorService.this)
                         .getBoolean("remember_password", false)) {
-                    log("logging in..");
+                    log("logging in automatically..");
                     authenticate(PreferenceManager
                             .getDefaultSharedPreferences(ConnectorService.this)
                             .getString("password", ""));
-                } else {
+                } else if (!authenticating) {
                     sendBroadcast(new Intent("auth"));
                     Toast.makeText(ConnectorService.this, "please login",
                             Toast.LENGTH_LONG).show();
-                }
+                } else log("auth failed.");
             } catch (Exception e) {
                 log(e.getMessage());
                 if (attempt < 3) {
@@ -173,6 +167,20 @@ public class ConnectorService extends Service
                 }
             } finally {
                 c.close();
+            }
+            try {
+                attempt = getRetryAttempt(-1);
+                log("load myrides #" + attempt);
+                fahrgemeinschaft.search(null, null, new Date(), null);
+                fahrgemeinschaft.flush(-1, -2, 0, Long.MAX_VALUE); // clean all
+                log("myrides updated");
+            } catch (Exception e) {
+                if (attempt < 3) {
+                    worker.post(publish);
+                    log(e.getClass().getName() + " Retry myrides");
+                } else {
+                    log("Giving up myrides after " + attempt + " retries");
+                }
             }
         }
     };
