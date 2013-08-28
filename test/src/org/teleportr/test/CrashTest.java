@@ -407,6 +407,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("in search only once", 4, search_results.getCount());
+        getMockContentResolver().delete(Uri.parse(
+                "content://org.teleportr.test/myrides"), null, null);
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there be no myrides anymore", 0, my_rides.getCount());
     }
 
     public void testRideDetails() throws JSONException {

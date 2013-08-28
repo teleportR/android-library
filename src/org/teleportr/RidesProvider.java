@@ -267,6 +267,15 @@ public class RidesProvider extends ContentProvider {
                 db.getWritableDatabase().delete("route_matches", null, null);
                 return db.getWritableDatabase().delete("rides", OFFERS, null);
             }
+        case MYRIDES:
+            Log.d(TAG, "clear myrides");
+            String user = "someone";
+            try {
+                user = PreferenceManager.getDefaultSharedPreferences(
+                        getContext()).getString("user", "");
+            } catch (Exception e) {}
+            return db.getWritableDatabase().delete("rides",
+                    "who = '' OR who = ?", new String[] { user } );
         }
         return -1;
     }
