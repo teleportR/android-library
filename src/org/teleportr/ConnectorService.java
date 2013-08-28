@@ -157,6 +157,7 @@ public class ConnectorService extends Service
                 } else log("auth failed.");
             } catch (Exception e) {
                 log(e.getMessage());
+                e.printStackTrace();
                 if (attempt < 3) {
                     long wait = (long) (Math.pow(2, attempt+1));
                     worker.postDelayed(publish, wait * 1000);
@@ -392,6 +393,7 @@ public class ConnectorService extends Service
                     });
                 } catch (final Exception e) {
                     log("auth failed");
+                    e.printStackTrace();
                     main.post(new Runnable() {
                         
                         @Override
