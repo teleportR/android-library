@@ -18,7 +18,7 @@ public class RidesProvider extends ContentProvider {
     private static final String PLACE_KEYS = "place_keys";
     private static final String LAST_REFRESH = "last_refresh";
     private static final String LATEST_DEP = "latest_dep";
-    static final String TAG = "RideProvider";
+    static final String TAG = "RidesProvider";
     private DataBaseHelper db;
     private UriMatcher route;
 
@@ -245,7 +245,7 @@ public class RidesProvider extends ContentProvider {
                     getMyRidesUri(getContext()), null);
             break;
         case RIDES:
-            db.getWritableDatabase().delete(JOBS_PATH, null, null);
+//            db.getWritableDatabase().delete(JOBS_PATH, null, null);
             db.invalidateCache();
             break;
         }
@@ -279,8 +279,8 @@ public class RidesProvider extends ContentProvider {
                 user = PreferenceManager.getDefaultSharedPreferences(
                         getContext()).getString("user", "");
             } catch (Exception e) {}
-            return db.getWritableDatabase().delete("rides",
-                    "who = '' OR who = ?", new String[] { user } );
+            return db.getWritableDatabase().delete("rides", OFFERS +
+                    " AND (who = '' OR who = ?)", new String[] { user } );
         }
         return -1;
     }

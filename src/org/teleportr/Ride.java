@@ -1,8 +1,10 @@
 package org.teleportr;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -443,6 +445,26 @@ public class Ride implements Parcelable {
             .build();
     }
 
+    @Override
+    public String toString() {
+        return getFrom().getName().substring(0, 3) + " -> "
+                + getTo().getName().substring(0, 3) + ": "
+                + df.format(getDep());
+    }
+
+    private static final SimpleDateFormat df =
+            new SimpleDateFormat("EEE dd.MM.", Locale.GERMANY);
+
+    @Override
+    public int hashCode() {
+        int prim = 59;
+        int hash = 17;
+        hash = hash + prim * (int) (getFromId() >>> 32);
+        hash = hash + prim * (int) (getToId() >>> 32);
+        hash = hash + prim * (int) (getDep() >>> 32);
+        return hash;
+    }
+
     public static JSONObject getDetails(Cursor cursor) {
         try {
             return new JSONObject(cursor.getString(COLUMNS.DETAILS));
@@ -481,23 +503,24 @@ public class Ride implements Parcelable {
     public static final Parcelable.Creator<Ride> CREATOR
         = new Parcelable.Creator<Ride>() {
 
-            @Override
-            public Ride createFromParcel(Parcel in) {
-                Ride ride = new Ride();
-                ride.cv = in.readParcelable(getClass().getClassLoader());
-                try {
-                    if (ride.cv.containsKey(DETAILS))
-                        ride.details = new JSONObject(
-                                ride.cv.getAsString(DETAILS));
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                return ride;
+        @Override
+        public Ride createFromParcel(Parcel in) {
+            Ride ride = new Ride();
+            ride.cv = in.readParcelable(getClass().getClassLoader());
+            try {
+                if (ride.cv.containsKey(DETAILS))
+                    ride.details = new JSONObject(
+                            ride.cv.getAsString(DETAILS));
+            } catch (JSONException e) {
+                e.printStackTrace();
             }
+            return ride;
+        }
 
-            @Override
-            public Ride[] newArray(int size) {
-                return new Ride[size];
-            }
-        };
+        @Override
+        public Ride[] newArray(int size) {
+            return new Ride[size];
+        }
+    };
+
 }
