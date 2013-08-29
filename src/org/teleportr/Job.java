@@ -44,6 +44,7 @@ public abstract class Job<T> implements Runnable {
      */
     abstract void work(Cursor job) throws Exception;
 
+
     @Override
     public void run() {
         what = null;
@@ -51,7 +52,7 @@ public abstract class Job<T> implements Runnable {
             try {
                 work(null);
             } catch (Exception e) {
-                fail(what, e.getClass().getName());
+                retry(what, e.getClass().getName());
                 e.printStackTrace();
             }
             return;
@@ -64,9 +65,10 @@ public abstract class Job<T> implements Runnable {
                 work(c);
             } else {
                 log(NOTHING_TO + query);
+                success(null, 0);
             }
         } catch (Exception e) {
-            fail(what, e.getClass().getName());
+            retry(what, e.getClass().getName());
             e.printStackTrace();
         } finally {
             c.close();
@@ -74,8 +76,8 @@ public abstract class Job<T> implements Runnable {
     }
 
 
+
     protected void fail(final T what, final String reason) {
-        if (retry(what, reason)) return;
         log("fail: " + what);
         fail = new Runnable() {
             
@@ -91,16 +93,15 @@ public abstract class Job<T> implements Runnable {
         }
     }
 
-    protected boolean retry(final T what, final String reason) {
+    protected void retry(final T what, final String reason) {
         int attempt = getRetryAttemptFor(what);
         if (attempt <= 3) {
             long wait = (long) (Math.pow(2, attempt));
             worker.postDelayed(this, wait * 1000);
             log(reason + " #" + attempt + "  Retry in " + wait + " sec..");
-            return true;
         } else {
             log(GIVING_UP_AFTER_3_RETRY_ATTEMPTS);
-            return false;
+            fail(what, reason);
         }
     }
 
@@ -125,7 +126,6 @@ public abstract class Job<T> implements Runnable {
             reporter.post(success);
             success = null;
         }
-        
     }
 
     protected void progress(final T what, final int how) {

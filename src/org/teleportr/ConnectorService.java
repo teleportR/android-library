@@ -89,6 +89,7 @@ public class ConnectorService extends Service
             worker.postAtFrontOfQueue(search);
         } else if (action.equals(PUBLISH)) {
             worker.postAtFrontOfQueue(publish);
+        } else if (action.equals(MYRIDES)) {
             worker.postAtFrontOfQueue(myrides);
         }
         return START_REDELIVER_INTENT;
@@ -196,53 +197,61 @@ public class ConnectorService extends Service
                         success(offer.toString(), 2);
                     }
                 }
+            } catch (FileNotFoundException e) {
+                handleAuth();
             } catch (JSONException e) {
-                if (PreferenceManager
+                handleAuth();
+            }
+        }
+
+        public void handleAuth() {
+            if (PreferenceManager
+                    .getDefaultSharedPreferences(getContext())
+                    .getBoolean("remember_password", false)) {
+                log("logging in automatically..");
+                authenticate(PreferenceManager
                         .getDefaultSharedPreferences(getContext())
-                        .getBoolean("remember_password", false)) {
-                    log("logging in automatically..");
-                    authenticate(PreferenceManager
-                            .getDefaultSharedPreferences(getContext())
-                            .getString("password", ""));
-                } else if (!authenticating) {
+                        .getString("password", ""));
+            } else {
+                if (!authenticating) {
                     sendBroadcast(new Intent("auth"));
                     Toast.makeText(getContext(), "please login",
                             Toast.LENGTH_LONG).show();
-                } else log("auth failed.");
+                    fail(PUBLISH, "login required");
+                }
             }
+        }
+
+        @Override
+        protected void success(String what, int number) {
+            worker.post(myrides);
+            super.success(what, number);
         }
     };
 
 
     public void authenticate(final String credential) {
-        if (authenticating) return;
-        authenticating = true;
         worker.postAtFrontOfQueue(
                 new Job<String>(getContext(), worker, reporter, null) {
 
             @Override
             void work(Cursor job) throws Exception {
+                authenticating = true;
                 progress(AUTH, 0);
                 try {
                     final String a = fahrgemeinschaft.authenticate(credential);
+                    PreferenceManager.getDefaultSharedPreferences(
+                            getContext()).edit()
+                            .putString(AUTH, a).commit();
                     success(AUTH, 0);
-                    reporter.post(new Runnable() {
-                        
-                        @Override
-                        public void run() {
-                            PreferenceManager.getDefaultSharedPreferences(
-                                    getContext()).edit()
-                                        .putString(AUTH, a).commit();
-                        }
-                    });
                     worker.post(publish);
-                    worker.post(myrides);
                 } catch (AuthException e) {
                     fail(AUTH, "wrong login or password");
                 } catch (FileNotFoundException e) {
                     fail(AUTH, "wrong email or password");
+                } finally {
+                    authenticating = false;
                 }
-                authenticating = false;
             }
         }.register(authCallback).setVerbose(PreferenceManager
                 .getDefaultSharedPreferences(getContext())
