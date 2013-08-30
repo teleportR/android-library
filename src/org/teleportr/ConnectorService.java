@@ -32,11 +32,12 @@ public class ConnectorService extends Service
             "de.fahrgemeinschaft.FahrgemeinschaftConnector";
     private static final String WORKER = "worker";
     protected static final String TAG = "ConnectorService";
-    public static final String AUTH = "auth";
     public static final String SEARCH = "search";
     public static final String RESOLVE = "resolve";
     public static final String PUBLISH = "publish";
     public static final String MYRIDES = "myrides";
+    public static final String UPGRADE = "upgrade";
+    public static final String AUTH = "auth";
     private Connector fahrgemeinschaft;
     private Connector gplaces;
     private Handler worker;
@@ -136,6 +137,7 @@ public class ConnectorService extends Service
 
     public class Search extends Job<Ride> {
 
+
         public Search(Context ctx) {
             super(ctx, worker, reporter,
                     RidesProvider.getSearchJobsUri(getContext()));
@@ -154,10 +156,16 @@ public class ConnectorService extends Service
                 dep = new Date(job.getLong(4)); // continue latest_dep
             Ride query = new Ride(getContext()).dep(dep).from(fr).to(to);
             progress(query, 0);
-            arr = fahrgemeinschaft.search(fr, to, dep, null);
-            success(query, fahrgemeinschaft.getNumberOfRidesFound());
-            fahrgemeinschaft.flush(fr.id, to.id, dep.getTime(), arr);
-            worker.post(this);
+            try {
+                arr = fahrgemeinschaft.search(fr, to, dep, null);
+                success(query, fahrgemeinschaft.getNumberOfRidesFound());
+                fahrgemeinschaft.flush(fr.id, to.id, dep.getTime(), arr);
+                worker.post(this);
+            } catch (AuthException e) { // APIKEY invalid?
+                sendBroadcast(new Intent(UPGRADE));
+            } catch (FileNotFoundException e) { // APIKEY invalid?
+                sendBroadcast(new Intent(UPGRADE));
+            }
         }
     };
 

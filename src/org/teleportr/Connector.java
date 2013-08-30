@@ -71,6 +71,8 @@ public abstract class Connector {
             ride.mode(Mode.CAR);
         if (!ride.cv.containsKey("active"))
             ride.activate();
+        if (!ride.cv.containsKey("price"))
+            ride.price(-1);
         if (ride.details != null)
             ride.cv.put("details", ride.details.toString());
         ridesBatch.add(ride.cv);

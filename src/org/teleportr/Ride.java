@@ -198,6 +198,7 @@ public class Ride implements Parcelable {
     public Uri store(Context ctx) {
         if (!cv.containsKey(MODE)) mode(Mode.CAR);
         if (!cv.containsKey(ACTIVE)) activate();
+        if (!cv.containsKey(PRICE)) price(-1);
         if (details != null) cv.put(DETAILS, details.toString());
         Uri ride;
         cv.put(PARENT_ID, 0);
