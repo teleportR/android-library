@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 16;
+    private static final int VERSION = 17;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -47,9 +47,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer,"
-                + " latest_dep integer, last_refresh integer);");
+                + " dep integer, arr integer, last_refresh integer);");
         db.execSQL("CREATE UNIQUE INDEX jobs_idx"
-                + " ON jobs ('from_id', 'to_id');");
+                + " ON jobs ('from_id', 'to_id', dep);");
         db.execSQL("create table route_matches ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer,"
@@ -282,17 +282,28 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     static final String SELECT_JOBS = "SELECT"
-                + " rides.from_id, rides.to_id, dep, arr,"
-                + " latest_dep, last_refresh"
+                + " rides.from_id, rides.to_id,"
+                + " CASE WHEN jobs.dep IS NULL"
+                        + " OR jobs.arr >= rides.arr"
+                    + " THEN rides.dep"
+                    + " ELSE jobs.arr"
+                + " END, jobs.last_refresh"
             + " FROM (SELECT * from rides"
                 + " WHERE rides.type=" + Ride.SEARCH
                 + " ORDER BY _id DESC LIMIT 1) AS rides"
             + " LEFT JOIN jobs ON"
-                + " rides.from_id=jobs.from_id AND rides.to_id=jobs.to_id"
-            + " WHERE rides.type=" + Ride.SEARCH
-                + " AND (latest_dep < arr"
-                    + " OR (last_refresh IS null OR last_refresh < ?))"
-            + " ORDER BY rides._id DESC;";
+                + " rides.from_id IS jobs.from_id"
+                + " AND rides.to_id IS jobs.to_id"
+                + " AND jobs.dep IS rides.dep"
+            + " WHERE jobs.dep IS NULL" // never searched before
+            + " OR ((jobs.arr < rides.arr OR jobs.last_refresh < ?)"
+                + " AND (SELECT _id FROM jobs AS overlap"
+                    + " WHERE from_id IS rides.from_id"
+                    + " AND to_id IS rides.to_id"
+                    + " AND dep IS NOT rides.dep"
+                    + " AND dep <= jobs.arr"
+                + ") IS NULL"
+            + ")";
 
     public Cursor queryJobs(long older_than_last_refresh) {
         return getReadableDatabase().rawQuery(SELECT_JOBS,

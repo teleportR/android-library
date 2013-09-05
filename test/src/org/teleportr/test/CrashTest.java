@@ -203,44 +203,66 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSearchJobs() {
-        String uri = RidesProvider.getSearchJobsUri(ctx).toString();
-        System.out.println(uri);
-        Cursor jobs = query(uri);
-        assertEquals("there be only the last search", 1, jobs.getCount());
-        jobs.moveToFirst();
-        assertEquals("last search first", bar.id, jobs.getLong(0));
-        assertEquals("last search first", home.id, jobs.getLong(1));
-        assertEquals("dep of last search", 7000, jobs.getLong(2));
-        assertEquals("arr of last search", 9000, jobs.getLong(3));
-        
+        assertOneJobToSearch("last search ride dep", 7000);
         // working dummy hard in background..
+        reportJobsDone(7000, 8000);
+        assertOneJobToSearch("still search from dep", 8000);
+        // working dummy hard in background..
+        reportJobsDone(7000, 9000);
+        assertNoMoreJobsToSearch();
+        // cache invalidates after time
+        reportJobsDone(7000, 9000, System.currentTimeMillis() - 10 * 60 * 1001);
+        assertOneJobToSearch("again search from dep", 7000);
+        reportJobsDone(7000, 8000);
+        assertOneJobToSearch("again search from dep", 8000);
+        // working dummy hard in background..
+        reportJobsDone(7000, 9000);
+        assertNoMoreJobsToSearch();
+        Uri r = new Ride().type(Ride.SEARCH).from(bar).to(home)
+            .dep(new Date(7000)).arr(new Date(9500)).store(ctx);
+        assertOneJobToSearch("inc time window: dep", 9000);
+        new Ride(r, ctx).dep(3000).arr(5000).store(ctx);
+        assertOneJobToSearch("new time window: dep", 3000);
+        reportJobsDone(3000, 4000);
+        assertOneJobToSearch("job dep", 4000);
+        reportJobsDone(3000, 5000);
+        assertNoMoreJobsToSearch();
+        new Ride(r, ctx).dep(3000).arr(8000).store(ctx); // inc arr
+        assertOneJobToSearch("", 5000);
+        reportJobsDone(3000, 7000);
+//        assertOneJobToSearch("", 7000);
+        assertNoMoreJobsToSearch(); 
+    }
+
+    public void assertNoMoreJobsToSearch() {
+        String uri = RidesProvider.getSearchJobsUri(ctx).toString();
+        Cursor jobs = query(uri);
+        assertEquals("now no more jobs to do", 0, jobs.getCount());
+    }
+
+    public void assertOneJobToSearch(String msg, long searchtime) {
+        String uri = RidesProvider.getSearchJobsUri(ctx).toString();
+        Cursor jobs = query(uri);
+        assertEquals("one job to search for " + msg, 1, jobs.getCount());
+        jobs.moveToFirst();
+        assertEquals("from id", bar.id, jobs.getLong(0));
+        assertEquals("to id", home.id, jobs.getLong(1));
+        assertEquals(msg, searchtime, jobs.getLong(2));
+    }
+
+    public void reportJobsDone(long dep, long arr) {
+        reportJobsDone(dep, arr, System.currentTimeMillis());
+    }
+
+    public void reportJobsDone(long dep, long arr, long refreshtime) {
+        String uri = RidesProvider.getSearchJobsUri(ctx).toString();
         ContentValues values = new ContentValues();
         values.put("from_id", bar.id);
         values.put("to_id", home.id);
-        values.put("latest_dep", 8000); // smaller than arr
-        values.put("last_refresh", System.currentTimeMillis());
+        values.put("dep", dep);
+        values.put("arr", arr);
+        values.put("last_refresh", refreshtime);
         getMockContentResolver().insert(Uri.parse(uri), values);
-        jobs = query(uri);
-        assertEquals("still one job to search further arr", 1, jobs.getCount());
-
-        values.put("latest_dep", 9000); // not smaller than arr
-        values.put("last_refresh", System.currentTimeMillis() - 10 * 60 * 1001);
-        getMockContentResolver().insert(Uri.parse(uri), values);
-        jobs = query(uri);
-        assertEquals("still one job to refresh", 1, jobs.getCount());
-        
-        values.put("last_refresh", System.currentTimeMillis());
-        getMockContentResolver().insert(Uri.parse(uri), values);
-        jobs = query(uri);
-        assertEquals("now no more jobs to doh", 0, jobs.getCount());
-
-        new Ride().type(Ride.SEARCH).from(bar).to(home)
-            .dep(new Date(7000)).arr(new Date(9500))
-            .store(ctx); // same ride arrive later
-        jobs = query(uri);
-        assertEquals("there be one new job to search", 1, jobs.getCount());
-        jobs.moveToFirst();
-        assertEquals("latest_dep", 9000, jobs.getLong(4)); // continue..
     }
 
     public void testPublishJobs() {
