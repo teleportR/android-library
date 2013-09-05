@@ -106,10 +106,9 @@ public class ConnectorService extends Service
 
         @Override
         void work(Cursor job) throws Exception {
-            progress(MYRIDES, 0);
             try {
-                fahrgemeinschaft.search(null, null, new Date(), null);
-                fahrgemeinschaft.flush(-1, -2, 0, Long.MAX_VALUE); // clean all
+                progress(MYRIDES, 0);
+                fahrgemeinschaft.doSearch(null);
                 success(MYRIDES, 0);
             } catch (FileNotFoundException e) {
                 fail(MYRIDES, "login");
@@ -145,21 +144,13 @@ public class ConnectorService extends Service
 
         @Override
         void work(Cursor job) throws Exception {
-            Place fr = new Place(job.getInt(0), getContext());
-            Place to = new Place(job.getInt(1), getContext());
-            long arr = job.getLong(4);
-            Date dep;
-            if (arr == 0 // first search - no latest_dep yet
-                    || arr >= job.getLong(3)) // or refresh
-                dep = new Date(job.getLong(2)); // search dep
-            else
-                dep = new Date(job.getLong(4)); // continue latest_dep
-            Ride query = new Ride(getContext()).dep(dep).from(fr).to(to);
-            progress(query, 0);
+            Ride query = new Ride(getContext())
+                .from(job.getInt(0)).to(job.getInt(1))
+                .dep(new Date(job.getLong(2)));
             try {
-                arr = fahrgemeinschaft.search(fr, to, dep, null);
+                progress(query, 0);
+                fahrgemeinschaft.doSearch(query);
                 success(query, fahrgemeinschaft.getNumberOfRidesFound());
-                fahrgemeinschaft.flush(fr.id, to.id, dep.getTime(), arr);
                 worker.post(this);
             } catch (AuthException e) { // APIKEY invalid?
                 sendBroadcast(new Intent(UPGRADE));

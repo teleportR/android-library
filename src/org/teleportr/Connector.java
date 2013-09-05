@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -17,7 +16,7 @@ import android.preference.PreferenceManager;
 
 public abstract class Connector {
 
-    public abstract long search(Place from, Place to, Date dep, Date arr) throws Exception;
+    public abstract long search(Ride search) throws Exception;
 
     public abstract String publish(Ride offer) throws Exception;
 
@@ -33,6 +32,10 @@ public abstract class Connector {
     private ArrayList<ContentValues> placesBatch;
     private ArrayList<ContentValues> ridesBatch;
     Context ctx;
+    private int from;
+    private int to;
+    private long dep;
+    private long arr;
 
     public Connector() {
         placeIdx = new HashMap<String, Integer>();
@@ -84,7 +87,21 @@ public abstract class Connector {
         return ridesBatch.size();
     }
 
-    public void flush(int from, int to, long dep, long arr) {
+    public void doSearch(Ride search) throws Exception {
+        if (search == null) {
+            from = -1;
+            to = -2;
+            dep = 0;
+        } else {
+            from = search.getFromId();
+            to = search.getToId();
+            dep = search.getDep();
+        }
+        arr = search(search);
+        flush();
+    }
+
+    public void flush() {
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
                 RidesProvider.getRidesUri(ctx).buildUpon()

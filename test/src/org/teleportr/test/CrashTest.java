@@ -91,7 +91,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
         dummyConnector = new MockConnector(ctx) { // dummy search results
             @Override
-            public void mockResults() {
+            public long search(Ride query) {
                 store(new Ride().type(Ride.OFFER).who("anyone").ref("a")
                         .from(store(new Place().name("Home"))).dep(1000)
                         .to(store(new Place().name("Slackline"))));
@@ -101,6 +101,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride().type(Ride.OFFER).who("someone").ref("c")
                         .from(store(new Place().address("Hipperstr. 42")))
                         .to(store(new Place().address("Wiesn"))).dep(3000));
+                return tomorrow.getTime();
             }
         };
     }
@@ -133,7 +134,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSortedAsFrom() throws Exception {
-        dummyConnector.search(cafe, bar, today, tomorrow); // execute
+        dummyConnector.doSearch(new Ride().type(Ride.OFFER)
+                .from(cafe).to(bar).dep(today).arr(tomorrow));
         Cursor places = query("content://org.teleportr.test/places");
         assertEquals("there should be all places", 5, places.getCount());
         // should be ordered by how often a place was used as 'from' in a search
@@ -304,7 +306,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     public void testRideMatches() throws Exception {
         new MockConnector(ctx) {
             @Override
-            public void mockResults() {
+            public long search(Ride query) {
                 store(new Ride().from(1).to(2).dep(500));
                 store(new Ride() // dummy search results
                     .type(Ride.OFFER).who("Sepp")
@@ -323,8 +325,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                     .dep(new Date(2000)));
                 store(new Ride().from(1).to(2).dep(3000).ref("foo")
                      .deactivate()); // should not show up in search results
+                return 0;
             }
-        }.search(home, bar, today, tomorrow); // execute  connector
+        }.doSearch(new Ride().type(Ride.SEARCH)
+                .from(home).to(bar).dep(today).arr(tomorrow)); // execute  connector
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
@@ -344,10 +348,13 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testSubRideMatches() throws Exception {
-        dummyConnector.search(cafe, bar, today, tomorrow); // execute connector
+        Ride query = new Ride().type(Ride.SEARCH)
+                .from(home).to(bar).dep(today).arr(tomorrow);
+        dummyConnector.doSearch(query); // execute connector
+        query.from(park);
         Connector connector = new MockConnector(ctx) {
             @Override
-            public void mockResults() {
+            public long search(Ride query) {
                 store(new Ride().type(Ride.OFFER).ref("a").who("S7")
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
@@ -359,10 +366,11 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                         .via(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Slackline")))
                         .dep(new Date(1000)));
+                return 0;
             }
         };
-        connector.search(park, bar, today, tomorrow); // execute connector
-        connector.search(park, bar, today, tomorrow); // refresh results
+        connector.doSearch(query); // execute connector
+        connector.doSearch(query); // refresh results
         
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + park.id + "&to_id=" + bar.id);
@@ -389,7 +397,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testRideEdit() throws Exception {
-        dummyConnector.search(home, park, today, tomorrow); // execute connector
+        dummyConnector.doSearch(new Ride().type(Ride.OFFER)
+                .from(home).to(park).dep(today).arr(tomorrow)); // execute connector
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
                 .price(42).dep(1000).marked()
@@ -457,7 +466,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     public void testClearCache() throws Exception {
         new MockConnector(ctx) {
             @Override
-            public void mockResults() {
+            public long search(Ride query) {
                 store(new Ride().type(Ride.OFFER).ref("a").who("S7")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(1000));
@@ -467,8 +476,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride().type(Ride.OFFER).ref("c").who("Sepp")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Whiskybar"))).dep(3000));
+                return 0;
             }
-        }.search(home, bar, today, tomorrow); // execute
+        }.doSearch(new Ride().type(Ride.SEARCH)
+                .from(home).to(bar).dep(today).arr(tomorrow)); // execute
         String uri = "content://org.teleportr.test/rides/";
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
         assertEquals("there be three ride matches", 3, rides.getCount());
@@ -486,39 +497,44 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     }
 
     public void testCleanUp() throws Exception { // rides deleted on the server
-        dummyConnector.search(home, park, today, tomorrow);
+        Ride query = new Ride().type(Ride.SEARCH)
+                .from(home).to(park).dep(today).arr(tomorrow);
+        dummyConnector.doSearch(query);
         String uri = "content://org.teleportr.test/rides/";
         Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("there be three ride matches", 3, rides.getCount());
 
         new MockConnector(ctx) { // one ride has been deleted on the server
             @Override
-            public void mockResults() { // the first ride is found again
+            public long search(Ride query) { // the first ride is found again
                 store(new Ride().type(Ride.OFFER).who("someone").ref("b")
                         .from(store(new Place().address("Hipperstr. 42")))
                         .to(store(new Place().address("Wiesn"))).dep(2000));
+                return tomorrow.getTime();
             }
-        }.search(home, park, today, tomorrow);
+        }.doSearch(query);
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("ride is locally deleted too", 2, rides.getCount());
         // third ride should not be cleared since it departs after tomorrow
 
         new MockConnector(ctx) { // clean up myride(s)
             @Override
-            public void mockResults() {
+            public long search(Ride query) {
                 store(new Ride().type(Ride.OFFER).ref("a").marked() //.who("me")
                         .from(store(new Place().name("Home"))).dep(1000)
                         .to(store(new Place().name("Slackline"))));
+                return 0;
             }
-        }.search(null, null, null, null); // null means myrides
+        }.doSearch(null); // null means myrides
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         rides = query(uri + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("search results were not cleared", 2, rides.getCount());
         new MockConnector(ctx) { // one ride has been deleted on the server
             @Override
-            public void mockResults() { } // ride has been deleted remotely
-        }.search(null, null, null, null); // myrides
+            public long search(Ride query) {
+                return 2000; } // ride has been deleted remotely
+        }.doSearch(null); // myrides
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride was locally deleted too", 0, my_rides.getCount());
     }

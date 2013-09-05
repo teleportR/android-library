@@ -17,7 +17,6 @@ public class RidesProvider extends ContentProvider {
     public static final String REFRESH = "refresh";
     private static final String PLACE_KEYS = "place_keys";
     private static final String LAST_REFRESH = "last_refresh";
-    private static final String LATEST_DEP = "latest_dep";
     static final String TAG = "RidesProvider";
     private DataBaseHelper db;
     private UriMatcher route;
@@ -144,7 +143,8 @@ public class RidesProvider extends ContentProvider {
                 ContentValues done = new ContentValues();
                 done.put(Ride.FROM_ID, s_f);
                 done.put(Ride.TO_ID, s_to);
-                done.put(LATEST_DEP, max_arr);
+                done.put(Ride.DEP, min_dep);
+                done.put(Ride.ARR, max_arr);
                 done.put(LAST_REFRESH, refresh);
                 insert(getSearchJobsUri(getContext()), done);
             }
