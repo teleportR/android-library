@@ -14,6 +14,8 @@ import android.util.Log;
 
 public class RidesProvider extends ContentProvider {
 
+    private static final String DELETED = ": deleted ";
+    private static final String UPSERTED = ": upserted ";
     public static final String REFRESH = "refresh";
     private static final String PLACE_KEYS = "place_keys";
     private static final String LAST_REFRESH = "last_refresh";
@@ -133,18 +135,18 @@ public class RidesProvider extends ContentProvider {
                         }
                     }
                 }
-                Log.d(TAG, "upserted " + upserted_cnt + RIDES_PATH);
-                String min_dep = uri.getQueryParameter(Ride.DEP);
-                String max_arr = uri.getQueryParameter(Ride.ARR);
+                Log.d(TAG, RIDES_PATH + UPSERTED + upserted_cnt);
                 int deleted_cnt = db.deleteOutdated(
                         String.valueOf(s_f), String.valueOf(s_to),
-                        min_dep, max_arr, String.valueOf(refresh));
-                Log.d(TAG, "deleted " + deleted_cnt + RIDES_ID_PATH);
+                        uri.getQueryParameter(Ride.DEP),
+                        uri.getQueryParameter(Ride.ARR),
+                        String.valueOf(refresh));
+                Log.d(TAG, RIDES_PATH + DELETED + deleted_cnt);
                 ContentValues done = new ContentValues();
                 done.put(Ride.FROM_ID, s_f);
                 done.put(Ride.TO_ID, s_to);
-                done.put(Ride.DEP, min_dep);
-                done.put(Ride.ARR, max_arr);
+                done.put(Ride.DEP, uri.getQueryParameter("depp"));
+                done.put(Ride.ARR, uri.getQueryParameter(Ride.ARR));
                 done.put(LAST_REFRESH, refresh);
                 insert(getSearchJobsUri(getContext()), done);
             }

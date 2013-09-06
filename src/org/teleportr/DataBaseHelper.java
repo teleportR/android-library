@@ -283,7 +283,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_JOBS = "SELECT"
                 + " rides.from_id, rides.to_id,"
-                + " CASE WHEN jobs.dep IS NULL"
+                + " rides.dep, CASE"
+                    + " WHEN jobs.dep IS NULL"
                         + " OR jobs.arr >= rides.arr"
                     + " THEN rides.dep"
                     + " ELSE jobs.arr"
@@ -294,15 +295,16 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " LEFT JOIN jobs ON"
                 + " rides.from_id IS jobs.from_id"
                 + " AND rides.to_id IS jobs.to_id"
-                + " AND jobs.dep IS rides.dep"
+                + " AND rides.dep IS jobs.dep"
             + " WHERE jobs.dep IS NULL" // never searched before
             + " OR ((jobs.arr < rides.arr OR jobs.last_refresh < ?)"
-                + " AND (SELECT _id FROM jobs AS overlap"
+                /*+ " AND (SELECT arr FROM jobs AS overlap"
                     + " WHERE from_id IS rides.from_id"
                     + " AND to_id IS rides.to_id"
                     + " AND dep IS NOT rides.dep"
                     + " AND dep <= jobs.arr"
-                + ") IS NULL"
+                    + " AND rides.arr < arr"
+                + ") IS NULL" */
             + ")";
 
     public Cursor queryJobs(long older_than_last_refresh) {

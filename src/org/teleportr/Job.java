@@ -114,6 +114,7 @@ public abstract class Job<T> implements Runnable {
     protected void success(final T what, final int number) {
         log("success " + what);
         retries.remove(what);
+        if (what == null) return;
         success = new Runnable() {
             
             @Override

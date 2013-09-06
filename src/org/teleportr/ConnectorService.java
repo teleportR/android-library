@@ -108,7 +108,7 @@ public class ConnectorService extends Service
         void work(Cursor job) throws Exception {
             try {
                 progress(MYRIDES, 0);
-                fahrgemeinschaft.doSearch(null);
+                fahrgemeinschaft.doSearch(null, 0);
                 success(MYRIDES, 0);
             } catch (FileNotFoundException e) {
                 fail(MYRIDES, "login");
@@ -146,10 +146,10 @@ public class ConnectorService extends Service
         void work(Cursor job) throws Exception {
             Ride query = new Ride(getContext())
                 .from(job.getInt(0)).to(job.getInt(1))
-                .dep(new Date(job.getLong(2)));
+                .dep(new Date(job.getLong(3)));
             try {
                 progress(query, 0);
-                fahrgemeinschaft.doSearch(query);
+                fahrgemeinschaft.doSearch(query, job.getLong(2));
                 success(query, fahrgemeinschaft.getNumberOfRidesFound());
                 worker.post(this);
             } catch (AuthException e) { // APIKEY invalid?

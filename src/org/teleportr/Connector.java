@@ -34,8 +34,9 @@ public abstract class Connector {
     Context ctx;
     private int from;
     private int to;
-    private long dep;
     private long arr;
+    private long dep;
+    private int numberOfRidesFound;
 
     public Connector() {
         placeIdx = new HashMap<String, Integer>();
@@ -84,32 +85,31 @@ public abstract class Connector {
     }
 
     public int getNumberOfRidesFound() {
-        return ridesBatch.size();
+        return numberOfRidesFound;
     }
 
-    public void doSearch(Ride search) throws Exception {
-        if (search == null) {
+    public void doSearch(Ride query, long earliest_dep) throws Exception {
+        numberOfRidesFound = 0;
+        if (query == null) {
             from = -1;
             to = -2;
             dep = 0;
         } else {
-            from = search.getFromId();
-            to = search.getToId();
-            dep = search.getDep();
+            from = query.getFromId();
+            to = query.getToId();
+            dep = query.getDep();
         }
-        arr = search(search);
-        flush();
-    }
-
-    public void flush() {
+        arr = search(query);
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
                 RidesProvider.getRidesUri(ctx).buildUpon()
                 .appendQueryParameter(Ride.FROM_ID, String.valueOf(from))
                 .appendQueryParameter(Ride.TO_ID, String.valueOf(to))
                 .appendQueryParameter(Ride.DEP, String.valueOf(dep))
+                .appendQueryParameter("depp", String.valueOf(earliest_dep))
                 .appendQueryParameter(Ride.ARR, String.valueOf(arr)).build(),
                 placesBatch.toArray(new ContentValues[placesBatch.size()]));
+        numberOfRidesFound = ridesBatch.size();
         placesBatch.clear();
         ridesBatch.clear();
         placeIdx.clear();
