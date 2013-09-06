@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import org.teleportr.ConnectorService.ServiceCallback;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -12,6 +13,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 
+@SuppressLint("UseSparseArrays")
 public abstract class Job<T> implements Runnable {
 
     private static final String NOTHING_TO = "nothing to ";
@@ -24,7 +26,7 @@ public abstract class Job<T> implements Runnable {
     private Runnable success;
     private Runnable progress;
     private ServiceCallback<T> listener;
-    private HashMap<T, Integer> retries;
+    private HashMap<Integer, Integer> retries;
     private Context ctx;
     private Uri query;
     private boolean verbose;
@@ -36,7 +38,7 @@ public abstract class Job<T> implements Runnable {
         this.query = query;
         this.worker = worker;
         this.reporter = reporter;
-        retries = new HashMap<T, Integer>();
+        retries = new HashMap<Integer, Integer>();
     }
 
     /**
@@ -51,11 +53,11 @@ public abstract class Job<T> implements Runnable {
         if (query == null) {
             try {
                 work(null);
+                worker.removeCallbacks(this);
             } catch (Exception e) {
                 retry(what, e.getClass().getName());
                 e.printStackTrace();
             }
-            worker.removeCallbacks(this);
             return;
         }
         Cursor c = ctx.getContentResolver()
@@ -79,6 +81,25 @@ public abstract class Job<T> implements Runnable {
 
 
 
+    protected void retry(final T what, final String reason) {
+        int attempt = getRetryAttemptFor(what);
+        if (attempt <= 3) {
+            long wait = (long) (Math.pow(2, attempt));
+            worker.postDelayed(this, wait * 1000);
+            log(reason + " #" + attempt + "  Retry in " + wait + " sec..");
+        } else {
+            log(GIVING_UP_AFTER_3_RETRY_ATTEMPTS);
+            fail(what, reason);
+        }
+    }
+
+    private int getRetryAttemptFor(T what) {
+        int id = what.hashCode();
+        if (!retries.containsKey(id) || retries.get(id) > 3) retries.put(id, 2);
+        else retries.put(id, retries.get(id) + 1);
+        return retries.get(id);
+    }
+
     protected void fail(final T what, final String reason) {
         log("fail: " + what);
         fail = new Runnable() {
@@ -92,42 +113,6 @@ public abstract class Job<T> implements Runnable {
         if (listener != null) {
             reporter.post(fail);
             fail = null;
-        }
-    }
-
-    protected void retry(final T what, final String reason) {
-        int attempt = getRetryAttemptFor(what);
-        if (attempt <= 3) {
-            long wait = (long) (Math.pow(2, attempt));
-            worker.postDelayed(this, wait * 1000);
-            log(reason + " #" + attempt + "  Retry in " + wait + " sec..");
-        } else {
-            log(GIVING_UP_AFTER_3_RETRY_ATTEMPTS);
-            fail(what, reason);
-        }
-    }
-
-    private Integer getRetryAttemptFor(T id) {
-        if (!retries.containsKey(id) || retries.get(id) > 3) retries.put(id, 2);
-        else retries.put(id, retries.get(id) + 1);
-        return retries.get(id);
-    }
-
-    protected void success(final T what, final int number) {
-        log("success " + what);
-        retries.remove(what);
-        if (what == null) return;
-        success = new Runnable() {
-            
-            @Override
-            public void run() {
-                if (listener != null)
-                    listener.onSuccess(what, number);
-            }
-        };
-        if (listener != null) {
-            reporter.post(success);
-            success = null;
         }
     }
 
@@ -145,6 +130,24 @@ public abstract class Job<T> implements Runnable {
         if (listener != null) {
             reporter.post(progress);
             progress = null;
+        }
+    }
+
+    protected void success(final T what, final int number) {
+        log("success " + what);
+        retries.remove(what);
+        if (what == null) return;
+        success = new Runnable() {
+            
+            @Override
+            public void run() {
+                if (listener != null)
+                    listener.onSuccess(what, number);
+            }
+        };
+        if (listener != null) {
+            reporter.post(success);
+            success = null;
         }
     }
 

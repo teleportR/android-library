@@ -136,7 +136,6 @@ public class ConnectorService extends Service
 
     public class Search extends Job<Ride> {
 
-
         public Search(Context ctx) {
             super(ctx, worker, reporter,
                     RidesProvider.getSearchJobsUri(getContext()));
