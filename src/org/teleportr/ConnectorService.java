@@ -223,7 +223,11 @@ public class ConnectorService extends Service
 
         @Override
         protected void success(String what, int number) {
-            worker.post(myrides);
+            if (what != null) {
+                worker.post(this);
+            } else {
+                worker.post(myrides);
+            }
             super.success(what, number);
         }
     };

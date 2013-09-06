@@ -55,6 +55,7 @@ public abstract class Job<T> implements Runnable {
                 retry(what, e.getClass().getName());
                 e.printStackTrace();
             }
+            worker.removeCallbacks(this);
             return;
         }
         Cursor c = ctx.getContentResolver()
@@ -66,6 +67,7 @@ public abstract class Job<T> implements Runnable {
             } else {
                 log(NOTHING_TO + query);
                 success(null, 0);
+                worker.removeCallbacks(this);
             }
         } catch (Exception e) {
             retry(what, e.getClass().getName());
