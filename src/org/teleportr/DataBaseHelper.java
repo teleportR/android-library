@@ -21,6 +21,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private SQLiteStatement getIdByName;
     private SQLiteStatement insertMatch;
     private SQLiteStatement getIdByAddress;
+    private SQLiteStatement getLatestRef;
 
     @Override
     public void onCreate(SQLiteDatabase db) {
@@ -143,6 +144,13 @@ class DataBaseHelper extends SQLiteOpenHelper {
         return (int) place_id;
     }
 
+    static final String GET_REF = "SELECT ref from rides WHERE _id IS ?";
+
+    public String getLatestRef(int id) {
+        getLatestRef = getReadableDatabase().compileStatement(GET_REF);
+        getLatestRef.bindLong(1, id);
+        return getLatestRef.simpleQueryForString();
+    }
 
     static final String INSERT_RIDE = "INSERT OR REPLACE INTO rides "
             + "('type', from_id, to_id, dep, arr, mode, operator, who, details,"

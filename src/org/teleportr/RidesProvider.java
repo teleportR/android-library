@@ -75,26 +75,34 @@ public class RidesProvider extends ContentProvider {
     }
 
     @Override
-    public Uri insert(Uri uri, ContentValues values) {
+    public Uri insert(Uri uri, ContentValues cv) {
         long id = 0;
         try {
+            db.getWritableDatabase().beginTransaction();
             switch (route.match(uri)) {
             case PLACES:
-                id = db.insertPlace(values);
+                id = db.insertPlace(cv);
                 break;
             case RIDES:
-                id = db.insertRide(values.getAsInteger(Ride.PARENT_ID),
-                        values.getAsInteger(Ride.FROM_ID),
-                        values.getAsInteger(Ride.TO_ID), values);
+                if (cv.containsKey(Ride._ID)) {
+                    cv.put(Ride.REF, db.getLatestRef(
+                            cv.getAsInteger(Ride._ID)));
+                }
+                cv.remove(Ride._ID);
+                id = db.insertRide(cv.getAsInteger(Ride.PARENT_ID),
+                        cv.getAsInteger(Ride.FROM_ID),
+                        cv.getAsInteger(Ride.TO_ID), cv);
                 break;
             case SEARCH:
-                id = db.getWritableDatabase().replace(JOBS_PATH, null, values);
+                id = db.getWritableDatabase().replace(JOBS_PATH, null, cv);
                 break;
             }
+            db.getWritableDatabase().setTransactionSuccessful();
         } catch (Exception e) {
             Log.e(TAG, "error during insert: " + e);
             e.printStackTrace();
         } finally {
+            db.getWritableDatabase().endTransaction();
             getContext().getContentResolver()
                     .notifyChange(getMyRidesUri(getContext()), null);
         }

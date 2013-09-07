@@ -277,23 +277,28 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor jobs = query(RidesProvider.getPublishJobsUri(ctx).toString());
         assertEquals("there be no rides to publish", 0, jobs.getCount());
 
-        Ride myRide = new Ride().from(bar).to(park).dirty().seats(3);
-        myRide.store(ctx);
+        Uri ride = new Ride().from(bar).to(park).marked().dirty().store(ctx);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("now there be a ride to publish", 1, jobs.getCount());
         // dummy connector publishing hard in the background..
         ContentValues values = new ContentValues();
-        values.put("dirty", 0); // in sync now
         jobs.moveToFirst();
+        assertNotNull(jobs.getString(COLUMNS.REF)); // tmp ref
         long id = jobs.getLong(0);
+        values.put("dirty", 0);
+        values.put("ref", "y");
         getMockContentResolver().update(Uri.parse(
                 "content://org.teleportr.test/rides/"+id), values, null, null);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("nothing to publish anymore", 0, jobs.getCount());
-
-        myRide.seats(2).store(ctx);
+        // meanwhile the unpublished has been edited with still the tmp ref
+        new Ride(ride, ctx).seats(2).dirty().store(ctx);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("one ride to update", 1, jobs.getCount());
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be only one ride", 1, my_rides.getCount());
+        my_rides.moveToFirst();
+
     }
 
     public void testResolveJobs() {

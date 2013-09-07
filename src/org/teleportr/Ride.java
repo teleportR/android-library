@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -199,6 +200,7 @@ public class Ride implements Parcelable {
         if (!cv.containsKey(MODE)) mode(Mode.CAR);
         if (!cv.containsKey(ACTIVE)) activate();
         if (!cv.containsKey(PRICE)) price(-1);
+        if (!cv.containsKey(REF)) ref(UUID.randomUUID().toString());
         if (details != null) cv.put(DETAILS, details.toString());
         Uri ride;
         cv.put(PARENT_ID, 0);
@@ -212,6 +214,7 @@ public class Ride implements Parcelable {
                         RidesProvider.getRidesUri(ctx), v);
             }
         }
+        cv.put("_id", parent_id);
         return ride;
     }
 
