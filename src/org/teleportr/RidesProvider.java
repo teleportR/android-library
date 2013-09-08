@@ -138,8 +138,10 @@ public class RidesProvider extends ContentProvider {
                             parent = db.insertRide(0, fr, to, values[i]);
                             db.insertMatch(fr, to, s_f, s_to);
                             upserted_cnt++;
-                        } else {
+                        } else if (parent != -1) {
                             db.insertRide(parent, fr, to, values[i]);
+                        } else {
+                            Log.d(TAG, RIDES_PATH + " not stored");
                         }
                     }
                 }

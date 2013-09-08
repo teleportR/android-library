@@ -159,10 +159,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public int insertRide(int parent, int from, int to, ContentValues cv) {
 
-        if (from == to) {
-            Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
-            return 0;
-        }
+//        if (from == to) {
+//            Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
+//            return -1;
+//        }
         insertRide.bindLong(17, System.currentTimeMillis());
         insertRide.bindLong(15, parent);
         insertRide.bindLong(2, from);
