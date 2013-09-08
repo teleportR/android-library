@@ -147,7 +147,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
     static final String GET_REF = "SELECT ref from rides WHERE _id IS ?";
 
     public String getLatestRef(int id) {
-        getLatestRef = getReadableDatabase().compileStatement(GET_REF);
+        if (getLatestRef == null)
+            getLatestRef = getReadableDatabase().compileStatement(GET_REF);
         getLatestRef.bindLong(1, id);
         return getLatestRef.simpleQueryForString();
     }
