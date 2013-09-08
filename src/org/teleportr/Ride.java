@@ -37,8 +37,14 @@ public class Ride implements Parcelable {
     public static final String PRICE = "price";
     public static final String REF = "ref";
     public static final String EMPTY = "";
-    public static final int SEARCH = 42;
-    public static final int OFFER = 47;
+    public static final short SEARCH = 42;
+    public static final short OFFER = 47;
+    public static final short FLAG_DELETED = -2;
+    public static final short FLAG_DRAFT = -1;
+    public static final short FLAG_CLEAN = 0;
+    public static final short FLAG_FOR_CREATE = 1;
+    public static final short FLAG_FOR_UPDATE = 2;
+    public static final short FLAG_FOR_DELETE = 3;
 
     public static enum Mode {
         CAR, TRAIN
@@ -160,7 +166,10 @@ public class Ride implements Parcelable {
     }
 
     public Ride ref(String ref) {
-        cv.put(REF, ref);
+        if (ref == null)
+            cv.remove(REF);
+        else
+            cv.put(REF, ref);
         return this;
     }
 
@@ -179,11 +188,6 @@ public class Ride implements Parcelable {
         return this;
     }
 
-    public Ride dirty() {
-        cv.put(DIRTY, 1);
-        return this;
-    }
-
     public Ride activate() {
         cv.put(ACTIVE, 1);
         return this;
@@ -194,12 +198,27 @@ public class Ride implements Parcelable {
         return this;
     }
 
+    public Ride dirty() {
+        if (!cv.containsKey(DIRTY) || cv.getAsShort(DIRTY) == FLAG_DRAFT) {
+            cv.put(DIRTY, FLAG_FOR_CREATE);
+        } else if (cv.getAsShort(DIRTY) == FLAG_CLEAN) {
+            cv.put(DIRTY, FLAG_FOR_UPDATE);
+        }
+        return this;
+    }
+
+    public void delete(Context ctx) {
+        cv.put(DIRTY, FLAG_FOR_DELETE);
+        store(ctx);
+    }
+
 
 
     public Uri store(Context ctx) {
         if (!cv.containsKey(MODE)) mode(Mode.CAR);
         if (!cv.containsKey(ACTIVE)) activate();
         if (!cv.containsKey(PRICE)) price(-1);
+        if (!cv.containsKey(DIRTY)) cv.put(DIRTY, FLAG_DRAFT);
         if (!cv.containsKey(REF)) ref(UUID.randomUUID().toString());
         if (details != null) cv.put(DETAILS, details.toString());
         Uri ride;
@@ -214,13 +233,7 @@ public class Ride implements Parcelable {
                         RidesProvider.getRidesUri(ctx), v);
             }
         }
-        cv.put("_id", parent_id);
         return ride;
-    }
-
-    public void delete(Context ctx) {
-        cv.put(DIRTY, 2);
-        store(ctx);
     }
 
 

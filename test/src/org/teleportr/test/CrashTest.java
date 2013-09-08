@@ -285,8 +285,8 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         jobs.moveToFirst();
         assertNotNull(jobs.getString(COLUMNS.REF)); // tmp ref
         long id = jobs.getLong(0);
-        values.put("dirty", 0);
-        values.put("ref", "y");
+        values.put(Ride.REF, "global id");
+        values.put(Ride.DIRTY, Ride.FLAG_CLEAN);
         getMockContentResolver().update(Uri.parse(
                 "content://org.teleportr.test/rides/"+id), values, null, null);
         jobs = query("content://org.teleportr.test/jobs/publish");

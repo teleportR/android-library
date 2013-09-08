@@ -12,7 +12,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 17;
+    private static final int VERSION = 18;
     private static final String TAG = "DB";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
@@ -370,7 +370,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public Cursor queryMyRides() {
         return getReadableDatabase().rawQuery(
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
-                + " WHERE marked=1 AND dirty <> -1"
+                + " WHERE marked=1 AND dirty > -2"
                 + " GROUP BY rides.ref"
                 + " ORDER BY dep DESC;", null);
     }

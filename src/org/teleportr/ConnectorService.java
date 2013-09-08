@@ -21,6 +21,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.view.ViewDebug.FlagToString;
 import android.widget.Toast;
 
 public class ConnectorService extends Service
@@ -172,33 +173,36 @@ public class ConnectorService extends Service
             String ref = null;
             ContentValues values = new ContentValues();
             Ride offer = new Ride(job, getContext());
+            progress(offer.toString(), job.getShort(COLUMNS.DIRTY));
             try {
-                if (job.getInt(COLUMNS.DIRTY) == 1) {
-                    progress(offer.toString(), 1);
+                switch (job.getShort(COLUMNS.DIRTY)) {
+                case Ride.FLAG_FOR_CREATE:
+                    offer.ref(null); // rm tmp ref
+                case Ride.FLAG_FOR_UPDATE:
                     ref = fahrgemeinschaft.publish(offer);
-                    values.put("dirty", 0); // in sync now
-                    values.put("ref", ref);
+                    values.put(Ride.DIRTY, Ride.FLAG_CLEAN);
+                    values.put(Ride.REF, ref);
                     getContentResolver().update(RidesProvider
                             .getRidesUri(getContext()).buildUpon()
                             .appendPath(String.valueOf(job.getString(0)))
                             .build(), values, null, null);
                     success(offer.toString(), 1);
-                } else if (job.getInt(COLUMNS.DIRTY) == 2) {
-                    progress(offer.toString(), 2);
+                    break;
+                case Ride.FLAG_FOR_DELETE:
                     if (fahrgemeinschaft.delete(offer) != null) {
-                        values.put("dirty", -1); // successfully deleted
+                        values.put(Ride.DIRTY, Ride.FLAG_DELETED);
                         ref = job.getString(COLUMNS.REF);
                         getContentResolver().update(RidesProvider
                                 .getRidesUri(getContext())
                                 .buildUpon().appendPath(ref)
                                 .build(), values, null, null);
-                        success(offer.toString(), 2);
+                        success(offer.toString(), Ride.FLAG_DELETED);
                     }
+                    break;
                 }
             } catch (FileNotFoundException e) {
                 handleAuth();
             } catch (JSONException e) {
-                handleAuth();
             }
         }
 
