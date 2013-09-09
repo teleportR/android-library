@@ -1,6 +1,7 @@
 package org.teleportr.test;
 
 import java.util.Date;
+import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -281,14 +282,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("now there be a ride to publish", 1, jobs.getCount());
         // dummy connector publishing hard in the background..
-        ContentValues values = new ContentValues();
         jobs.moveToFirst();
         assertNotNull(jobs.getString(COLUMNS.REF)); // tmp ref
-        long id = jobs.getLong(0);
-        values.put(Ride.REF, "global id");
-        values.put(Ride.DIRTY, Ride.FLAG_CLEAN);
-        getMockContentResolver().update(Uri.parse(
-                "content://org.teleportr.test/rides/"+id), values, null, null);
+        storeServerRef(jobs.getLong(0));
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("nothing to publish anymore", 0, jobs.getCount());
         // meanwhile the unpublished has been edited with still the tmp ref
@@ -299,6 +295,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
 
+    }
+
+    public void storeServerRef(long id) {
+        ContentValues values = new ContentValues();
+        values.put(Ride.REF, UUID.randomUUID().toString());
+        values.put(Ride.DIRTY, Ride.FLAG_CLEAN);
+        getMockContentResolver().update(Uri.parse(
+                "content://org.teleportr.test/rides/"+id), values, null, null);
     }
 
     public void testResolveJobs() {
@@ -407,7 +411,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
     }
 
-    public void testRideEdit() throws Exception {
+    public void testRideFromCursor() throws Exception {
         dummyConnector.doSearch(new Ride().type(Ride.OFFER)
                 .from(home).to(park).dep(today).arr(tomorrow), 0);
         Uri uri = new Ride().type(Ride.OFFER)
@@ -415,7 +419,6 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 .price(42).dep(1000).marked()
                 .ref("foo bar").deactivate()
                 .who("someone").store(ctx);
-        System.out.println(uri);
         Ride myRide = new Ride(uri, ctx); // query ride
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
@@ -427,17 +430,26 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         assertEquals(1000, myRide.getDep());
         assertEquals(true, myRide.isMarked());
         assertEquals(false, myRide.isActive());
-
         assertEquals("two subrides as objects", 2, myRide.getSubrides().size());
         assertEquals("Home", myRide.getSubrides().get(0).getFrom().getName());
         assertEquals(home.id, myRide.getSubrides().get(0).getFrom().id);
         assertEquals(bar.id, myRide.getSubrides().get(1).getFrom().id);
         assertEquals(park.id, myRide.getSubrides().get(1).getTo().id);
+    }
 
-        // edit and update Ride
+    public void testRideEdit() throws Exception {
+        dummyConnector.doSearch(new Ride().type(Ride.OFFER)
+                .from(home).to(park).dep(today).arr(tomorrow), 0);
+        Uri uri = new Ride().type(Ride.OFFER)
+                .from(home).via(bar).to(park)
+                .price(42).dep(1000).marked()
+                .ref("foo bar").deactivate()
+                .who("someone").store(ctx);
+//        storeServerRef(Long.valueOf(uri.getLastPathSegment()));
+        Ride myRide = new Ride(uri, ctx);
         myRide.removeVias();
-        myRide.from(home).via(cafe).via(döner).to(park).activate().store(ctx);
-
+        uri = myRide.from(home).via(cafe).via(döner).to(park).activate()
+                .store(ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
@@ -449,7 +461,40 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("in search only once", 4, search_results.getCount());
-        getMockContentResolver().delete(Uri.parse(
+        myRide = new Ride(uri, ctx);
+        storeServerRef(myRide.getId());
+        myRide = new Ride(uri, ctx);
+        myRide = new Ride(myRide.seats(3).store(ctx), ctx);
+        myRide.delete();
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("still there, but flagged delete", 1, my_rides.getCount());
+        my_rides.moveToFirst();
+        assertEquals(Ride.FLAG_FOR_DELETE, my_rides.getInt(COLUMNS.DIRTY));
+    }
+
+    public void testRideDuplicate() throws Exception {
+        dummyConnector.doSearch(new Ride().type(Ride.OFFER)
+                .from(home).to(park).dep(today).arr(tomorrow), 0);
+        Uri uri = new Ride().type(Ride.OFFER).marked()
+                .from(home).via(bar).to(park)
+                .who("someone").store(ctx);
+        storeServerRef(Long.valueOf(uri.getLastPathSegment()));
+        Ride myRide = new Ride(uri, ctx);
+        Ride anotherRide = new Ride(myRide.duplicate(), ctx);
+        anotherRide = new Ride(anotherRide.marked().store(ctx), ctx);
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be a duplicate", 2, my_rides.getCount());
+        assertNotSame("new tmp ref", myRide.getRef(), anotherRide.getRef());
+        anotherRide = new Ride(anotherRide.seats(3).store(ctx), ctx);
+        anotherRide.delete();
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("one myride deleted immediatelly", 1, my_rides.getCount());
+        storeServerRef(anotherRide.getId());
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("does not recreate deleted ride", 2, my_rides.getCount());
+        my_rides.moveToFirst();
+        assertEquals(Ride.FLAG_FOR_DELETE, my_rides.getInt(COLUMNS.DIRTY));
+        getMockContentResolver().delete(Uri.parse( // all myrides
                 "content://org.teleportr.test/myrides"), null, null);
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there be no myrides anymore", 0, my_rides.getCount());

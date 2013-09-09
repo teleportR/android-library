@@ -21,7 +21,6 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.view.ViewDebug.FlagToString;
 import android.widget.Toast;
 
 public class ConnectorService extends Service
@@ -186,7 +185,7 @@ public class ConnectorService extends Service
                             .getRidesUri(getContext()).buildUpon()
                             .appendPath(String.valueOf(job.getString(0)))
                             .build(), values, null, null);
-                    success(offer.toString(), 1);
+                    success(offer.toString(), Ride.FLAG_CLEAN);
                     break;
                 case Ride.FLAG_FOR_DELETE:
                     if (fahrgemeinschaft.delete(offer) != null) {

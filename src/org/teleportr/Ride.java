@@ -207,9 +207,24 @@ public class Ride implements Parcelable {
         return this;
     }
 
-    public void delete(Context ctx) {
-        cv.put(DIRTY, FLAG_FOR_DELETE);
-        store(ctx);
+    public Uri delete() {
+        ContentValues values = new ContentValues();
+        if (!cv.containsKey(DIRTY) || cv.getAsShort(DIRTY) == FLAG_DRAFT) {
+            values.put(DIRTY, FLAG_DELETED);
+        } else if (cv.getAsShort(DIRTY) == FLAG_CLEAN) {
+            values.put(DIRTY, FLAG_FOR_DELETE);
+        }
+        Uri uri = RidesProvider.getRideFUri(ctx, getRef());
+        ctx.getContentResolver().update(uri, values, null, null);
+        return uri;
+    }
+
+    public Uri duplicate() {
+        cv.remove(_ID);
+        cv.remove(REF);
+        cv.remove(DIRTY);
+        cv.remove(MARKED);
+        return store(ctx);
     }
 
 
@@ -225,10 +240,10 @@ public class Ride implements Parcelable {
         cv.put(PARENT_ID, 0);
         ride = ctx.getContentResolver().insert(
                 RidesProvider.getRidesUri(ctx), cv);
-        Integer parent_id = Integer.valueOf(ride.getLastPathSegment());
+        Integer id = Integer.valueOf(ride.getLastPathSegment());
         if (subrides != null) {
             for (ContentValues v : subrides) {
-                v.put(PARENT_ID, parent_id);
+                v.put(PARENT_ID, id);
                 ctx.getContentResolver().insert(
                         RidesProvider.getRidesUri(ctx), v);
             }
@@ -298,6 +313,7 @@ public class Ride implements Parcelable {
         arr(cursor.getLong(COLUMNS.ARRIVAL));
         price(cursor.getInt(COLUMNS.PRICE));
         seats(cursor.getInt(COLUMNS.SEATS));
+        cv.put(DIRTY, cursor.getInt(COLUMNS.DIRTY));
         if (cursor.getShort(COLUMNS.MARKED) == 1) marked();
         if (cursor.getShort(COLUMNS.ACTIVE) == 1) activate();
         String val = cursor.getString(COLUMNS.WHO);

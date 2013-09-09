@@ -241,6 +241,9 @@ public class RidesProvider extends ContentProvider {
                     "_id=?", new String[] { uri.getLastPathSegment() });
             break;
         case RIDE:
+            if (db.isDeleted(uri.getLastPathSegment())) {
+                values.put(Ride.DIRTY, Ride.FLAG_FOR_DELETE);
+            }
             id =  db.getWritableDatabase().update(RIDES_PATH, values,
                     "_id=?", new String[] { uri.getLastPathSegment() });
             getContext().getContentResolver().notifyChange(
@@ -335,9 +338,13 @@ public class RidesProvider extends ContentProvider {
             rides_uri = getUri(ctx).buildUpon().appendPath(RIDES_PATH).build();
         return rides_uri;
     }
-
+    
     public static Uri getRideUri(Context c, int i) {
         return getRidesUri(c).buildUpon().appendPath(String.valueOf(i)).build();
+    }
+
+    public static Uri getRideFUri(Context c, String ref) {
+        return getRidesUri(c).buildUpon().appendPath(ref).build();
     }
 
     public static Uri getSubRidesUri(Context ctx, int id) {

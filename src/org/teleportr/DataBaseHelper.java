@@ -22,6 +22,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private SQLiteStatement insertMatch;
     private SQLiteStatement getIdByAddress;
     private SQLiteStatement getLatestRef;
+    private SQLiteStatement isDeleted;
 
     @Override
     public void onCreate(SQLiteDatabase db) {
@@ -372,7 +373,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
                 + " WHERE marked=1 AND dirty > -2"
                 + " GROUP BY rides.ref"
-                + " ORDER BY dep DESC;", null);
+                + " ORDER BY dep DESC, rides._id DESC;", null);
     }
 
     static final String WHERE_OUTDATED = " _id IN ( SELECT rides._id FROM rides"
@@ -395,5 +396,14 @@ class DataBaseHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.putNull("last_refresh");
         return getWritableDatabase().update("jobs", values, null, null);
+    }
+
+    static final String IS_DELETED = "SELECT dirty from rides WHERE _id IS ?";
+
+    public boolean isDeleted(String id) {
+        if (isDeleted == null)
+            isDeleted = getReadableDatabase().compileStatement(IS_DELETED);
+        isDeleted.bindLong(1, Long.parseLong(id));
+        return isDeleted.simpleQueryForLong() == Ride.FLAG_DELETED;
     }
 }
