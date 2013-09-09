@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import android.content.ContentValues;
@@ -9,11 +16,14 @@ import ch.hsr.geohash.GeoHash;
 
 public class Place {
 
+    private static final String COLON = ":";
+    private static final String UPDATE_PLACE = "update place ";
     public static final String GEOHASH = "geohash";
     public static final String ADDRESS = "address";
     public static final String NAME = "name";
     public static final String TAG = "Place";
     public static final String KEY = "key";
+    private static final String EMPTY = "";
     protected ContentValues cv;
     private Context ctx;
     public int id;
@@ -113,11 +123,11 @@ public class Place {
     public String getId() {
         if (id != 0) return String.valueOf(id);
         if (cv.containsKey(GEOHASH))
-            return "geohash:" + cv.getAsString(GEOHASH);
+            return GEOHASH + COLON + cv.getAsString(GEOHASH);
         if (cv.containsKey(NAME))
-            return "name:" + cv.getAsString(NAME);
+            return NAME + COLON + cv.getAsString(NAME);
         if (cv.containsKey(ADDRESS))
-            return "address:" + cv.getAsString(ADDRESS);
+            return ADDRESS + COLON + cv.getAsString(ADDRESS);
         Log.d(TAG, "place not identifyable! " + this);
         return null;
     }
@@ -129,7 +139,7 @@ public class Place {
             id = Integer.parseInt(uri.getLastPathSegment());
             return uri;
         } else {
-            Log.d("Places", "update place " + id + " : " + cv);
+            Log.d(TAG, UPDATE_PLACE + id);
             ctx.getContentResolver().update(
                     RidesProvider.getPlaceUri(ctx, id), cv, null, null);
             return null;
@@ -138,11 +148,11 @@ public class Place {
 
     protected ContentValues toContentValues() {
         if (!cv.containsKey(NAME))
-            cv.put(NAME, "");
+            cv.put(NAME, EMPTY);
         if (!cv.containsKey(ADDRESS))
-            cv.put(ADDRESS, "");
+            cv.put(ADDRESS, EMPTY);
         if (!cv.containsKey(GEOHASH))
-            cv.put(GEOHASH, "");
+            cv.put(GEOHASH, EMPTY);
         return cv;
     }
 

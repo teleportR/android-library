@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import java.io.FileNotFoundException;
@@ -15,7 +22,6 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -26,6 +32,10 @@ import android.widget.Toast;
 public class ConnectorService extends Service
         implements OnSharedPreferenceChangeListener {
 
+    private static final String CLEANUP_INTERVAL = "cleanup_interval";
+    private static final String LAST_CLEANUP = "last_cleanup";
+    private static final String WRONG_LOGIN_OR_PASSWORD = "wrong login or password";
+    private static final String VERBOSE = "verbose";
     private static final String GPLACES =
             "de.fahrgemeinschaft.GPlaces";
     private static final String FAHRGEMEINSCHAFT =
@@ -73,7 +83,7 @@ public class ConnectorService extends Service
         SharedPreferences prefs = PreferenceManager
                 .getDefaultSharedPreferences(this);
         prefs.registerOnSharedPreferenceChangeListener(this);
-        onSharedPreferenceChanged(prefs, "verbose");
+        onSharedPreferenceChanged(prefs, VERBOSE);
         cleanUp(prefs);
         super.onCreate();
     }
@@ -100,6 +110,8 @@ public class ConnectorService extends Service
 
     public class Myrides extends Job<String> {
 
+        private static final String LOGIN = "login";
+
         public Myrides(Context ctx) {
             super(ctx, worker, reporter, null);
         }
@@ -111,7 +123,7 @@ public class ConnectorService extends Service
                 fahrgemeinschaft.doSearch(null, 0);
                 success(MYRIDES, 0);
             } catch (FileNotFoundException e) {
-                fail(MYRIDES, "login");
+                fail(MYRIDES, LOGIN);
             }
         }
     };
@@ -129,7 +141,7 @@ public class ConnectorService extends Service
             progress(p, 0);
             gplaces.resolvePlace(p, getContext());
             success(p, 0);
-            log("resolved " + p.getName() + ": " + p.getLat());
+            log(p.getName() + RESOLVE);
         }
     };
 
@@ -161,6 +173,11 @@ public class ConnectorService extends Service
 
 
     public class Publish extends Job<String> {
+
+        private static final String PLEASE_LOGIN = "please login";
+        private static final String LOGIN_REQUIRED = "login required";
+        private static final String AUTH = "auth";
+        private static final String PASSWORD = "password";
 
         public Publish(Context ctx) {
             super(ctx, worker, reporter,
@@ -212,13 +229,13 @@ public class ConnectorService extends Service
                 log("logging in automatically..");
                 authenticate(PreferenceManager
                         .getDefaultSharedPreferences(getContext())
-                        .getString("password", ""));
+                        .getString(PASSWORD, ""));
             } else {
                 if (!authenticating) {
-                    sendBroadcast(new Intent("auth"));
-                    Toast.makeText(getContext(), "please login",
+                    sendBroadcast(new Intent(AUTH));
+                    Toast.makeText(getContext(), PLEASE_LOGIN,
                             Toast.LENGTH_LONG).show();
-                    fail(PUBLISH, "login required");
+                    fail(PUBLISH, LOGIN_REQUIRED);
                 }
             }
         }
@@ -251,16 +268,16 @@ public class ConnectorService extends Service
                     success(AUTH, 0);
                     worker.post(publish);
                 } catch (AuthException e) {
-                    fail(AUTH, "wrong login or password");
+                    fail(AUTH, WRONG_LOGIN_OR_PASSWORD);
                 } catch (FileNotFoundException e) {
-                    fail(AUTH, "wrong email or password");
+                    fail(AUTH, WRONG_LOGIN_OR_PASSWORD);
                 } finally {
                     authenticating = false;
                 }
             }
         }.register(authCallback).setVerbose(PreferenceManager
                 .getDefaultSharedPreferences(getContext())
-                .getBoolean("verbose", false)));
+                .getBoolean(VERBOSE, false)));
     }
 
     private Context getContext() {
@@ -301,21 +318,21 @@ public class ConnectorService extends Service
 
     public void cleanUp(SharedPreferences prefs) {
         long older_than = System.currentTimeMillis() -
-                prefs.getLong("cleanup_interval", 21 * 24 * 3600000); // 3 weeks
-        if (prefs.getLong("last_cleanup", 0) < older_than) {
-            getContentResolver().delete(Uri.parse(
-                    "content://de.fahrgemeinschaft/rides?older_than="
-                            + older_than), null, null);
+                prefs.getLong(CLEANUP_INTERVAL, 21 * 24 * 3600000); // 3 weeks
+        if (prefs.getLong(LAST_CLEANUP, 0) < older_than) {
+            getContentResolver().delete(RidesProvider.getRidesUri(getContext())
+                    .buildUpon().appendQueryParameter(RidesProvider.OLDER_THAN,
+                            String.valueOf(older_than)).build(), null, null);
             prefs.edit()
-                    .putLong("last_cleanup", System.currentTimeMillis())
+                    .putLong(LAST_CLEANUP, System.currentTimeMillis())
                     .commit();
         }
     }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences prefs, String key) {
-        if (key.equals("verbose")) {
-            boolean verbose = prefs.getBoolean("verbose", false);
+        if (key.equals(VERBOSE)) {
+            boolean verbose = prefs.getBoolean(VERBOSE, false);
             resolve.setVerbose(verbose);
             search.setVerbose(verbose);
             publish.setVerbose(verbose);

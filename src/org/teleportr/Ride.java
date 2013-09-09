@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import java.text.SimpleDateFormat;
@@ -19,6 +26,8 @@ import android.os.Parcelable;
 
 public class Ride implements Parcelable {
 
+    private static final String COLON = ": ";
+    private static final String ARROW = " -> ";
     public static final String _ID = "_id";
     public static final String TYPE = "type";
     public static final String FROM_ID = "from_id";
@@ -28,6 +37,7 @@ public class Ride implements Parcelable {
     public static final String WHO = "who";
     public static final String MODE = "mode";
     public static final String DIRTY = "dirty";
+    public static final String OPERATOR = "operator";
     public static final String PARENT_ID = "parent_id";
     public static final String DETAILS = "details";
     public static final String REFRESH = "refresh";
@@ -480,9 +490,9 @@ public class Ride implements Parcelable {
 
     @Override
     public String toString() {
-        return getFrom().getName().substring(0, 3) + " -> "
-                + getTo().getName().substring(0, 3) + ": "
-                + df.format(getDep());
+        return new StringBuffer().append(getFrom().getName().substring(0, 3))
+                .append(ARROW).append(getTo().getName().substring(0, 3))
+                .append(COLON).append(df.format(getDep())).toString();
     }
 
     private static final SimpleDateFormat df =

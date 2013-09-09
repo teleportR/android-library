@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import java.io.BufferedInputStream;

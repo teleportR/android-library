@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import java.util.Map.Entry;
@@ -12,8 +19,21 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 18;
+    private static final int VERSION = 19;
     private static final String TAG = "DB";
+    private static final String EMPTY = "";
+    private static final String JOBS = "jobs";
+    private static final String ARROW = " -> ";
+    private static final String RIDES = "rides";
+    private static final String STORED_KEY = "+ stored key ";
+    private static final String STORED_RIDE = "+ stored ride ";
+    private static final String STORED_PLACE = "+ stored place ";
+    private static final String RESOLVE_PLACE_BY_NAME = "* resolve place by name ";
+    private static final String RESOLVE_PLACE_BY_ADDRESS = "* resolve place by address ";
+    private static final String RESOLVE_PLACE_BY_GEOHASH = "* resolve place by geohash ";
+    private static final String INVALIDATE_CACHE = "invalidate cache";
+    private static final String LAST_REFRESH = "last_refresh";
+    private static final String DB_FILENAME = "teleportr.db";
     private SQLiteStatement insertPlace;
     private SQLiteStatement insertPlaceKey;
     private SQLiteStatement insertRide;
@@ -73,7 +93,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     }
 
     public DataBaseHelper(Context context) {
-        super(context, "teleportr.db", null, VERSION);
+        super(context, DB_FILENAME, null, VERSION);
         insertPlace = getWritableDatabase().compileStatement(INSERT_PLACE);
         insertPlaceKey = getWritableDatabase().compileStatement(INSERT_KEY);
         insertRide = getWritableDatabase().compileStatement(INSERT_RIDE);
@@ -96,16 +116,16 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public int insertPlace(ContentValues cv) {
         long place_id = 0;
-        String key = cv.getAsString("geohash");
+        String key = cv.getAsString(Place.GEOHASH);
         if (key != null) {
             getIdByGeohash.bindString(1, key);
             place_id = getIdByGeohash.simpleQueryForLong();
             if (place_id == 0)
                 insertPlace.bindString(1, key);
-            cv.remove("geohash");
-            Log.d(TAG, "* resolve place by geohash " + key + " -> " + place_id);
+            cv.remove(Place.GEOHASH);
+            Log.d(TAG, RESOLVE_PLACE_BY_GEOHASH + key + ARROW + place_id);
         } else insertPlace.bindNull(1);
-        key = cv.getAsString("address");
+        key = cv.getAsString(Place.ADDRESS);
         if (key != null) {
             if (place_id == 0) {
                 getIdByAddress.bindString(1, key);
@@ -113,10 +133,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 if (place_id == 0)
                     insertPlace.bindString(3, key);
             }
-            cv.remove("address");
-            Log.d(TAG, "* resolve place by address " + key + " -> " + place_id);
+            cv.remove(Place.ADDRESS);
+            Log.d(TAG, RESOLVE_PLACE_BY_ADDRESS + key + ARROW + place_id);
         } else if (place_id == 0) insertPlace.bindNull(3);
-        key = cv.getAsString("name");
+        key = cv.getAsString(Place.NAME);
         if (key != null) {
             if (place_id == 0) {
                 getIdByName.bindString(1, key);
@@ -124,12 +144,12 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 if (place_id == 0)
                     insertPlace.bindString(2, key);
             }
-            cv.remove("name");
-            Log.d(TAG, "* resolve place by name " + key + " -> " + place_id);
+            cv.remove(Place.NAME);
+            Log.d(TAG, RESOLVE_PLACE_BY_NAME + key + ARROW + place_id);
         } else if (place_id == 0) insertPlace.bindNull(2);
         if (place_id == 0)
             place_id = (int) insertPlace.executeInsert();
-            Log.d(RidesProvider.TAG, "+ stored place " + place_id);
+            Log.d(RidesProvider.TAG, STORED_PLACE + place_id);
         if (place_id == -1) { // insert has been ignored / already exists
             Log.d(TAG, "how could this possibly ever happen???");
         }
@@ -139,7 +159,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 insertPlaceKey.bindString(2, entry.getKey());
                 insertPlaceKey.bindString(3, (String) entry.getValue());
                 insertPlaceKey.executeInsert();
-                Log.d(RidesProvider.TAG, "+ stored key " + entry);
+                Log.d(RidesProvider.TAG, STORED_KEY + entry);
             }
         }
         return (int) place_id;
@@ -169,25 +189,24 @@ class DataBaseHelper extends SQLiteOpenHelper {
         insertRide.bindLong(15, parent);
         insertRide.bindLong(2, from);
         insertRide.bindLong(3, to);
-        bind(cv, 12, "marked", 0);
-        bind(cv, 13, "dirty", 0);
-        bind(cv, 14, "active", 0);
-        bind(cv, 16, "ref", "");
+        bind(cv, 12, Ride.MARKED, 0);
+        bind(cv, 13, Ride.DIRTY, 0);
+        bind(cv, 14, Ride.ACTIVE, 0);
+        bind(cv, 16, Ride.REF, EMPTY);
 
         if (parent == 0) {
-            bind(cv, 1, "type", 0);
-            bind(cv, 4, "dep", 0);
-            bind(cv, 5, "arr", 0);
-            bind(cv, 6, "mode", "");
-            bind(cv, 8, "who", "");
-            bind(cv, 7, "operator", "");
-            bind(cv, 9, "details", "");
-            bind(cv, 10, "price", 0);
-            bind(cv, 11, "seats", 0);
+            bind(cv, 1, Ride.TYPE, 0);
+            bind(cv, 4, Ride.DEP, 0);
+            bind(cv, 5, Ride.ARR, 0);
+            bind(cv, 6, Ride.MODE, EMPTY);
+            bind(cv, 8, Ride.WHO, EMPTY);
+            bind(cv, 7, Ride.OPERATOR, EMPTY);
+            bind(cv, 9, Ride.DETAILS, EMPTY);
+            bind(cv, 10, Ride.PRICE, 0);
+            bind(cv, 11, Ride.SEATS, 0);
         }
         long id = insertRide.executeInsert();
-        Log.d(RidesProvider.TAG, "+ stored ride " + id
-                + ": parent=" + parent + "   from=" + from + " to=" + to);
+        Log.d(RidesProvider.TAG, STORED_RIDE + id);
         return (int) id;
     }
 
@@ -282,7 +301,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " ORDER BY history.count DESC, name ASC;";
 
     public Cursor autocompleteTo(String from, String q) {
-        if (from.equals("0")) {
+        if (from.equals(ZERO)) {
             return getReadableDatabase().rawQuery(SELECT_TO,
                     new String[] { q, q });
         } else {
@@ -290,6 +309,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     new String[] { from, from, q, q });
         }
     }
+    private static final String ZERO = "0";
 
     static final String SELECT_JOBS = "SELECT"
                 + " rides.from_id, rides.to_id,"
@@ -324,8 +344,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryPublishJobs() {
         return getReadableDatabase().rawQuery(
-                SELECT_RIDES + " WHERE dirty > 0 AND parent_id = 0", null);
+                SELECT_RIDES + WHERE_DIRTY, null);
     }
+    private static final String WHERE_DIRTY =
+            " WHERE dirty > 0 AND parent_id = 0";
 
     static final String SELECT_RIDES_COLUMNS = "SELECT rides._id, rides.type,"
                 + " \"from\"._id, \"from\".name, \"from\".address,"
@@ -343,8 +365,10 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryRide(String id) {
         return getReadableDatabase().rawQuery(SELECT_RIDES
-                + " WHERE rides._id=?", new String[] { id });
+                + WHERE_RIDES_ID_IS, new String[] { id });
     }
+
+    private static final String WHERE_RIDES_ID_IS = " WHERE rides._id=?";
 
     static final String SELECT_RIDE_MATCHES =
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
@@ -357,7 +381,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryRides(String from_id, String to_id, String dep) {
         return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
-                new String[] { from_id, to_id, (dep != null)? dep : "-1" });
+                new String[] { from_id, to_id, (dep != null)? dep : MINUS_ONE});
     }
 
     static final String SELECT_SUB_RIDES = SELECT_RIDES
@@ -368,12 +392,14 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 new String[] { parent_id });
     }
 
+    static final String SELECT_MYRIDES = SELECT_RIDES_COLUMNS
+            + ", max(rides._id)" + JOIN
+            + " WHERE marked=1 AND dirty > -2"
+            + " GROUP BY rides.ref"
+            + " ORDER BY dep DESC, rides._id DESC;";
+
     public Cursor queryMyRides() {
-        return getReadableDatabase().rawQuery(
-                SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
-                + " WHERE marked=1 AND dirty > -2"
-                + " GROUP BY rides.ref"
-                + " ORDER BY dep DESC, rides._id DESC;", null);
+        return getReadableDatabase().rawQuery(SELECT_MYRIDES, null);
     }
 
     static final String WHERE_OUTDATED = " _id IN ( SELECT rides._id FROM rides"
@@ -386,16 +412,19 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public int deleteOutdated(
             String from, String to, String dep, String arr, String time) {
-            return getReadableDatabase().delete("rides", WHERE_OUTDATED
-                    + (from.equals("-1")? " AND marked = 1);" : ");"),
+            return getReadableDatabase().delete(RIDES, WHERE_OUTDATED
+                    + (from.equals(MINUS_ONE)? IS_MARKED : CLOSE),
                     new String[] {from, to, dep, arr, time});
     }
+    private static final String MINUS_ONE = "-1";
+    private static final String CLOSE = ");";
+    private static final String IS_MARKED = " AND marked = 1" + CLOSE;
 
     public int invalidateCache() {
-        Log.d(TAG, "invalidate cache");
+        Log.d(TAG, INVALIDATE_CACHE);
         ContentValues values = new ContentValues();
-        values.putNull("last_refresh");
-        return getWritableDatabase().update("jobs", values, null, null);
+        values.putNull(LAST_REFRESH);
+        return getWritableDatabase().update(JOBS, values, null, null);
     }
 
     static final String IS_DELETED = "SELECT dirty from rides WHERE _id IS ?";

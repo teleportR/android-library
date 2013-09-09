@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import java.util.ArrayList;
@@ -14,6 +21,10 @@ import android.util.Log;
 
 public class RidesProvider extends ContentProvider {
 
+    private static final String USER = "user";
+    private static final String CLEAR_MYRIDES = "clear myrides";
+    private static final String ROUTE_MATCHES = "route_matches";
+    public static final String OLDER_THAN = "older_than";
     private static final String DELETED = ": deleted ";
     private static final String UPSERTED = ": upserted ";
     public static final String REFRESH = "refresh";
@@ -219,14 +230,14 @@ public class RidesProvider extends ContentProvider {
             try {
                 olderThan = Long.parseLong(PreferenceManager
                         .getDefaultSharedPreferences(
-                        getContext()).getString(REFRESH, ""));
+                        getContext()).getString(REFRESH, new String()));
             } catch (Exception e) {}
             return db.queryJobs(System.currentTimeMillis() - olderThan);
         case PUBLISH:
             return db.queryPublishJobs();
         case RESOLVE:
             return db.getReadableDatabase().query(PLACES_PATH, null,
-                    "geohash IS NULL", null, null, null, null);
+                    GEOHASH_IS_NULL, null, null, null, null);
         }
         return null;
     }
@@ -238,14 +249,14 @@ public class RidesProvider extends ContentProvider {
         switch (route.match(uri)) {
         case PLACE:
             id =  db.getWritableDatabase().update(PLACES_PATH, values,
-                    "_id=?", new String[] { uri.getLastPathSegment() });
+                    ID_EQUALS, new String[] { uri.getLastPathSegment() });
             break;
         case RIDE:
             if (db.isDeleted(uri.getLastPathSegment())) {
                 values.put(Ride.DIRTY, Ride.FLAG_FOR_DELETE);
             }
             id =  db.getWritableDatabase().update(RIDES_PATH, values,
-                    "_id=?", new String[] { uri.getLastPathSegment() });
+                    ID_EQUALS, new String[] { uri.getLastPathSegment() });
             getContext().getContentResolver().notifyChange(
                     getSearchJobsUri(getContext()), null);
             getContext().getContentResolver().notifyChange(
@@ -253,14 +264,13 @@ public class RidesProvider extends ContentProvider {
             break;
         case RIDEF:
             id =  db.getWritableDatabase().update(RIDES_PATH, values,
-                    "ref=?", new String[] { uri.getLastPathSegment() });
+                    REF_EQUALS, new String[] { uri.getLastPathSegment() });
             getContext().getContentResolver().notifyChange(
                     getSearchJobsUri(getContext()), null);
             getContext().getContentResolver().notifyChange(
                     getMyRidesUri(getContext()), null);
             break;
         case RIDES:
-//            db.getWritableDatabase().delete(JOBS_PATH, null, null);
             db.invalidateCache();
             break;
         }
@@ -273,9 +283,9 @@ public class RidesProvider extends ContentProvider {
         switch (route.match(uri)) {
         case RIDE:
             return db.getWritableDatabase().delete(RIDES_PATH,
-                    "parent_id=?", new String[] { uri.getLastPathSegment() });
+                    PARENT_EQUALS, new String[] { uri.getLastPathSegment() });
         case RIDES:
-            String param = uri.getQueryParameter("older_than");
+            String param = uri.getQueryParameter(OLDER_THAN);
             if (param != null) {
                 Log.d(TAG, "clear ride cache older than " + param);
 //              db.getWritableDatabase().delete(JOBS_PATH, null, null);
@@ -284,22 +294,28 @@ public class RidesProvider extends ContentProvider {
             } else {
                 Log.d(TAG, "clear ride cache completely!");
                 db.getWritableDatabase().delete(JOBS_PATH, null, null);
-                db.getWritableDatabase().delete("route_matches", null, null);
+                db.getWritableDatabase().delete(ROUTE_MATCHES, null, null);
                 return db.getWritableDatabase().delete("rides", OFFERS, null);
             }
         case MYRIDES:
-            Log.d(TAG, "clear myrides");
-            String user = "someone";
+            Log.d(TAG, CLEAR_MYRIDES);
+            String user = new String();
             try {
                 user = PreferenceManager.getDefaultSharedPreferences(
-                        getContext()).getString("user", "");
+                        getContext()).getString(USER, new String());
             } catch (Exception e) {}
-            return db.getWritableDatabase().delete("rides", OFFERS +
-                    " AND (who = '' OR who = ?)", new String[] { user } );
+            return db.getWritableDatabase().delete(RIDES_PATH, OFFERS +
+                    AND_WHO_IS_ME, new String[] { user } );
         }
         return -1;
     }
+
+    private static final String AND_WHO_IS_ME = " AND (who = '' OR who = ?)";
+    private static final String GEOHASH_IS_NULL = "geohash IS NULL";
     private static final String OFFERS = "type=" + Ride.OFFER;
+    private static final String PARENT_EQUALS = "parent_id=?";
+    private static final String REF_EQUALS = "ref=?";
+    private static final String ID_EQUALS = "_id=?";
 
     private static final int RIDE = 0;
     private static final int RIDEF = 1;

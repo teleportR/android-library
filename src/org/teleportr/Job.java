@@ -1,3 +1,10 @@
+/**
+ * Fahrgemeinschaft / Ridesharing App
+ * Copyright (c) 2013 by it's authors.
+ * Some rights reserved. See LICENSE..
+ *
+ */
+
 package org.teleportr;
 
 import java.util.HashMap;
@@ -16,6 +23,12 @@ import android.widget.Toast;
 @SuppressLint("UseSparseArrays")
 public abstract class Job<T> implements Runnable {
 
+    private static final String SUCCESS = "success ";
+    private static final String WORKING_ON = "working on ";
+    private static final String SEC = " sec..";
+    private static final String NUMBER = " #";
+    private static final String RETRY_IN = "  Retry in ";
+    private static final String FAIL = "fail: ";
     private static final String NOTHING_TO = "nothing to ";
     private static final String GIVING_UP_AFTER_3_RETRY_ATTEMPTS
             = "Giving up after 3 retry attempts";
@@ -86,7 +99,8 @@ public abstract class Job<T> implements Runnable {
         if (attempt <= 3) {
             long wait = (long) (Math.pow(2, attempt));
             worker.postDelayed(this, wait * 1000);
-            log(reason + " #" + attempt + "  Retry in " + wait + " sec..");
+            log(new StringBuffer().append(NUMBER).append(attempt)
+                    .append(RETRY_IN).append(wait).append(SEC).toString());
         } else {
             log(GIVING_UP_AFTER_3_RETRY_ATTEMPTS);
             fail(what, reason);
@@ -101,7 +115,7 @@ public abstract class Job<T> implements Runnable {
     }
 
     protected void fail(final T what, final String reason) {
-        log("fail: " + what);
+        log(FAIL + what);
         fail = new Runnable() {
             
             @Override
@@ -118,7 +132,7 @@ public abstract class Job<T> implements Runnable {
 
     protected void progress(final T what, final int how) {
         this.what = what;  
-        log("working on " + what);
+        log(WORKING_ON + what);
         progress = new Runnable() {
             
             @Override
@@ -134,7 +148,7 @@ public abstract class Job<T> implements Runnable {
     }
 
     protected void success(final T what, final int number) {
-        log("success " + what);
+        log(SUCCESS + what);
         retries.remove(what);
         if (what == null) return;
         success = new Runnable() {
