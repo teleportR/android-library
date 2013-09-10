@@ -123,7 +123,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             if (place_id == 0)
                 insertPlace.bindString(1, key);
             cv.remove(Place.GEOHASH);
-            Log.d(TAG, RESOLVE_PLACE_BY_GEOHASH + key + ARROW + place_id);
+//            Log.d(TAG, RESOLVE_PLACE_BY_GEOHASH + key + ARROW + place_id);
         } else insertPlace.bindNull(1);
         key = cv.getAsString(Place.ADDRESS);
         if (key != null) {
@@ -134,7 +134,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     insertPlace.bindString(3, key);
             }
             cv.remove(Place.ADDRESS);
-            Log.d(TAG, RESOLVE_PLACE_BY_ADDRESS + key + ARROW + place_id);
+//            Log.d(TAG, RESOLVE_PLACE_BY_ADDRESS + key + ARROW + place_id);
         } else if (place_id == 0) insertPlace.bindNull(3);
         key = cv.getAsString(Place.NAME);
         if (key != null) {
@@ -145,11 +145,11 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     insertPlace.bindString(2, key);
             }
             cv.remove(Place.NAME);
-            Log.d(TAG, RESOLVE_PLACE_BY_NAME + key + ARROW + place_id);
+//            Log.d(TAG, RESOLVE_PLACE_BY_NAME + key + ARROW + place_id);
         } else if (place_id == 0) insertPlace.bindNull(2);
         if (place_id == 0)
             place_id = (int) insertPlace.executeInsert();
-            Log.d(RidesProvider.TAG, STORED_PLACE + place_id);
+//            Log.d(TAG, STORED_PLACE + place_id);
         if (place_id == -1) { // insert has been ignored / already exists
             Log.d(TAG, "how could this possibly ever happen???");
         }
@@ -206,7 +206,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             bind(cv, 11, Ride.SEATS, 0);
         }
         long id = insertRide.executeInsert();
-        Log.d(RidesProvider.TAG, STORED_RIDE + id);
+//        Log.d(TAG, STORED_RIDE + id);
         return (int) id;
     }
 
