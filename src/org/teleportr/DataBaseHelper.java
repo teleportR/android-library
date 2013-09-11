@@ -9,6 +9,8 @@ package org.teleportr;
 
 import java.util.Map.Entry;
 
+import org.teleportr.Ride.COLUMNS;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -412,9 +414,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public int deleteOutdated(
             String from, String to, String dep, String arr, String time) {
-            return getReadableDatabase().delete(RIDES, WHERE_OUTDATED
+        return getWritableDatabase().delete(RIDES, WHERE_OUTDATED
                     + (from.equals(MINUS_ONE)? IS_MARKED : CLOSE),
-                    new String[] {from, to, dep, arr, time});
+                    new String[] { from, to, dep, arr, time });
     }
     private static final String MINUS_ONE = "-1";
     private static final String CLOSE = ");";

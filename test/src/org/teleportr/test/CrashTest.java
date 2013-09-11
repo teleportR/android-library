@@ -277,10 +277,16 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
     public void testPublishJobs() {
         Cursor jobs = query(RidesProvider.getPublishJobsUri(ctx).toString());
         assertEquals("there be no rides to publish", 0, jobs.getCount());
-
-        Uri ride = new Ride().from(bar).to(park).marked().dirty().store(ctx);
+        Uri ride = new Ride().dep(1).from(bar).to(park).store(ctx);
+        jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("now there be no rides to publish", 0, jobs.getCount());
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("no myride as draft", 0, my_rides.getCount());
+        ride = new Ride(ride, ctx).dep(2).marked().dirty().store(ctx);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("now there be a ride to publish", 1, jobs.getCount());
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("one myride as draft", 1, my_rides.getCount());
         // dummy connector publishing hard in the background..
         jobs.moveToFirst();
         assertNotNull(jobs.getString(COLUMNS.REF)); // tmp ref
@@ -291,7 +297,7 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         new Ride(ride, ctx).seats(2).dirty().store(ctx);
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("one ride to update", 1, jobs.getCount());
-        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
 
@@ -481,8 +487,10 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         storeServerRef(Long.valueOf(uri.getLastPathSegment()));
         Ride myRide = new Ride(uri, ctx);
         Ride anotherRide = new Ride(myRide.duplicate(), ctx);
-        anotherRide = new Ride(anotherRide.marked().store(ctx), ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be no duplicate yet", 1, my_rides.getCount());
+        anotherRide = new Ride(anotherRide.marked().store(ctx), ctx);
+        my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be a duplicate", 2, my_rides.getCount());
         assertNotSame("new tmp ref", myRide.getRef(), anotherRide.getRef());
         anotherRide = new Ride(anotherRide.seats(3).store(ctx), ctx);

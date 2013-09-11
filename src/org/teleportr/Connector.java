@@ -23,6 +23,8 @@ import android.preference.PreferenceManager;
 
 public abstract class Connector {
 
+    private static final String AUTH = "auth";
+
     public abstract long search(Ride search) throws Exception;
 
     public abstract String publish(Ride offer) throws Exception;
@@ -59,7 +61,7 @@ public abstract class Connector {
     protected String getAuth() throws Exception {
         return PreferenceManager
                 .getDefaultSharedPreferences(ctx)
-                .getString("auth", null);
+                .getString(AUTH, null);
     }
 
     public Place store(Place place) {
@@ -76,16 +78,16 @@ public abstract class Connector {
     }
 
     public void store(Ride ride) {
-        if (!ride.cv.containsKey("ref"))
+        if (!ride.cv.containsKey(Ride.REF))
             ride.ref(UUID.randomUUID().toString());
-        if (!ride.cv.containsKey("mode"))
+        if (!ride.cv.containsKey(Ride.MODE))
             ride.mode(Mode.CAR);
-        if (!ride.cv.containsKey("active"))
+        if (!ride.cv.containsKey(Ride.ACTIVE))
             ride.activate();
-        if (!ride.cv.containsKey("price"))
+        if (!ride.cv.containsKey(Ride.ACTIVE))
             ride.price(-1);
         if (ride.details != null)
-            ride.cv.put("details", ride.details.toString());
+            ride.cv.put(Ride.DETAILS, ride.details.toString());
         ridesBatch.add(ride.cv);
         if (ride.subrides != null)
             ridesBatch.addAll(ride.subrides);
@@ -97,16 +99,17 @@ public abstract class Connector {
 
     public void doSearch(Ride query, long earliest_dep) throws Exception {
         numberOfRidesFound = 0;
+        arr = search(query);
         if (query == null) {
             from = -1;
             to = -2;
             dep = 0;
+            arr = 20501224;
         } else {
             from = query.getFromId();
             to = query.getToId();
             dep = query.getDep();
         }
-        arr = search(query);
         placesBatch.addAll(ridesBatch);
         ctx.getContentResolver().bulkInsert(
                 RidesProvider.getRidesUri(ctx).buildUpon()

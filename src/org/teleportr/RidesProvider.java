@@ -8,6 +8,7 @@
 package org.teleportr;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -95,11 +96,19 @@ public class RidesProvider extends ContentProvider {
                 id = db.insertPlace(cv);
                 break;
             case RIDES:
-                if (cv.containsKey(Ride._ID)) {
-                    cv.put(Ride.REF, db.getLatestRef(
-                            cv.getAsInteger(Ride._ID)));
+                if (cv.getAsInteger(Ride.PARENT_ID) == 0) {
+                    if (cv.containsKey(Ride._ID)) {
+                        cv.put(Ride.REF, db.getLatestRef(
+                                cv.getAsInteger(Ride._ID)));
+                    }
+                    cv.remove(Ride._ID);
+                    if (!cv.containsKey(Ride.REF)
+                            || cv.getAsString(Ride.REF) == null) {
+                        cv.put(Ride.REF, UUID.randomUUID().toString());
+                        if (cv.getAsShort(Ride.DIRTY) == Ride.FLAG_CLEAN)
+                            cv.put(Ride.DIRTY, Ride.FLAG_FOR_CREATE);
+                    }
                 }
-                cv.remove(Ride._ID);
                 id = db.insertRide(cv.getAsInteger(Ride.PARENT_ID),
                         cv.getAsInteger(Ride.FROM_ID),
                         cv.getAsInteger(Ride.TO_ID), cv);
@@ -189,11 +198,11 @@ public class RidesProvider extends ContentProvider {
             String key = uri.getQueryParameter(Place.KEY);
             if (key != null) {
                 return db.getReadableDatabase().query(PLACE_KEYS, null,
-                        "place_id=" + uri.getLastPathSegment() +
-                        " AND key='" + key + "'", null, null, null, null);
+                        PLACE_ID_IS + uri.getLastPathSegment() +
+                        AND_KEY_IS + key + "'", null, null, null, null);
             } else {
                 return db.getReadableDatabase().query(PLACES_PATH, null,
-                        "_id=" + uri.getLastPathSegment(),
+                        ID_IS + uri.getLastPathSegment(),
                         null, null, null, null);
             }
         case PLACES:
@@ -219,7 +228,7 @@ public class RidesProvider extends ContentProvider {
             return db.queryRide(uri.getLastPathSegment());
         case HISTORY:
             return db.getReadableDatabase().query(RIDES_PATH, null,
-                    "type=" + Ride.SEARCH, null, null, null, "_id DESC");
+                    TYPE_IS + Ride.SEARCH, null, null, null, "_id DESC");
         case MYRIDES:
             rslt = db.queryMyRides();
             rslt.setNotificationUri(getContext().getContentResolver(),
@@ -242,6 +251,12 @@ public class RidesProvider extends ContentProvider {
         return null;
     }
 
+    private static final String GEOHASH_IS_NULL = "geohash IS NULL";
+    private static final String PLACE_ID_IS = "place_id=";
+    private static final String AND_KEY_IS = " AND key='";
+    private static final String TYPE_IS = "type=";
+    private static final String ID_IS = "_id=";
+
     @Override
     public int update(Uri uri, ContentValues values, String sel, String[] args) {
         getContext().getContentResolver().notifyChange(uri, null);
@@ -251,7 +266,7 @@ public class RidesProvider extends ContentProvider {
             id =  db.getWritableDatabase().update(PLACES_PATH, values,
                     ID_EQUALS, new String[] { uri.getLastPathSegment() });
             break;
-        case RIDE:
+        case RIDE: // only one ride version with specific id
             if (db.isDeleted(uri.getLastPathSegment())) {
                 values.put(Ride.DIRTY, Ride.FLAG_FOR_DELETE);
             }
@@ -262,7 +277,7 @@ public class RidesProvider extends ContentProvider {
             getContext().getContentResolver().notifyChange(
                     getMyRidesUri(getContext()), null);
             break;
-        case RIDEF:
+        case RIDEF: // all (versions of) rides with same ref
             id =  db.getWritableDatabase().update(RIDES_PATH, values,
                     REF_EQUALS, new String[] { uri.getLastPathSegment() });
             getContext().getContentResolver().notifyChange(
@@ -276,6 +291,9 @@ public class RidesProvider extends ContentProvider {
         }
         return id;
     }
+
+    private static final String ID_EQUALS = "_id=?";
+    private static final String REF_EQUALS = "ref=?";
 
     @Override
     public int delete(Uri uri, String where, String[] args) {
@@ -299,7 +317,7 @@ public class RidesProvider extends ContentProvider {
             }
         case MYRIDES:
             Log.d(TAG, CLEAR_MYRIDES);
-            String user = new String();
+            String user = "someone";
             try {
                 user = PreferenceManager.getDefaultSharedPreferences(
                         getContext()).getString(USER, new String());
@@ -310,12 +328,9 @@ public class RidesProvider extends ContentProvider {
         return -1;
     }
 
-    private static final String AND_WHO_IS_ME = " AND (who = '' OR who = ?)";
-    private static final String GEOHASH_IS_NULL = "geohash IS NULL";
-    private static final String OFFERS = "type=" + Ride.OFFER;
     private static final String PARENT_EQUALS = "parent_id=?";
-    private static final String REF_EQUALS = "ref=?";
-    private static final String ID_EQUALS = "_id=?";
+    private static final String AND_WHO_IS_ME = " AND (who = '' OR who = ?)";
+    private static final String OFFERS = TYPE_IS + Ride.OFFER;
 
     private static final int RIDE = 0;
     private static final int RIDEF = 1;
@@ -354,12 +369,12 @@ public class RidesProvider extends ContentProvider {
             rides_uri = getUri(ctx).buildUpon().appendPath(RIDES_PATH).build();
         return rides_uri;
     }
-    
+
     public static Uri getRideUri(Context c, int i) {
         return getRidesUri(c).buildUpon().appendPath(String.valueOf(i)).build();
     }
 
-    public static Uri getRideFUri(Context c, String ref) {
+    public static Uri getRideRefUri(Context c, String ref) {
         return getRidesUri(c).buildUpon().appendPath(ref).build();
     }
 

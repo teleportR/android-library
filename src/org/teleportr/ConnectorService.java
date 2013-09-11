@@ -27,6 +27,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.widget.Toast;
 
 public class ConnectorService extends Service
@@ -174,6 +175,7 @@ public class ConnectorService extends Service
 
     public class Publish extends Job<String> {
 
+        private static final String COULD_NOT_BE_DELETED = "could not be deleted";
         private static final String PLEASE_LOGIN = "please login";
         private static final String LOGIN_REQUIRED = "login required";
         private static final String AUTH = "auth";
@@ -217,8 +219,20 @@ public class ConnectorService extends Service
                     break;
                 }
             } catch (FileNotFoundException e) {
-                handleAuth();
+                Log.e(TAG, e.getClass().getName());
+                if (job.getShort(COLUMNS.DIRTY) == Ride.FLAG_FOR_DELETE) {
+                    values.put(Ride.DIRTY, Ride.FLAG_DELETED);
+                    ref = job.getString(COLUMNS.REF);
+                    getContentResolver().update(RidesProvider
+                            .getRidesUri(getContext())
+                            .buildUpon().appendPath(ref)
+                            .build(), values, null, null);
+                    Log.e(TAG, COULD_NOT_BE_DELETED);
+                    fail(offer.toString(), COULD_NOT_BE_DELETED);
+                } else handleAuth();
             } catch (JSONException e) {
+                Log.e(TAG, e.getClass().getName());
+                handleAuth();
             }
         }
 

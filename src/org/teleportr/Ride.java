@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -23,6 +22,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.util.Log;
 
 public class Ride implements Parcelable {
 
@@ -219,12 +219,15 @@ public class Ride implements Parcelable {
 
     public Uri delete() {
         ContentValues values = new ContentValues();
-        if (!cv.containsKey(DIRTY) || cv.getAsShort(DIRTY) == FLAG_DRAFT) {
+        if (!cv.containsKey(DIRTY) || getRef() == null // should not be possible
+                || cv.getAsShort(DIRTY) == FLAG_DRAFT) {
             values.put(DIRTY, FLAG_DELETED);
         } else if (cv.getAsShort(DIRTY) == FLAG_CLEAN) {
             values.put(DIRTY, FLAG_FOR_DELETE);
         }
-        Uri uri = RidesProvider.getRideFUri(ctx, getRef());
+        Uri uri = RidesProvider.getRideUri(ctx, getId());
+        ctx.getContentResolver().update(uri, values, null, null);
+        uri = RidesProvider.getRideRefUri(ctx, getRef());
         ctx.getContentResolver().update(uri, values, null, null);
         return uri;
     }
@@ -244,7 +247,6 @@ public class Ride implements Parcelable {
         if (!cv.containsKey(ACTIVE)) activate();
         if (!cv.containsKey(PRICE)) price(-1);
         if (!cv.containsKey(DIRTY)) cv.put(DIRTY, FLAG_DRAFT);
-        if (!cv.containsKey(REF)) ref(UUID.randomUUID().toString());
         if (details != null) cv.put(DETAILS, details.toString());
         Uri ride;
         cv.put(PARENT_ID, 0);
@@ -307,6 +309,7 @@ public class Ride implements Parcelable {
         Cursor c = ctx.getContentResolver().query(uri, null, null, null, null);
         c.moveToFirst();
         load(c, ctx);
+        c.close();
     }
 
     public Ride(Cursor cursor, Context ctx) {
@@ -332,6 +335,7 @@ public class Ride implements Parcelable {
         val = cursor.getString(COLUMNS.REF);
         if (val != null && !val.equals(EMPTY))
             ref(val);
+        else Log.e(RidesProvider.TAG, "REF is NULL! " + this);
         try {
             details = new JSONObject(cursor.getString(COLUMNS.DETAILS));
             mode(Mode.valueOf(cursor.getString(COLUMNS.MODE)));
