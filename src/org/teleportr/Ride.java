@@ -220,6 +220,7 @@ public class Ride implements Parcelable {
     public Uri delete() {
         ContentValues values = new ContentValues();
         if (!cv.containsKey(DIRTY) || getRef() == null // should not be possible
+                || cv.getAsShort(DIRTY) == FLAG_FOR_CREATE
                 || cv.getAsShort(DIRTY) == FLAG_DRAFT) {
             values.put(DIRTY, FLAG_DELETED);
         } else if (cv.getAsShort(DIRTY) == FLAG_CLEAN) {
