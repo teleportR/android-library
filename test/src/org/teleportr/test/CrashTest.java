@@ -602,4 +602,17 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride was locally deleted too", 0, my_rides.getCount());
     }
+
+    public void testDeleteUnpublishedRide() {
+        Uri r = new Ride(ctx)
+                .type(Ride.OFFER)
+                .marked().dirty()
+                .from(home).to(park)
+                .store(ctx);
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be one ride", 1, my_rides.getCount());
+        new Ride(r, ctx).delete(); // without prior publish!
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should no rides anymore", 0, my_rides.getCount());
+    }
 }
