@@ -92,8 +92,9 @@ public class Ride implements Parcelable {
     }
 
 
-    public void removeVias() {
+    public Ride removeVias() {
         subrides = null;
+        return this;
     }
 
     public Ride via(Uri via) {
@@ -254,11 +255,13 @@ public class Ride implements Parcelable {
         ride = ctx.getContentResolver().insert(
                 RidesProvider.getRidesUri(ctx), cv);
         Integer id = Integer.valueOf(ride.getLastPathSegment());
+        System.out.println("STORED " + id);
         if (subrides != null) {
             for (ContentValues v : subrides) {
                 v.put(PARENT_ID, id);
                 ctx.getContentResolver().insert(
                         RidesProvider.getRidesUri(ctx), v);
+//                System.out.println("  SUB  " + Integer.valueOf(ride.getLastPathSegment()));
             }
         }
         return ride;

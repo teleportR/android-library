@@ -51,36 +51,59 @@ public class RideTest extends CrashTest {
     public void testDeleteUnpublishedRide() {
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be one ride", 1, my_rides.getCount());
-        myRide.delete(); // without prior publish!
+        myRide.delete(); // without prior upload
         my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("there should no rides anymore", 0, my_rides.getCount());
+        assertEquals("myride is locally deleted", 0, my_rides.getCount());
+        storeServerRef(myRide.getId()); // meanwhile upload succeeded
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("myride shows serverside delete", 1, my_rides.getCount());
+        my_rides.moveToFirst();
+        assertEquals(Ride.FLAG_FOR_DELETE, my_rides.getInt(COLUMNS.DIRTY));
+    }
+
+    public void testDeletePublishedRide() throws Exception {
+        storeServerRef(myRide.getId());
+        myRide = new Ride(myRide.getId(), ctx);
+        myRide.delete();
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("still there, but flagged delete", 1, my_rides.getCount());
+        my_rides.moveToFirst();
+        assertEquals(Ride.FLAG_FOR_DELETE, my_rides.getInt(COLUMNS.DIRTY));
     }
 
 
-    public void testRideEdit() throws Exception {
+    public void testEditUnpublishedRide() throws Exception {
         myRide.removeVias();
-        Uri uri = myRide.from(home).via(cafe).via(döner).to(park).activate()
+        myRide.from(bar).via(cafe).via(döner).to(park).activate()
                 .store(ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
+        assertEquals(bar.id, my_rides.getLong(COLUMNS.FROM_ID));
         assertEquals(1000, my_rides.getLong(COLUMNS.DEPARTURE));
-        assertEquals(true, myRide.isActive());
+        assertEquals(1, my_rides.getShort(COLUMNS.ACTIVE));
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
-        assertEquals("in search only once", 4, search_results.getCount());
-        myRide = new Ride(uri, ctx);
+        assertEquals("not show up in search", 3, search_results.getCount());
+    }
+
+    public void testEditPublishedRide() throws Exception {
         storeServerRef(myRide.getId());
-        myRide = new Ride(uri, ctx);
-        myRide = new Ride(myRide.seats(3).store(ctx), ctx);
-        myRide.delete();
-        my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("still there, but flagged delete", 1, my_rides.getCount());
+        myRide = new Ride(myRide.getId(), ctx);
+        myRide.removeVias().from(bar).via(cafe).via(döner).to(park).activate()
+                .store(ctx);
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
-        assertEquals(Ride.FLAG_FOR_DELETE, my_rides.getInt(COLUMNS.DIRTY));
+        assertEquals(bar.id, my_rides.getLong(COLUMNS.FROM_ID));
+        assertEquals(1000, my_rides.getLong(COLUMNS.DEPARTURE));
+        assertEquals(1, my_rides.getShort(COLUMNS.ACTIVE));
+        Cursor subrides = query("content://org.teleportr.test/rides/"
+                + my_rides.getLong(0) + "/rides");
+        assertEquals("with three subrides", 3, subrides.getCount());
     }
 
     public void testRideDuplicate() throws Exception {
@@ -92,18 +115,6 @@ public class RideTest extends CrashTest {
         assertEquals("there should be a duplicate", 2, my_rides.getCount());
         assertNotSame("new tmp ref", myRide.getRef(), anotherRide.getRef());
         anotherRide = new Ride(anotherRide.seats(3).store(ctx), ctx);
-        anotherRide.delete();
-        my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("one myride deleted immediatelly", 1, my_rides.getCount());
-        storeServerRef(anotherRide.getId());
-        my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("does not recreate deleted ride", 2, my_rides.getCount());
-        my_rides.moveToFirst();
-        assertEquals(Ride.FLAG_FOR_DELETE, my_rides.getInt(COLUMNS.DIRTY));
-        getMockContentResolver().delete(Uri.parse( // all myrides
-                "content://org.teleportr.test/myrides"), null, null);
-        my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("there be no myrides anymore", 0, my_rides.getCount());
     }
 
     public void testRideDetails() throws JSONException {
@@ -123,5 +134,12 @@ public class RideTest extends CrashTest {
         JSONObject details = Ride.getDetails(c);
         assertEquals("way", details.getString("another"));
         assertEquals("way", Ride.getDetails(c, "another"));
+    }
+
+    public void deleteMyRides() throws Exception {
+        getMockContentResolver().delete(Uri.parse( // all myrides
+                "content://org.teleportr.test/myrides"), null, null);
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there be no myrides anymore", 0, my_rides.getCount());
     }
 }
