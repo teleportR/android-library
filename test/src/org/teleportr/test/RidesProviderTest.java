@@ -220,39 +220,6 @@ public class RidesProviderTest extends CrashTest {
         assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
     }
 
-    public void testClearCache() throws Exception {
-        new MockConnector(ctx) {
-            @Override
-            public long search(Ride query) {
-                store(new Ride().type(Ride.OFFER).ref("a").who("S7")
-                        .from(store(new Place().name("Home")))
-                        .to(store(new Place().name("Whiskybar"))).dep(1000));
-                store(new Ride().type(Ride.OFFER).ref("b").who("M10")
-                        .from(store(new Place().name("Home")))
-                        .to(store(new Place().name("Whiskybar"))).dep(2000));
-                store(new Ride().type(Ride.OFFER).ref("c").who("Sepp")
-                        .from(store(new Place().name("Home")))
-                        .to(store(new Place().name("Whiskybar"))).dep(3000));
-                return 0;
-            }
-        }.doSearch(new Ride().type(Ride.SEARCH)
-                .from(home).to(bar).dep(today).arr(tomorrow), 0);
-        String uri = "content://org.teleportr.test/rides/";
-        Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("there be three ride matches", 3, rides.getCount());
-
-        getMockContentResolver().delete(
-                Uri.parse(uri + "?older_than=2000"), null, null);
-        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("two rides departing after time 2", 2, rides.getCount());
-
-        getMockContentResolver().delete(Uri.parse(uri), null, null);
-        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
-        assertEquals("there be all rides deleted", 0, rides.getCount());
-        rides = query("content://org.teleportr.test/jobs/search");
-//        assertEquals("there be no more search jobs to do", 0, rides.getCount());
-    }
-
     public void testCleanUp() throws Exception { // rides deleted on the server
         Ride query = new Ride().type(Ride.SEARCH)
                 .from(home).to(park).dep(today).arr(tomorrow);
@@ -294,6 +261,52 @@ public class RidesProviderTest extends CrashTest {
         }.doSearch(null, 0); // myrides
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride was locally deleted too", 0, my_rides.getCount());
+    }
+
+    public void testInvalidateCache() throws Exception {
+        Ride search = new Ride().type(Ride.SEARCH).from(bar).to(home)
+                .dep(new Date(7000)).arr(new Date(9000));
+        search.store(ctx);
+        assertOneJobToSearch("last search ride dep", 7000);
+        // working dummy hard in background..
+        reportJobsDone(7000, 9000);
+        assertNoMoreJobsToSearch();
+        getMockContentResolver().update(
+                RidesProvider.getRidesUri(ctx), null, null, null);
+        assertOneJobToSearch("last search ride dep", 7000);
+    }
+
+    public void testDeleteCache() throws Exception {
+        new MockConnector(ctx) {
+            @Override
+            public long search(Ride query) {
+                store(new Ride().type(Ride.OFFER).ref("a").who("S7")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(1000));
+                store(new Ride().type(Ride.OFFER).ref("b").who("M10")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(2000));
+                store(new Ride().type(Ride.OFFER).ref("c").who("Sepp")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Whiskybar"))).dep(3000));
+                return 0;
+            }
+        }.doSearch(new Ride().type(Ride.SEARCH)
+                .from(home).to(bar).dep(today).arr(tomorrow), 0);
+        String uri = "content://org.teleportr.test/rides/";
+        Cursor rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("there be three ride matches", 3, rides.getCount());
+
+        getMockContentResolver().delete(
+                Uri.parse(uri + "?older_than=2000"), null, null);
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("two rides departing after time 2", 2, rides.getCount());
+
+        getMockContentResolver().delete(Uri.parse(uri), null, null);
+        rides = query(uri + "?from_id=" + home.id + "&to_id=" + bar.id);
+        assertEquals("there be all rides deleted", 0, rides.getCount());
+        rides = query("content://org.teleportr.test/jobs/search");
+//        assertEquals("there be no more search jobs to do", 0, rides.getCount());
     }
 
 }

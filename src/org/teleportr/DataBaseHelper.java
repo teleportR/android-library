@@ -9,8 +9,6 @@ package org.teleportr;
 
 import java.util.Map.Entry;
 
-import org.teleportr.Ride.COLUMNS;
-
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -25,14 +23,14 @@ class DataBaseHelper extends SQLiteOpenHelper {
     private static final String TAG = "DB";
     private static final String EMPTY = "";
     private static final String JOBS = "jobs";
-    private static final String ARROW = " -> ";
     private static final String RIDES = "rides";
-    private static final String STORED_KEY = "+ stored key ";
-    private static final String STORED_RIDE = "+ stored ride ";
-    private static final String STORED_PLACE = "+ stored place ";
-    private static final String RESOLVE_PLACE_BY_NAME = "* resolve place by name ";
-    private static final String RESOLVE_PLACE_BY_ADDRESS = "* resolve place by address ";
-    private static final String RESOLVE_PLACE_BY_GEOHASH = "* resolve place by geohash ";
+//    private static final String ARROW = " -> ";
+//    private static final String STORED_KEY = "+ stored key ";
+//    private static final String STORED_RIDE = "+ stored ride ";
+//    private static final String STORED_PLACE = "+ stored place ";
+//    private static final String RESOLVE_PLACE_BY_NAME = "* resolve place by name ";
+//    private static final String RESOLVE_PLACE_BY_ADDRESS = "* resolve place by address ";
+//    private static final String RESOLVE_PLACE_BY_GEOHASH = "* resolve place by geohash ";
     private static final String INVALIDATE_CACHE = "invalidate cache";
     private static final String LAST_REFRESH = "last_refresh";
     private static final String DB_FILENAME = "teleportr.db";
@@ -161,7 +159,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 insertPlaceKey.bindString(2, entry.getKey());
                 insertPlaceKey.bindString(3, (String) entry.getValue());
                 insertPlaceKey.executeInsert();
-                Log.d(RidesProvider.TAG, STORED_KEY + entry);
+//                Log.d(RidesProvider.TAG, STORED_KEY + entry);
             }
         }
         return (int) place_id;

@@ -2,6 +2,7 @@ package org.teleportr.test;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.teleportr.Place;
 import org.teleportr.Ride;
 import org.teleportr.Ride.COLUMNS;
 
@@ -29,6 +30,23 @@ public class RideTest extends CrashTest {
 
 
 
+    public void refreshMyRides(final Ride ride) throws Exception {
+        new MockConnector(ctx) {
+            
+            @Override
+            public long search(Ride search) throws Exception {
+                Ride r = new Ride().type(Ride.OFFER);
+                r.from(ride.getFromId());
+                for (Place via : ride.getVias())
+                    r.via(via);
+                r.to(ride.getToId());
+                r.dep(ride.getDep());
+                store(r);
+                return 0;
+            }
+        }.doSearch(null, 0);
+    }
+
     public void testRideFromCursor() throws Exception {
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
@@ -48,7 +66,7 @@ public class RideTest extends CrashTest {
     }
 
 
-    public void testDeleteUnpublishedRide() {
+    public void testDeleteUnpublishedRide() throws Exception {
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be one ride", 1, my_rides.getCount());
         myRide.delete(); // without prior upload
@@ -63,6 +81,7 @@ public class RideTest extends CrashTest {
 
     public void testDeletePublishedRide() throws Exception {
         storeServerRef(myRide.getId());
+        refreshMyRides(myRide);
         myRide = new Ride(myRide.getId(), ctx);
         myRide.delete();
         Cursor my_rides = query("content://org.teleportr.test/myrides");
@@ -92,13 +111,18 @@ public class RideTest extends CrashTest {
 
     public void testEditPublishedRide() throws Exception {
         storeServerRef(myRide.getId());
-        myRide = new Ride(myRide.getId(), ctx);
-        myRide.removeVias().from(bar).via(cafe).via(döner).to(park).activate()
-                .store(ctx);
+        refreshMyRides(myRide);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
+        myRide = new Ride(my_rides.getInt(COLUMNS.ID), ctx);
+        myRide.removeVias().from(bar).via(cafe).via(döner).to(park).activate()
+                .dirty().store(ctx);
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be only one ride", 1, my_rides.getCount());
+        my_rides.moveToFirst();
         assertEquals(bar.id, my_rides.getLong(COLUMNS.FROM_ID));
+        assertEquals(Ride.FLAG_FOR_UPDATE, my_rides.getShort(COLUMNS.DIRTY));
         assertEquals(1000, my_rides.getLong(COLUMNS.DEPARTURE));
         assertEquals(1, my_rides.getShort(COLUMNS.ACTIVE));
         Cursor subrides = query("content://org.teleportr.test/rides/"
