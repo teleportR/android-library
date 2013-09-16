@@ -34,10 +34,15 @@ public class Place {
     }
 
     public Place(int id, Context ctx) {
-        this(id);
+        this(RidesProvider.getPlaceUri(ctx, id), ctx);
+    }
+
+    public Place(Uri uri, Context ctx) {
         this.ctx = ctx;
+        cv = new ContentValues();
+        this.id = Integer.parseInt(uri.getLastPathSegment());
         Cursor cursor = ctx.getContentResolver().query(
-                RidesProvider.getPlaceUri(ctx, id), null, null, null, null);
+                uri, null, null, null, null);
         cursor.moveToFirst();
         geohash(cursor.getString(1));
         name(cursor.getString(2));
