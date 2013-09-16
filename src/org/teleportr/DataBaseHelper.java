@@ -423,7 +423,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public int invalidateCache() {
         Log.d(TAG, INVALIDATE_CACHE);
         ContentValues values = new ContentValues();
-        values.putNull(LAST_REFRESH);
+        values.put(LAST_REFRESH, 0);
         return getWritableDatabase().update(JOBS, values, null, null);
     }
 
