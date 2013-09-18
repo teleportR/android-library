@@ -376,13 +376,20 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
             + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
                 + " AND match.sub_from_id=? AND match.sub_to_id =?"
-                + " AND rides.dep > ? AND rides.who <> '' AND active = 1"
+                + " AND rides.dep > ? AND rides.dep < ?"
+                + " AND rides.who <> '' AND active = 1"
             + " GROUP BY rides.ref, rides.dep ORDER BY rides.dep, rides._id;";
 
-    public Cursor queryRides(String from_id, String to_id, String dep) {
+    public Cursor queryRides(
+            String from_id, String to_id, String dep, String arr) {
         return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
-                new String[] { from_id, to_id, (dep != null)? dep : MINUS_ONE});
+                new String[] { from_id, to_id,
+                        (dep != null)? dep : MINUS_ONE,
+                        (dep != null)? arr : INFINITY });
     }
+
+    private static final String MINUS_ONE = "-1";
+    private static final String INFINITY = String.valueOf(Long.MAX_VALUE);
 
     static final String SELECT_SUB_RIDES = SELECT_RIDES
             + " WHERE parent_id=? ORDER BY rides.dep;";
@@ -416,7 +423,6 @@ class DataBaseHelper extends SQLiteOpenHelper {
                     + (from.equals(MINUS_ONE)? IS_MARKED : CLOSE),
                     new String[] { from, to, dep, arr, time });
     }
-    private static final String MINUS_ONE = "-1";
     private static final String CLOSE = ");";
     private static final String IS_MARKED = " AND marked = 1" + CLOSE;
 

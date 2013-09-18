@@ -219,7 +219,8 @@ public class RidesProvider extends ContentProvider {
             Cursor rslt = db.queryRides(
                     uri.getQueryParameter(Ride.FROM_ID),
                     uri.getQueryParameter(Ride.TO_ID),
-                    uri.getQueryParameter(Ride.DEP));
+                    uri.getQueryParameter(Ride.DEP),
+                    uri.getQueryParameter(Ride.ARR));
             rslt.setNotificationUri(getContext().getContentResolver(), uri);
             return rslt;
         case SUBRIDES:

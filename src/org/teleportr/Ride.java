@@ -493,6 +493,7 @@ public class Ride implements Parcelable {
             .appendQueryParameter(Ride.FROM_ID, cv.getAsString(Ride.FROM_ID))
             .appendQueryParameter(Ride.TO_ID, cv.getAsString(Ride.TO_ID))
             .appendQueryParameter(Ride.DEP, cv.getAsString(Ride.DEP))
+            .appendQueryParameter(Ride.ARR, cv.getAsString(Ride.ARR))
             .build();
     }
 
