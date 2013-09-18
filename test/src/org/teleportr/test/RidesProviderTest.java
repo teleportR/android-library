@@ -147,8 +147,10 @@ public class RidesProviderTest extends CrashTest {
                     .from(store(new Place().name("Slackline")))
                     .to(store(new Place(57.545375, 17.453748))) // döner
                     .dep(new Date(2000)));
-                store(new Ride().from(1).to(2).dep(3000).ref("foo")
-                     .deactivate()); // should not show up in search results
+                store(new Ride().type(Ride.OFFER).ref("baz").who("Anyone")
+                        .from(1).to(2).dep(5000)); // too late
+                store(new Ride().type(Ride.OFFER).ref("foo").who("Anyone")
+                        .from(1).to(2).dep(3000).deactivate());
                 return 0;
             }
         }.doSearch(new Ride().type(Ride.SEARCH)
@@ -156,7 +158,7 @@ public class RidesProviderTest extends CrashTest {
 
         Cursor rides = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + bar.id
-                            + "&dep=999");
+                            + "&dep=999&arr=4000");
         assertEquals("there be three ride matches", 3, rides.getCount());
         rides.moveToLast(); // sorted by departure date
         assertEquals("Home", rides.getString(COLUMNS.FROM_NAME));
