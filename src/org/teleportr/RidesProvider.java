@@ -109,9 +109,7 @@ public class RidesProvider extends ContentProvider {
                             cv.put(Ride.DIRTY, Ride.FLAG_FOR_CREATE);
                     }
                 }
-                id = db.insertRide(cv.getAsInteger(Ride.PARENT_ID),
-                        cv.getAsInteger(Ride.FROM_ID),
-                        cv.getAsInteger(Ride.TO_ID), cv);
+                id = db.insertRide(cv);
                 break;
             case SEARCH:
                 id = db.getWritableDatabase().replace(JOBS_PATH, null, cv);

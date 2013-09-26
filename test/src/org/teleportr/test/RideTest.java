@@ -65,6 +65,11 @@ public class RideTest extends CrashTest {
         assertEquals(park.id, myRide.getSubrides().get(1).getTo().id);
     }
 
+    public void testStoreEmptyRide() throws Exception {
+        Uri uri = new Ride().type(Ride.OFFER).store(ctx);
+        Ride ride = new Ride(uri, ctx);
+        assertEquals(-3, ride.getFromId());
+    }
 
     public void testDeleteUnpublishedRide() throws Exception {
         Cursor my_rides = query("content://org.teleportr.test/myrides");

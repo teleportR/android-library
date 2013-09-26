@@ -375,14 +375,14 @@ public class Ride implements Parcelable {
     }
 
     public Place getFrom() {
-        if (getFromId() != 0)
+        if (getFromId() > 0)
             return new Place(getFromId(), ctx);
         else
             return null;
     }
 
     public Place getTo() {
-        if (getToId() != 0)
+        if (getToId() > 0)
             return new Place(getToId(), ctx);
         else
             return null;

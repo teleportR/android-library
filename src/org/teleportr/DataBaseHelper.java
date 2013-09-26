@@ -179,12 +179,15 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + " price, seats, marked, dirty, active, parent_id, ref, refresh)"
             + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
-    public int insertRide(int parent, int from, int to, ContentValues cv) {
+    public int insertRide(ContentValues cv) {
+        if (!cv.containsKey(Ride.FROM_ID)) cv.put(Ride.FROM_ID, -3);
+        if (!cv.containsKey(Ride.TO_ID)) cv.put(Ride.TO_ID, -3);
+        return insertRide(cv.getAsInteger(Ride.PARENT_ID),
+                cv.getAsInteger(Ride.FROM_ID),
+                cv.getAsInteger(Ride.TO_ID), cv);
+    }
 
-//        if (from == to) {
-//            Log.d(RidesProvider.TAG, "- NOT store from=" + from + " to=" + to);
-//            return -1;
-//        }
+    public int insertRide(int parent, int from, int to, ContentValues cv) {
         insertRide.bindLong(17, System.currentTimeMillis());
         insertRide.bindLong(15, parent);
         insertRide.bindLong(2, from);
@@ -350,16 +353,16 @@ class DataBaseHelper extends SQLiteOpenHelper {
             " WHERE dirty > 0 AND parent_id = 0";
 
     static final String SELECT_RIDES_COLUMNS = "SELECT rides._id, rides.type,"
-                + " \"from\"._id, \"from\".name, \"from\".address,"
-                + " \"to\"._id, \"to\".name, \"to\".address,"
+                + " rides.from_id, \"from\".name, \"from\".address,"
+                + " rides.to_id, \"to\".name, \"to\".address,"
                 + " rides.dep, rides.arr,"
                 + " rides.mode, rides.operator, rides.who, rides.details,"
                 + " rides.distance, rides.price, rides.seats, rides.marked,"
                 + " rides.dirty, rides.active, rides.parent_id, rides.ref";
 
     static final String JOIN = " FROM 'rides'"
-            + " JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
-            + " JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id";
+            + " LEFT JOIN 'places' AS \"from\" ON rides.from_id=\"from\"._id"
+            + " LEFT JOIN 'places' AS \"to\" ON rides.to_id=\"to\"._id";
 
     static final String SELECT_RIDES = SELECT_RIDES_COLUMNS + JOIN;
 
