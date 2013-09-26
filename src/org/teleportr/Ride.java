@@ -20,6 +20,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.net.Uri.Builder;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
@@ -417,13 +418,13 @@ public class Ride implements Parcelable {
     public int getFromId() {
         if (cv.containsKey(FROM_ID))
             return cv.getAsInteger(FROM_ID);
-        else return 0;
+        else return -3;
     }
 
     public int getToId() {
         if (cv.containsKey(TO_ID))
             return cv.getAsInteger(TO_ID);
-        else return 0;
+        else return -3;
     }
 
     public long getDep() {
@@ -489,19 +490,28 @@ public class Ride implements Parcelable {
     }
 
     public Uri toUri() {
-        return RidesProvider.getRidesUri(ctx).buildUpon()
-            .appendQueryParameter(Ride.FROM_ID, cv.getAsString(Ride.FROM_ID))
-            .appendQueryParameter(Ride.TO_ID, cv.getAsString(Ride.TO_ID))
-            .appendQueryParameter(Ride.DEP, cv.getAsString(Ride.DEP))
-            .appendQueryParameter(Ride.ARR, cv.getAsString(Ride.ARR))
-            .build();
+        Builder b = RidesProvider.getRidesUri(ctx).buildUpon();
+        if (cv.containsKey(Ride.FROM_ID))
+            b.appendQueryParameter(Ride.FROM_ID, cv.getAsString(Ride.FROM_ID));
+        if (cv.containsKey(Ride.TO_ID))
+            b.appendQueryParameter(Ride.TO_ID, cv.getAsString(Ride.TO_ID));
+        if (cv.containsKey(Ride.DEP))
+            b.appendQueryParameter(Ride.DEP, cv.getAsString(Ride.DEP));
+        if (cv.containsKey(Ride.ARR))
+            b.appendQueryParameter(Ride.ARR, cv.getAsString(Ride.ARR));
+        return b.build();
     }
 
     @Override
     public String toString() {
-        return new StringBuffer().append(getFrom().getName().substring(0, 3))
-                .append(ARROW).append(getTo().getName().substring(0, 3))
-                .append(COLON).append(df.format(getDep())).toString();
+        StringBuffer b = new StringBuffer();
+        if (getFrom() != null)
+            b.append(getFrom().getName().substring(0, 3));
+        if (getTo() != null)
+            b.append(ARROW).append(getTo().getName().substring(0, 3));
+        if (cv.containsKey(DEP))
+            b.append(COLON).append(df.format(getDep())).toString();
+        return b.toString();
     }
 
     private static final SimpleDateFormat df =

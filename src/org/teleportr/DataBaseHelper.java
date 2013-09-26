@@ -386,7 +386,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public Cursor queryRides(
             String from_id, String to_id, String dep, String arr) {
         return getReadableDatabase().rawQuery(SELECT_RIDE_MATCHES,
-                new String[] { from_id, to_id,
+                new String[] {
+                        (from_id != null)? from_id : "-3",
+                        (to_id != null)? to_id : "-3",
                         (dep != null)? dep : MINUS_ONE,
                         (dep != null)? arr : INFINITY });
     }

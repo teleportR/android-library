@@ -129,6 +129,7 @@ public class RidesProviderTest extends CrashTest {
 
     public void testRideMatches() throws Exception {
         new MockConnector(ctx) {
+
             @Override
             public long search(Ride query) {
                 store(new Ride().from(1).to(2).dep(500));
@@ -221,6 +222,37 @@ public class RidesProviderTest extends CrashTest {
         assertEquals("Slackline", rides.getString(COLUMNS.FROM_NAME));
         assertEquals("Cafe Schön", rides.getString(COLUMNS.TO_NAME));
     }
+
+    public void testHereToAnywhere() throws Exception {
+        Ride query = new Ride().type(Ride.SEARCH).from(bar);
+        dummyConnector.doSearch(query, 0); // execute connector
+        Connector connector = new MockConnector(ctx) {
+            @Override
+            public long search(Ride query) {
+                store(new Ride().type(Ride.OFFER).ref("a").who("S7")
+                        .from(store(new Place().name("Slackline")))
+                        .via(store(new Place().name("Whiskybar")))
+                        .to(store(new Place().name("Home")))
+                        .dep(new Date(2000)));
+                store(new Ride().type(Ride.OFFER).ref("b").who("U5")
+                        .from(store(new Place().name("Home")))
+                        .to(store(new Place().name("Cafe Schön")))
+                        .via(store(new Place().name("Cafe Schön")))
+                        .via(store(new Place().name("Slackline")))
+                        .dep(new Date(1000)));
+                return 0;
+            }
+        };
+        connector.doSearch(query, 0); // execute connector
+        connector.doSearch(query, 0); // refresh results
+        Cursor rides = query("content://org.teleportr.test/rides"
+                + "?from_id=" + bar.id);
+        assertEquals("there be two ride matches", 5, rides.getCount());
+        rides = getMockContentResolver()
+                .query(query.toUri(), null, null, null, null);
+        assertEquals("there be two ride matches", 5, rides.getCount());
+    }
+
 
     public void testCleanUp() throws Exception { // rides deleted on the server
         Ride query = new Ride().type(Ride.SEARCH)
