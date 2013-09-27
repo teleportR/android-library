@@ -19,7 +19,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 19;
+    private static final int VERSION = 20;
     private static final String TAG = "DB";
     private static final String EMPTY = "";
     private static final String JOBS = "jobs";
@@ -377,7 +377,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 SELECT_RIDES_COLUMNS + ", max(rides._id)" + JOIN
             + " LEFT JOIN 'route_matches' AS match ON "
                 + " rides.from_id=match.from_id AND rides.to_id=match.to_id"
-            + " WHERE rides.parent_id=0 AND rides.type=" + Ride.OFFER
+            + " WHERE rides.parent_id=0 AND rides.type >= " + Ride.OFFER
                 + " AND match.sub_from_id=? AND match.sub_to_id =?"
                 + " AND rides.dep > ? AND rides.dep < ?"
                 + " AND rides.who <> '' AND active = 1"

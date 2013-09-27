@@ -14,8 +14,10 @@ public class TestRideMatches extends CrashTest {
 
 
 
+
     public void testRideMatches() throws Exception {
         new MockConnector(ctx) {
+            protected static final int REOCCURING = 53; // custom type
 
             @Override
             public long search(Ride query) {
@@ -26,7 +28,7 @@ public class TestRideMatches extends CrashTest {
                     .to(store(new Place().name("Whiskybar")))
                     .dep(new Date(1000)));
                 store(new Ride().who("Anyone").price(42).seats(3)
-                    .type(Ride.OFFER)
+                    .type(REOCCURING)
                     .from(store(new Place(52.439716, 13.448982))) // home
                     .to(store(new Place().address("Hafenstr. 125")))
                     .dep(new Date(3000)));
