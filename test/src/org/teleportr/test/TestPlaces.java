@@ -5,7 +5,7 @@ import org.teleportr.Ride;
 
 import android.database.Cursor;
 
-public class PlaceTest extends CrashTest {
+public class TestPlaces extends CrashTest {
 
 
 

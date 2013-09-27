@@ -9,7 +9,7 @@ import org.teleportr.Ride.COLUMNS;
 import android.database.Cursor;
 import android.net.Uri;
 
-public class RideTest extends CrashTest {
+public class TestRides extends CrashTest {
 
     private Ride myRide;
 
@@ -29,23 +29,6 @@ public class RideTest extends CrashTest {
     }
 
 
-
-    public void refreshMyRides(final Ride ride) throws Exception {
-        new MockConnector(ctx) {
-            
-            @Override
-            public long search(Ride search) throws Exception {
-                Ride r = new Ride().type(Ride.OFFER);
-                r.from(ride.getFromId());
-                for (Place via : ride.getVias())
-                    r.via(via);
-                r.to(ride.getToId());
-                r.dep(ride.getDep());
-                store(r);
-                return 0;
-            }
-        }.doSearch(null, 0);
-    }
 
     public void testRideFromCursor() throws Exception {
         assertEquals(home.id, myRide.getFromId());
@@ -170,5 +153,24 @@ public class RideTest extends CrashTest {
                 "content://org.teleportr.test/myrides"), null, null);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there be no myrides anymore", 0, my_rides.getCount());
+    }
+
+
+
+    public void refreshMyRides(final Ride ride) throws Exception {
+        new MockConnector(ctx) {
+            
+            @Override
+            public long search(Ride search) throws Exception {
+                Ride r = new Ride().type(Ride.OFFER);
+                r.from(ride.getFromId());
+                for (Place via : ride.getVias())
+                    r.via(via);
+                r.to(ride.getToId());
+                r.dep(ride.getDep());
+                store(r);
+                return 0;
+            }
+        }.doSearch(null, 0);
     }
 }
