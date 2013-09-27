@@ -13,8 +13,6 @@ public class TestRides extends CrashTest {
 
     private Ride myRide;
 
-
-
     @Override
     protected void setUp() throws Exception {
         super.setUp();
@@ -146,6 +144,15 @@ public class TestRides extends CrashTest {
         JSONObject details = Ride.getDetails(c);
         assertEquals("way", details.getString("another"));
         assertEquals("way", Ride.getDetails(c, "another"));
+    }
+
+    public void testReoccuringRides() throws Exception {
+        int REOCCURING = 53; // custom type
+        new Ride().type(REOCCURING).from(bar).to(park).marked().store(ctx);
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there be two myrides", 2, my_rides.getCount());
+        my_rides.moveToFirst();
+        assertEquals("sort to top", REOCCURING, my_rides.getInt(COLUMNS.TYPE));
     }
 
     public void deleteMyRides() throws Exception {

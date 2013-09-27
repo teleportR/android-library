@@ -408,7 +408,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
             + ", max(rides._id)" + JOIN
             + " WHERE marked=1 AND dirty > -2"
             + " GROUP BY rides.ref"
-            + " ORDER BY dep DESC, rides._id DESC;";
+            + " ORDER BY rides.type DESC, rides.dep DESC, rides._id DESC;";
 
     public Cursor queryMyRides() {
         return getReadableDatabase().rawQuery(SELECT_MYRIDES, null);
