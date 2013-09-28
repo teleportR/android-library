@@ -439,6 +439,12 @@ public class Ride implements Parcelable {
         else return System.currentTimeMillis();
     }
 
+    public short getType() {
+        if (cv.containsKey(TYPE))
+            return cv.getAsShort(TYPE);
+        else return SEARCH;
+    }
+
     public Mode getMode() {
         if (cv.containsKey(MODE))
             return Mode.valueOf(cv.getAsString(MODE));
