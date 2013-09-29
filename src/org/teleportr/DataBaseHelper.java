@@ -381,7 +381,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " AND match.sub_from_id=? AND match.sub_to_id =?"
                 + " AND rides.dep > ? AND rides.dep < ?"
                 + " AND rides.who <> '' AND active = 1"
-            + " GROUP BY rides.ref, rides.dep"
+            + " GROUP BY rides.ref, rides.type, rides.dep"
             + " HAVING rides.type = " + Ride.OFFER
             + " ORDER BY rides.dep, rides._id;";
 
