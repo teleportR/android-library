@@ -14,7 +14,6 @@ public class TestRideMatches extends CrashTest {
 
 
 
-
     public void testRideMatches() throws Exception {
         new MockConnector(ctx) {
 
@@ -118,12 +117,12 @@ public class TestRideMatches extends CrashTest {
         Connector connector = new MockConnector(ctx) {
             @Override
             public long search(Ride query) {
-                store(new Ride().type(Ride.OFFER).ref("a").who("S7")
+                store(new Ride().type(Ride.OFFER).ref("aa").who("S7")
                         .from(store(new Place().name("Slackline")))
                         .via(store(new Place().name("Whiskybar")))
                         .to(store(new Place().name("Home")))
                         .dep(new Date(2000)));
-                store(new Ride().type(Ride.OFFER).ref("b").who("U5")
+                store(new Ride().type(Ride.OFFER).ref("bb").who("U5")
                         .from(store(new Place().name("Home")))
                         .to(store(new Place().name("Cafe Schön")))
                         .via(store(new Place().name("Cafe Schön")))
@@ -136,10 +135,10 @@ public class TestRideMatches extends CrashTest {
         connector.doSearch(query, 0); // refresh results
         Cursor rides = query("content://org.teleportr.test/rides"
                 + "?from_id=" + bar.id);
-        assertEquals("there be two ride matches", 5, rides.getCount());
+        assertEquals("there be five ride matches", 5, rides.getCount());
         rides = getMockContentResolver()
                 .query(query.toUri(), null, null, null, null);
-        assertEquals("there be two ride matches", 5, rides.getCount());
+        assertEquals("there be five ride matches", 5, rides.getCount());
     }
 
 

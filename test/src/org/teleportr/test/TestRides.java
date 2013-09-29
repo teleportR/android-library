@@ -12,16 +12,18 @@ import android.net.Uri;
 public class TestRides extends CrashTest {
 
     private Ride myRide;
+    private Ride query;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        dummyConnector.doSearch(new Ride().type(Ride.OFFER)
-                .from(home).to(park).dep(today).arr(tomorrow), 0);
+        query = new Ride().type(Ride.OFFER)
+                .from(home).to(park).dep(today).arr(tomorrow);
+        dummyConnector.doSearch(query, 0);
         Uri uri = new Ride().type(Ride.OFFER)
                 .from(home).via(bar).to(park)
                 .price(42).dep(1000).marked()
-                .ref("foo bar").deactivate()
+                .ref("foo bar").activate()
                 .who("someone").store(ctx);
         myRide = new Ride(uri, ctx); // query ride
     }
@@ -38,7 +40,7 @@ public class TestRides extends CrashTest {
         assertEquals(42, myRide.getPrice());
         assertEquals(1000, myRide.getDep());
         assertEquals(true, myRide.isMarked());
-        assertEquals(false, myRide.isActive());
+        assertEquals(true, myRide.isActive());
         assertEquals("two subrides as objects", 2, myRide.getSubrides().size());
         assertEquals("Home", myRide.getSubrides().get(0).getFrom().getName());
         assertEquals(home.id, myRide.getSubrides().get(0).getFrom().id);
@@ -92,7 +94,7 @@ public class TestRides extends CrashTest {
         assertEquals("with three subrides", 3, subrides.getCount());
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
-        assertEquals("not show up in search", 3, search_results.getCount());
+        assertEquals("show up in search", 4, search_results.getCount());
     }
 
     public void testEditPublishedRide() throws Exception {
@@ -102,18 +104,21 @@ public class TestRides extends CrashTest {
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
         myRide = new Ride(my_rides.getInt(COLUMNS.ID), ctx);
-        myRide.removeVias().from(bar).via(cafe).via(döner).to(park).activate()
-                .dirty().store(ctx);
+        myRide.removeVias().from(home).via(cafe).via(döner).to(park).activate()
+                .dep(1700).who("another").dirty().store(ctx);
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
-        assertEquals(bar.id, my_rides.getLong(COLUMNS.FROM_ID));
+        assertEquals(home.id, my_rides.getLong(COLUMNS.FROM_ID));
         assertEquals(Ride.FLAG_FOR_UPDATE, my_rides.getShort(COLUMNS.DIRTY));
-        assertEquals(1000, my_rides.getLong(COLUMNS.DEPARTURE));
+        assertEquals(1700, my_rides.getLong(COLUMNS.DEPARTURE));
         assertEquals(1, my_rides.getShort(COLUMNS.ACTIVE));
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());
+        Cursor search_results = query("content://org.teleportr.test/rides"
+                + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("only once in results", 4, search_results.getCount());
     }
 
     public void testRideDuplicate() throws Exception {
@@ -147,7 +152,13 @@ public class TestRides extends CrashTest {
     }
 
     public void testReoccuringRides() throws Exception {
-        int REOCCURING = 53; // custom type
+        Cursor search_results = query("content://org.teleportr.test/rides"
+                + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("there be four result", 4, search_results.getCount());
+        myRide.type(REOCCURING).store(ctx);
+        search_results = query("content://org.teleportr.test/rides"
+                + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("not show reoccuring", 3, search_results.getCount());
         new Ride().type(REOCCURING).from(bar).to(park).marked().store(ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there be two myrides", 2, my_rides.getCount());
