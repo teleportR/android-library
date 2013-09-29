@@ -18,6 +18,7 @@ import android.test.ProviderTestCase2;
 
 public class CrashTest extends ProviderTestCase2<RidesProvider> {
 
+    protected static final int REOCCURING = 53; // custom type
     public Place home;
     public Place cafe;
     public Place bar;
@@ -93,6 +94,9 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
                 store(new Ride().type(Ride.OFFER).who("anyone").ref("a")
                         .from(store(new Place().name("Home"))).dep(1000)
                         .to(store(new Place().name("Slackline"))));
+                store(new Ride().type(REOCCURING).who("someone").ref("d")
+                        .from(store(new Place().address("Hipperstr. 42")))
+                        .to(store(new Place().address("Wiesn"))).dep(1500));
                 store(new Ride().type(Ride.OFFER).who("someone").ref("b")
                         .from(store(new Place().address("Hipperstr. 42")))
                         .to(store(new Place().address("Wiesn"))).dep(2000));

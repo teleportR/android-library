@@ -17,7 +17,6 @@ public class TestRideMatches extends CrashTest {
 
     public void testRideMatches() throws Exception {
         new MockConnector(ctx) {
-            protected static final int REOCCURING = 53; // custom type
 
             @Override
             public long search(Ride query) {
@@ -27,11 +26,12 @@ public class TestRideMatches extends CrashTest {
                     .from(store(new Place().name("Home")))
                     .to(store(new Place().name("Whiskybar")))
                     .dep(new Date(1000)));
-                store(new Ride().who("Anyone").price(42).seats(3)
-                    .type(REOCCURING)
+                store(new Ride().type(REOCCURING) // not in search results
+                        .who("Someone").from(1).to(2).dep(2000));
+                store(new Ride().type(Ride.OFFER).who("Anyone")
                     .from(store(new Place(52.439716, 13.448982))) // home
                     .to(store(new Place().address("Hafenstr. 125")))
-                    .dep(new Date(3000)));
+                    .dep(new Date(3000)).price(42).seats(3));
                 store(new Ride().who("Riksha 5")
                     .type(Ride.OFFER).price(42)
                     .from(store(new Place().name("Slackline")))
@@ -168,7 +168,7 @@ public class TestRideMatches extends CrashTest {
         new MockConnector(ctx) { // clean up myride(s)
             @Override
             public long search(Ride query) {
-                store(new Ride().type(Ride.OFFER).ref("a").marked() //.who("me")
+                store(new Ride().type(REOCCURING).ref("a").marked() //.who("me")
                         .from(store(new Place().name("Home"))).dep(1000)
                         .to(store(new Place().name("Slackline"))));
                 return 0;
