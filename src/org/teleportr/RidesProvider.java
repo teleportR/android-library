@@ -329,7 +329,7 @@ public class RidesProvider extends ContentProvider {
 
     private static final String PARENT_EQUALS = "parent_id=?";
     private static final String AND_WHO_IS_ME = " AND (who = '' OR who = ?)";
-    private static final String OFFERS = TYPE_IS + Ride.OFFER;
+    private static final String OFFERS = "rides.type >= " + Ride.OFFER;
 
     private static final int RIDE = 0;
     private static final int RIDEF = 1;

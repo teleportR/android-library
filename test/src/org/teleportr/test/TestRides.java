@@ -167,9 +167,12 @@ public class TestRides extends CrashTest {
     }
 
     public void deleteMyRides() throws Exception {
+        myRide.type(REOCCURING).store(ctx);
+        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there be one myrides anymore", 1, my_rides.getCount());
         getMockContentResolver().delete(Uri.parse( // all myrides
                 "content://org.teleportr.test/myrides"), null, null);
-        Cursor my_rides = query("content://org.teleportr.test/myrides");
+        my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there be no myrides anymore", 0, my_rides.getCount());
     }
 
