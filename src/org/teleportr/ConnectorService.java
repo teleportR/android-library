@@ -33,9 +33,10 @@ import android.widget.Toast;
 public class ConnectorService extends Service
         implements OnSharedPreferenceChangeListener {
 
-    private static final String CLEANUP_INTERVAL = "cleanup_interval";
-    private static final String LAST_CLEANUP = "last_cleanup";
-    private static final String WRONG_LOGIN_OR_PASSWORD = "wrong login or password";
+    public static final String CLEANUP_INTERVAL = "cleanup_interval";
+    public static final String LAST_CLEANUP = "last_cleanup";
+    private static final String WRONG_LOGIN_OR_PASSWORD =
+            "wrong login or password";
     private static final String VERBOSE = "verbose";
     private static final String GPLACES =
             "de.fahrgemeinschaft.GPlaces";
@@ -126,6 +127,12 @@ public class ConnectorService extends Service
             } catch (FileNotFoundException e) {
                 fail(MYRIDES, LOGIN);
             }
+        }
+
+        @Override
+        protected void success(String what, int number) {
+            worker.post(search);
+            super.success(what, number);
         }
     };
 

@@ -354,7 +354,8 @@ public class RidesProvider extends ContentProvider {
 
     public static Uri getPlacesUri(Context ctx) {
         if (places_uri == null)
-            places_uri = getUri(ctx).buildUpon().appendPath(PLACES_PATH).build();
+            places_uri = getUri(ctx).buildUpon()
+                    .appendPath(PLACES_PATH).build();
         return places_uri;
     }
 
