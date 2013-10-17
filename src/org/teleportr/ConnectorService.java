@@ -92,9 +92,13 @@ public class ConnectorService extends Service
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent == null) {
+            return START_NOT_STICKY;
+        }
         String action = intent.getAction();
-        if (action == null)
-            return START_STICKY;
+        if (action == null) {
+            return START_NOT_STICKY;
+        }
         if (action.equals(RESOLVE)) {
             worker.postAtFrontOfQueue(resolve);
         } else if (action.equals(SEARCH)) {
