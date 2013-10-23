@@ -98,4 +98,12 @@ public class TestPlaces extends CrashTest {
         places.moveToNext();
         assertEquals("Whiskybar", places.getString(2));
     }
+
+    public void testUniqueGeoHash() {
+        new Place(1) // update
+            .name("Home again")
+            .address("Hipperstr. 42 b")
+            .latlon(52.439716, 13.448982) // same geohash again!
+            .store(ctx);
+    }
 }
