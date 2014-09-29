@@ -89,6 +89,9 @@ public class Ride implements Parcelable {
 
     public Ride from(int from_id) {
         cv.put(FROM_ID, from_id);
+        if (subrides != null && subrides.size() > 0) {
+            subrides.get(0).put(FROM_ID, from_id);
+        }
         return this;
     }
 
