@@ -48,6 +48,17 @@ public class TestRides extends CrashTest {
         assertEquals(park.id, myRide.getSubrides().get(1).getTo().id);
     }
 
+    public void testEditRideRoute() {
+        myRide.to(döner);
+        assertEquals(döner.id, myRide.getTo().id);
+        assertEquals(döner.id, myRide.getPlaces().get(2).id);
+        assertEquals(döner.id, myRide.getSubrides().get(1).getTo().id);
+        myRide.from(cafe);
+        assertEquals(cafe.id, myRide.getFrom().id);
+        assertEquals(cafe.id, myRide.getPlaces().get(0).id);
+        assertEquals(cafe.id, myRide.getSubrides().get(0).getFrom().id);
+    }
+
     public void testStoreEmptyRide() throws Exception {
         Uri uri = new Ride().type(Ride.OFFER).store(ctx);
         Ride ride = new Ride(uri, ctx);
