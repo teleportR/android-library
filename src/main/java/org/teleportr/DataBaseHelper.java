@@ -250,13 +250,17 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_FROM = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS count, from_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
+                + "SELECT count(rides._id) AS count, from_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH
                 + " GROUP BY from_id"
                 + ") AS from_history ON _id=from_history.from_id"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS count, to_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
+                + "SELECT count(rides._id) AS count, to_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH
                 + " GROUP BY to_id"
                 + ") AS to_history ON _id=to_history.to_id"
             + " WHERE (from_history.count > 0 OR to_history.count > 0)"
@@ -269,13 +273,17 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_TO = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS count, from_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
+                + "SELECT count(rides._id) AS count, from_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH
                 + " GROUP BY from_id"
                 + ") AS from_history ON _id=from_history.from_id"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS count, to_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
+                + "SELECT count(rides._id) AS count, to_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH
                 + " GROUP BY to_id"
             + ") AS to_history ON _id=to_history.to_id"
             + " WHERE (from_history.count > 0 OR to_history.count > 0)"
@@ -284,18 +292,25 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_TO_FOR_FROM = "SELECT * FROM 'places'"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS cnt, to_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH + " AND from_id=?"
+                + "SELECT count(rides._id) AS cnt, to_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE from_id=? AND ("
+                    + "markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH + ")"
                 + " GROUP BY to_id"
                 + ") AS to_h_from ON _id=to_h_from.to_id"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS cnt, to_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
+                + "SELECT count(rides._id) AS cnt, to_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH
                 + " GROUP BY to_id"
                 + ") AS to_h ON _id=to_h.to_id"
             + " LEFT JOIN ("
-                + "SELECT count(_id) AS cnt, from_id FROM 'rides'"
-                + " WHERE type=" + Ride.SEARCH
+                + "SELECT count(rides._id) AS cnt, from_id FROM 'rides'"
+                + " LEFT JOIN markings ON rides.ref = markings.ref"
+                + " WHERE markings.ref IS NOT NULL"
+                    + " OR type=" + Ride.SEARCH
                 + " GROUP BY from_id"
                 + ") AS from_h ON _id=from_h.from_id"
             + " WHERE (to_h_from.cnt > 0 OR to_h.cnt > 0 OR from_h.cnt > 0)"
