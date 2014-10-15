@@ -188,7 +188,7 @@ public class TestRides extends CrashTest {
         assertEquals("sort to top", REOCCURING, my_rides.getInt(COLUMNS.TYPE));
     }
 
-    public void deleteMyRides() throws Exception {
+    public void testDeleteMyRides() throws Exception {
         myRide.type(REOCCURING).store(ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there be one myrides anymore", 1, my_rides.getCount());
