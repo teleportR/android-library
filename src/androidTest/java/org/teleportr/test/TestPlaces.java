@@ -99,7 +99,7 @@ public class TestPlaces extends CrashTest {
         assertEquals("Whiskybar", places.getString(2));
     }
 
-    public void xtestUniqueGeoHash() {
+    public void testUniqueGeoHash() {
         new Place(1) // update
             .name("Home again")
             .address("Hipperstr. 42 b")

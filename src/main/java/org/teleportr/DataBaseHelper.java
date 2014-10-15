@@ -48,7 +48,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("create table places ("
                 + "'_id' integer primary key autoincrement,"
-                + " 'geohash' text unique,"
+                + " 'geohash' text,"
                 + " 'name' text unique,"
                 + " 'address' text unique);");
         db.execSQL("create table place_keys ("
