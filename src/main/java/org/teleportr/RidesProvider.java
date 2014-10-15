@@ -110,6 +110,12 @@ public class RidesProvider extends ContentProvider {
                     }
                 }
                 id = db.insertRide(cv);
+                if (cv.containsKey(Ride.MARKED)
+                        && cv.getAsShort(Ride.MARKED) == 1) {
+                    ContentValues m = new ContentValues();
+                    m.put(Ride.REF, cv.getAsString(Ride.REF));
+                    db.getWritableDatabase().insert("markings", null, m);
+                }
                 break;
             case SEARCH:
                 id = db.getWritableDatabase().replace(JOBS_PATH, null, cv);
@@ -279,6 +285,12 @@ public class RidesProvider extends ContentProvider {
         case RIDEF: // all (versions of) rides with same ref
             id =  db.getWritableDatabase().update(RIDES_PATH, values,
                     REF_EQUALS, new String[] { uri.getLastPathSegment() });
+            if (values.containsKey(Ride.REF)) { // update tmp ref
+                ContentValues m = new ContentValues();
+                m.put(Ride.REF, values.getAsString(Ride.REF));
+                db.getWritableDatabase().update("markings", m,
+                    REF_EQUALS, new String[] { uri.getLastPathSegment() });
+            }
             getContext().getContentResolver().notifyChange(
                     getSearchJobsUri(getContext()), null);
             getContext().getContentResolver().notifyChange(

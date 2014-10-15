@@ -117,9 +117,10 @@ public class TestRides extends CrashTest {
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
+        assertEquals(0, my_rides.getShort(COLUMNS.SEATS));
         myRide = new Ride(my_rides.getInt(COLUMNS.ID), ctx);
         myRide.removeVias().from(home).via(cafe).via(döner).to(park).activate()
-                .dep(1700).who("another").dirty().store(ctx);
+                .dep(1700).who("another").seats(1).dirty().store(ctx);
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
@@ -127,10 +128,11 @@ public class TestRides extends CrashTest {
         assertEquals(Ride.FLAG_FOR_UPDATE, my_rides.getShort(COLUMNS.DIRTY));
         assertEquals(1700, my_rides.getLong(COLUMNS.DEPARTURE));
         assertEquals(1, my_rides.getShort(COLUMNS.ACTIVE));
+        assertEquals(1, my_rides.getShort(COLUMNS.SEATS));
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());
-        Cursor search_results = query("content://org.teleportr.test/rides"
+        search_results = query("content://org.teleportr.test/rides"
                 + "?from_id=" + home.id + "&to_id=" + park.id);
         // TODO fix that ride shows up twice temporarily!
         assertEquals("twice in results", 5, search_results.getCount());
@@ -141,6 +143,13 @@ public class TestRides extends CrashTest {
         assertEquals("twice in results", 3, search_results.getCount());
         // all because reoccuring ride instances share the same guid ref
         // and can thus only be distinguished by their departure dates.
+        myRide.removeVias().from(home).to(park).activate() // same as in rslts
+                .dep(1500).who("someone").ref("b").seats(0).store(ctx);
+        dummyConnector.doSearch(query, 0);
+        my_rides = query("content://org.teleportr.test/myrides");
+        assertEquals("there should be only one ride", 1, my_rides.getCount());
+        my_rides.moveToFirst();
+//        assertEquals(1, my_rides.getShort(COLUMNS.SEATS));
     }
 
     public void testRideDuplicate() throws Exception {

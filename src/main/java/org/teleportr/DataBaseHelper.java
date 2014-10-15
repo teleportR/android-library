@@ -19,7 +19,7 @@ import android.util.Log;
 
 class DataBaseHelper extends SQLiteOpenHelper {
 
-    private static final int VERSION = 20;
+    private static final int VERSION = 21;
     private static final String TAG = "DB";
     private static final String EMPTY = "";
     private static final String JOBS = "jobs";
@@ -66,6 +66,9 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " parent_id integer, ref text, refresh integer);");
         db.execSQL("CREATE UNIQUE INDEX rides_idx ON rides"
                 + " ('type', 'ref', 'dep', from_id, to_id, seats, parent_id);");
+        db.execSQL("create table markings ("
+                + "'_id' integer primary key autoincrement,"
+                + "ref text);");
         db.execSQL("create table jobs ("
                 + "'_id' integer primary key autoincrement,"
                 + " from_id integer, to_id integer,"
@@ -209,6 +212,12 @@ class DataBaseHelper extends SQLiteOpenHelper {
             bind(cv, 11, Ride.SEATS, 0);
         }
         long id = insertRide.executeInsert();
+        if (cv.containsKey(Ride.MARKED)
+                && cv.getAsShort(Ride.MARKED) == 1) {
+            ContentValues m = new ContentValues();
+            m.put(Ride.REF, cv.getAsString(Ride.REF));
+            getWritableDatabase().insert("markings", null, m);
+        }
 //        Log.d(TAG, STORED_RIDE + id);
         return (int) id;
     }
@@ -408,7 +417,8 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     static final String SELECT_MYRIDES = SELECT_RIDES_COLUMNS
             + ", max(rides._id)" + JOIN
-            + " WHERE marked=1 AND dirty > -2"
+            + " JOIN markings ON rides.ref = markings.ref"
+            + " WHERE dirty > -2"
             + " GROUP BY rides.ref"
             + " ORDER BY rides.type DESC, rides.dep DESC, rides._id DESC;";
 
