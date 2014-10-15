@@ -99,6 +99,17 @@ public class TestPlaces extends CrashTest {
         assertEquals("Whiskybar", places.getString(2));
     }
 
+    public void testAutocompleteOffers() {
+        new Ride().type(Ride.OFFER).from(bar).to(cafe).marked().store(ctx);
+        Cursor homes = query("content://org.teleportr.test/places" +
+                                "?from_id=" + bar.id);
+        assertEquals(4, homes.getCount());
+        homes.moveToFirst();
+        assertEquals("Cafe Schön", homes.getString(2));
+        homes.moveToPosition(1);
+        assertEquals("Hipperstr. 42", homes.getString(3));
+    }
+
     public void testUniqueGeoHash() {
         new Place(1) // update
             .name("Home again")
