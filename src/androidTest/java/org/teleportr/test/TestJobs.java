@@ -40,10 +40,10 @@ public class TestJobs extends CrashTest {
         assertEquals("now there be a ride to publish", 1, jobs.getCount());
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("one myride as draft", 1, my_rides.getCount());
-        // dummy connector publishing hard in the background..
         jobs.moveToFirst();
         assertNotNull(jobs.getString(COLUMNS.REF)); // tmp ref
-        storeServerRef(jobs.getLong(0));
+        // dummy connector publishing hard in the background..
+        storeServerRef(new Ride(jobs.getInt(0), ctx));
         jobs = query("content://org.teleportr.test/jobs/publish");
         assertEquals("nothing to publish anymore", 0, jobs.getCount());
         // meanwhile the unpublished has been edited with still the tmp ref

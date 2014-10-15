@@ -206,15 +206,20 @@ public class ConnectorService extends Service
             try {
                 switch (job.getShort(COLUMNS.DIRTY)) {
                 case Ride.FLAG_FOR_CREATE:
+                    String tmpRef = offer.getRef();
                     offer.ref(null); // rm tmp ref
-                case Ride.FLAG_FOR_UPDATE:
                     ref = fahrgemeinschaft.publish(offer);
-                    values.put(Ride.DIRTY, Ride.FLAG_CLEAN);
                     values.put(Ride.REF, ref);
                     getContentResolver().update(RidesProvider
                             .getRidesUri(getContext()).buildUpon()
-                            .appendPath(String.valueOf(job.getString(0)))
+                            .appendPath(tmpRef)
                             .build(), values, null, null);
+                    flagClean(offer);
+                    success(offer.toString(), Ride.FLAG_CLEAN);
+                    break;
+                case Ride.FLAG_FOR_UPDATE:
+                    fahrgemeinschaft.publish(offer);
+                    flagClean(offer);
                     success(offer.toString(), Ride.FLAG_CLEAN);
                     break;
                 case Ride.FLAG_FOR_DELETE:
@@ -245,6 +250,15 @@ public class ConnectorService extends Service
                 Log.e(TAG, e.getClass().getName());
                 handleAuth();
             }
+        }
+
+        private void flagClean(Ride offer) {
+            ContentValues r = new ContentValues();
+            r.put(Ride.DIRTY, Ride.FLAG_CLEAN);
+            getContentResolver().update(RidesProvider
+                    .getRidesUri(getContext()).buildUpon()
+                    .appendPath(String.valueOf(offer.getId()))
+                    .build(), r, null, null);
         }
 
         public void handleAuth() {

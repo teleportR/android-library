@@ -71,7 +71,7 @@ public class TestRides extends CrashTest {
         myRide.delete(); // without prior upload
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride is locally deleted", 0, my_rides.getCount());
-        storeServerRef(myRide.getId()); // meanwhile upload succeeded
+        storeServerRef(myRide); // meanwhile upload succeeded
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride shows serverside delete", 1, my_rides.getCount());
         my_rides.moveToFirst();
@@ -79,7 +79,7 @@ public class TestRides extends CrashTest {
     }
 
     public void testDeletePublishedRide() throws Exception {
-        storeServerRef(myRide.getId());
+        storeServerRef(myRide);
         refreshMyRides(myRide);
         myRide = new Ride(myRide.getId(), ctx);
         myRide.delete();
@@ -109,7 +109,10 @@ public class TestRides extends CrashTest {
     }
 
     public void testEditPublishedRide() throws Exception {
-        storeServerRef(myRide.getId());
+        Cursor search_results = query("content://org.teleportr.test/rides"
+                + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("four search results", 4, search_results.getCount());
+        storeServerRef(myRide);
         refreshMyRides(myRide);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
