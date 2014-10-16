@@ -31,6 +31,7 @@ public class TestRides extends CrashTest {
 
 
     public void testRideFromCursor() throws Exception {
+        assertEquals(12, myRide.getId());
         assertEquals(home.id, myRide.getFromId());
         assertEquals(park.id, myRide.getToId());
         assertEquals(1, myRide.getVias().size());
@@ -68,7 +69,9 @@ public class TestRides extends CrashTest {
     public void testDeleteUnpublishedRide() throws Exception {
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be one ride", 1, my_rides.getCount());
-        myRide.delete(); // without prior upload
+        assertEquals(12, myRide.getId());
+        new Ride(Uri.parse("content://org.teleportr.test/rides/12"), ctx)
+            .delete(); // without prior upload
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride is locally deleted", 0, my_rides.getCount());
         storeServerRef(myRide); // meanwhile upload succeeded
