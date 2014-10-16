@@ -371,7 +371,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
 
     public Cursor queryPublishJobs() {
         return getReadableDatabase().rawQuery(
-                SELECT_RIDES + WHERE_DIRTY, null);
+                SELECT_RIDES + WHERE_DIRTY + " ORDER BY rides._id DESC", null);
     }
     private static final String WHERE_DIRTY =
             " WHERE dirty > 0 AND parent_id = 0";
