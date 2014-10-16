@@ -223,19 +223,14 @@ public class Ride implements Parcelable {
     }
 
     public Uri delete() {
-        ContentValues values = new ContentValues();
         if (!cv.containsKey(DIRTY) || getRef() == null // should not be possible
                 || cv.getAsShort(DIRTY) == FLAG_FOR_CREATE
                 || cv.getAsShort(DIRTY) == FLAG_DRAFT) {
-            values.put(DIRTY, FLAG_DELETED);
+            cv.put(DIRTY, FLAG_DELETED);
         } else if (cv.getAsShort(DIRTY) == FLAG_CLEAN) {
-            values.put(DIRTY, FLAG_FOR_DELETE);
+            cv.put(DIRTY, FLAG_FOR_DELETE);
         }
-        Uri uri = RidesProvider.getRideUri(ctx, getId());
-        ctx.getContentResolver().update(uri, values, null, null);
-        uri = RidesProvider.getRideRefUri(ctx, getRef());
-        ctx.getContentResolver().update(uri, values, null, null);
-        return uri;
+        return store(ctx);
     }
 
     public Uri duplicate() {
