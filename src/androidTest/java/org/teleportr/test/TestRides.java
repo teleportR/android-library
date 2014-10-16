@@ -95,20 +95,34 @@ public class TestRides extends CrashTest {
 
     public void testEditUnpublishedRide() throws Exception {
         myRide.removeVias();
-        myRide.from(bar).via(cafe).via(döner).to(park).activate()
-                .store(ctx);
+        Uri uri = myRide.removeVias().from(bar).via(cafe).to(home)
+                .seats(3).activate().dirty().store(ctx);
+        myRide = new Ride(uri, ctx);
+        uri = myRide.removeVias().from(bar).via(cafe).via(döner).to(park)
+                .seats(2).activate().dirty().store(ctx);
+        myRide = new Ride(uri, ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be only one ride", 1, my_rides.getCount());
         my_rides.moveToFirst();
         assertEquals(bar.id, my_rides.getLong(COLUMNS.FROM_ID));
         assertEquals(1000, my_rides.getLong(COLUMNS.DEPARTURE));
         assertEquals(1, my_rides.getShort(COLUMNS.ACTIVE));
+        assertEquals(Ride.FLAG_FOR_CREATE, my_rides.getShort(COLUMNS.DIRTY));
         Cursor subrides = query("content://org.teleportr.test/rides/"
                 + my_rides.getLong(0) + "/rides");
         assertEquals("with three subrides", 3, subrides.getCount());
         Cursor search_results = query("content://org.teleportr.test/rides"
                             + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("show up in search", 4, search_results.getCount());
+        Cursor jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("two versions to upload", 2, jobs.getCount());
+        jobs.moveToFirst();
+        assertEquals(2, jobs.getInt(16)); // seats
+        storeServerRef(myRide);
+        refreshMyRides(myRide);
+        jobs = query("content://org.teleportr.test/jobs/publish");
+        assertEquals("there should be no old version to upload",
+                0, jobs.getCount());
     }
 
     public void testEditPublishedRide() throws Exception {
