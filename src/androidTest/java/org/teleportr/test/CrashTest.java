@@ -121,10 +121,14 @@ public class CrashTest extends ProviderTestCase2<RidesProvider> {
         values.put(Ride.REF, UUID.randomUUID().toString());
         getMockContentResolver().update(Uri.parse(
                 "content://org.teleportr.test/rides/"+ride.getRef()), values, null, null);
+        ride.ref(values.getAsString(Ride.REF));
         values = new ContentValues();
         values.put(Ride.DIRTY, Ride.FLAG_CLEAN);
         getMockContentResolver().update(Uri.parse(
-                "content://org.teleportr.test/rides/"+ride.getId()), values, null, null);
+                "content://org.teleportr.test/"
+                + "rides/"+ride.getRef()
+                + "?id=" + ride.getId()),
+                values, null, null);
     }
 
 }

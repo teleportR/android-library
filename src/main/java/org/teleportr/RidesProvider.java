@@ -283,8 +283,20 @@ public class RidesProvider extends ContentProvider {
                     getMyRidesUri(getContext()), null);
             break;
         case RIDEF: // all (versions of) rides with same ref
-            id =  db.getWritableDatabase().update(RIDES_PATH, values,
-                    REF_EQUALS, new String[] { uri.getLastPathSegment() });
+            String version = uri.getQueryParameter("id");
+            if (version != null) {
+                id =  db.getWritableDatabase().update(RIDES_PATH, values,
+                        REF_EQUALS + " AND _id <= ?", // all older versions
+                        new String[] { uri.getLastPathSegment(), version });
+                values.clear(); // flag meanwhile deleted ride for server delete
+                values.put(Ride.DIRTY, Ride.FLAG_FOR_DELETE);
+                int up =db.getWritableDatabase().update(RIDES_PATH, values,
+                        REF_EQUALS + " AND " + Ride.DIRTY + "=" + Ride.FLAG_DELETED,
+                        new String[] { uri.getLastPathSegment() });
+            } else {
+                id =  db.getWritableDatabase().update(RIDES_PATH, values,
+                        REF_EQUALS, new String[] { uri.getLastPathSegment() });
+            }
             if (values.containsKey(Ride.REF)) { // update tmp ref
                 ContentValues m = new ContentValues();
                 m.put(Ride.REF, values.getAsString(Ride.REF));

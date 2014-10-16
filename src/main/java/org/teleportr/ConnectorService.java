@@ -214,6 +214,7 @@ public class ConnectorService extends Service
                             .getRidesUri(getContext()).buildUpon()
                             .appendPath(tmpRef)
                             .build(), values, null, null);
+                    offer.ref(ref);
                     flagClean(offer);
                     success(offer.toString(), Ride.FLAG_CLEAN);
                     break;
@@ -257,7 +258,9 @@ public class ConnectorService extends Service
             r.put(Ride.DIRTY, Ride.FLAG_CLEAN);
             getContentResolver().update(RidesProvider
                     .getRidesUri(getContext()).buildUpon()
-                    .appendPath(String.valueOf(offer.getId()))
+                    .appendPath(offer.getRef())
+                    .appendQueryParameter("id",
+                            String.valueOf(offer.getId()))
                     .build(), r, null, null);
         }
 
