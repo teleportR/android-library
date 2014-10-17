@@ -215,6 +215,10 @@ public class TestRides extends CrashTest {
         search_results = query("content://org.teleportr.test/rides"
                 + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("prev version still there", 4, search_results.getCount());
+        dummyConnector.doSearch(query, 0);
+        search_results = query("content://org.teleportr.test/rides"
+                + "?from_id=" + home.id + "&to_id=" + park.id);
+        assertEquals("now deleted as outdated", 3, search_results.getCount());
     }
 
     public void testReoccuringRideSortedToTop() throws Exception {
