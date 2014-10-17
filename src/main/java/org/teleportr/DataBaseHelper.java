@@ -405,6 +405,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
                 + " AND match.sub_from_id=? AND match.sub_to_id =?"
                 + " AND rides.dep > ? AND rides.dep < ?"
                 + " AND rides.who <> '' AND active = 1"
+                + " AND rides.dirty > " + Ride.FLAG_DELETED
             + " GROUP BY rides.ref, rides.type, rides.dep"
             + " HAVING rides.type = " + Ride.OFFER
             + " ORDER BY rides.dep, rides._id;";
@@ -433,7 +434,7 @@ class DataBaseHelper extends SQLiteOpenHelper {
     static final String SELECT_MYRIDES = SELECT_RIDES_COLUMNS
             + ", max(rides._id)" + JOIN
             + " JOIN markings ON rides.ref = markings.ref"
-            + " WHERE dirty > -2"
+            + " WHERE dirty > " + Ride.FLAG_DELETED
             + " GROUP BY rides.ref"
             + " ORDER BY rides.type DESC, rides.dep DESC, rides._id DESC;";
 
