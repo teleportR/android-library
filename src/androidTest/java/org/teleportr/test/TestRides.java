@@ -69,12 +69,14 @@ public class TestRides extends CrashTest {
     public void testDeleteUnpublishedRide() throws Exception {
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there should be one ride", 1, my_rides.getCount());
+        Ride theNotYetDeletedRideInBackground = new Ride(
+                Uri.parse("content://org.teleportr.test/rides/12"), ctx);
         assertEquals(12, myRide.getId());
-        new Ride(Uri.parse("content://org.teleportr.test/rides/12"), ctx)
-            .delete(); // without prior upload
+        myRide.delete(); // without prior upload
+        assertEquals(0, myRide.getId()); // TODO dirty mutation!!!
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride is locally deleted", 0, my_rides.getCount());
-        storeServerRef(myRide); // meanwhile upload succeeded
+        storeServerRef(theNotYetDeletedRideInBackground); // meanwhile succeeds
         my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("myride shows serverside delete", 1, my_rides.getCount());
         my_rides.moveToFirst();
