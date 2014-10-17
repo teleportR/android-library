@@ -165,7 +165,7 @@ public class TestRides extends CrashTest {
         search_results = query("content://org.teleportr.test/rides"
                 + "?from_id=" + home.id + "&to_id=" + park.id);
         // but disappear after refreshing search results.
-        assertEquals("twice in results", 3, search_results.getCount());
+        assertEquals("no more in results", 3, search_results.getCount());
         // all because reoccuring ride instances share the same guid ref
         // and can thus only be distinguished by their departure dates.
         myRide.removeVias().from(home).to(park).activate() // same as in rslts
@@ -210,7 +210,7 @@ public class TestRides extends CrashTest {
     public void testReoccuringRides() throws Exception {
         Cursor search_results = query("content://org.teleportr.test/rides"
                 + "?from_id=" + home.id + "&to_id=" + park.id);
-        assertEquals("there be four result", 4, search_results.getCount());
+        assertEquals("there be four results", 4, search_results.getCount());
         myRide.type(REOCCURING).store(ctx);
         search_results = query("content://org.teleportr.test/rides"
                 + "?from_id=" + home.id + "&to_id=" + park.id);
@@ -232,7 +232,7 @@ public class TestRides extends CrashTest {
     public void testDeleteMyRides() throws Exception {
         myRide.type(REOCCURING).store(ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
-        assertEquals("there be one myrides anymore", 1, my_rides.getCount());
+        assertEquals("there be one myrides", 1, my_rides.getCount());
         getMockContentResolver().delete(Uri.parse( // all myrides
                 "content://org.teleportr.test/myrides"), null, null);
         my_rides = query("content://org.teleportr.test/myrides");
