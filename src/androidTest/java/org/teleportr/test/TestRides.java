@@ -215,6 +215,9 @@ public class TestRides extends CrashTest {
         search_results = query("content://org.teleportr.test/rides"
                 + "?from_id=" + home.id + "&to_id=" + park.id);
         assertEquals("prev version still there", 4, search_results.getCount());
+    }
+
+    public void testReoccuringRideSortedToTop() throws Exception {
         new Ride().type(REOCCURING).from(bar).to(park).marked().store(ctx);
         Cursor my_rides = query("content://org.teleportr.test/myrides");
         assertEquals("there be two myrides", 2, my_rides.getCount());
