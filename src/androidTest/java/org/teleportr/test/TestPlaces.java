@@ -11,7 +11,7 @@ public class TestPlaces extends CrashTest {
 
     public void testSearchHistory() {
         Cursor history = query("content://org.teleportr.test/history");
-        assertEquals("there be dummy search history", 7, history.getCount());
+        assertEquals("there be dummy search history", 42, history.getCount());
     }
 
     public void testPlace() {
