@@ -2,6 +2,8 @@
 
 **Android Mobility Library
 
+[![Build Status](https://travis-ci.org/teleportR/android-library.svg?branch=master)](https://travis-ci.org/teleportR/android-library)
+
     Copyright (C) 2013 by it's authors.
 
     This program is free software: you can redistribute it and/or modify
